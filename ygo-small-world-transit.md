@@ -41,10 +41,12 @@ db --> sw : デッキ情報
 
 ## シーケンス図
 
+### 概略版
+
 ```plantuml
 @startuml
 actor User as user
-participant "スモワ乗り換え検索" as sw
+participant "スモールワールド乗り換え検索" as sw
 database 遊戯王DB as db
 
 user --> sw : デッキURL
@@ -63,13 +65,16 @@ end
 @enduml
 ```
 
+### ソフトウェア詳細版
+
 ```plantuml
 @startuml
 actor User as user
 box "スモールワールド乗り換え検索"
 participant "UI表示" as ui
 participant "DeckInfo" as di
-participant "Analyze" as al
+participant "MonsterNameList" as mnl
+participant "SearchResult" as sr
 participant "Deck" as dc
 participant "HtmlParser" as hp
 participant "Monster" as mn
@@ -91,23 +96,24 @@ hp --> dc : モンスター情報リスト
 create mn
 dc --> mn : 生成
 mn --> dc : モンスタークラス情報
+dc --> dc : モンスターリスト生成
 dc --> hp : delete
 destroy hp
 dc --> ui : 結果(OK/NG)
 alt OK
-    ui --> al : モンスター名リスト要求
-    al --> dc : モンスターリスト要求
-    dc --> al : モンスターリスト
-    al --> al : モンスター名リスト生成
-    al --> ui : モンスター名リスト
-    ui --> user : 検索用UI有効化(検索元、検索先、検索ボタン)
-    user --> ui : 検索元、検索先(任意)入力(プルダウンメニュー)
+    ui --> dc : モンスターリスト要求
+    dc --> ui : モンスターリスト
+    create mnl
+    ui --> mnl : モンスター名リスト要求\n(モンスターリスト)
+    mnl --> mnl : モンスター名リスト生成
+    mnl --> ui : モンスター名リスト
+    ui --> user : 検索用UI有効化\n(検索元、検索先、検索ボタン)
+    user --> ui : 検索元、検索先(任意)入力\n(プルダウンメニュー)
     user --> ui : 検索ボタン
-    ui --> al : デッキ情報解析要求(検索)
-    al --> dc : モンスターリスト要求
-    dc --> al : モンスターリスト
-    al --> al : 条件一致検索
-    al --> user : 検索結果
+    create sr
+    ui --> sr : 検索要求\n(モンスターリスト、デッキ検索元、検索先)
+    sr --> sr : 検索
+    sr --> user : 検索結果
 end
 
 @enduml
@@ -128,10 +134,15 @@ class DeckInfo{
     + bool Success()
     + Get()
 }
-class Analyze {
-    + Analyze()
-    + GetMonsterNameList()
-    + GetSearchResult()
+class MonsterNameList {
+    - list MonsterName
+    + MonsterNameList(MonsterList)
+    + Get()
+}
+class SearchResult {
+    - list SearchResult
+    + SearchResult(MonsterList, origin, destination)
+    + Get()
 }
 class Deck{
     - list MonsterList
@@ -160,10 +171,11 @@ class Monster {
     + 各getter()
 }
 ui "1"--"*" DeckInfo
-ui -- Analyze
+ui "1"--"1" MonsterNameList
+ui "1"--"1" SearchResult
 
 ui "1"--"*" Deck
-Deck -- HtmlParser
+Deck "1"--"1" HtmlParser
 Deck "1"--"*" Monster
 @enduml
 ```
