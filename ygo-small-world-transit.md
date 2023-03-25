@@ -41,12 +41,80 @@ db --> sw : デッキ情報
 
 ## シーケンス図
 
+### 概略版
+
 ```plantuml
 @startuml
 actor User as user
+participant "スモールワールド乗り換え検索" as sw
 database 遊戯王DB as db
-participant "スモワ乗り換え検索" as sw
 
+user --> sw : デッキURL
+sw --> db : デッキ情報取得要求
+db --> sw : デッキ情報(html)
+sw --> user : 結果(OK/NG)
+alt OK
+    sw --> sw : デッキ情報解析(検索元、検索先表示用)
+    sw --> sw : 検索用UI有効化
+    user --> sw : 検索元、検索先(任意)入力(プルダウンメニュー)
+    user --> sw : 検索ボタン
+    sw --> sw : デッキ情報解析(検索)
+    sw --> user : 検索結果
+end
+
+@enduml
+```
+
+### ソフトウェア詳細版
+
+```plantuml
+@startuml
+actor User as user
+box "スモールワールド乗り換え検索"
+participant "UI表示" as ui
+participant "DeckInfo" as di
+participant "MonsterNameList" as mnl
+participant "SearchResult" as sr
+participant "Deck" as dc
+participant "HtmlParser" as hp
+participant "Monster" as mn
+end box
+database 遊戯王DB as db
+
+user --> ui : デッキURL
+create di
+ui --> di : デッキURL
+di --> db : デッキ情報取得要求
+db --> di : デッキ情報(html)
+di --> ui : 結果(OK/NG)
+di --> ui : デッキ情報(html)
+create dc
+ui --> dc : デッキ情報(html)
+create hp
+dc --> hp : デッキ情報(html)
+hp --> dc : モンスター情報リスト
+create mn
+dc --> mn : 生成
+mn --> dc : モンスタークラス情報
+dc --> dc : モンスターリスト生成
+dc --> hp : delete
+destroy hp
+dc --> ui : 結果(OK/NG)
+alt OK
+    ui --> dc : モンスターリスト要求
+    dc --> ui : モンスターリスト
+    create mnl
+    ui --> mnl : モンスター名リスト要求\n(モンスターリスト)
+    mnl --> mnl : モンスター名リスト生成
+    mnl --> ui : モンスター名リスト
+    ui --> user : 検索用UI有効化\n(検索元、検索先、検索ボタン)
+    user --> ui : 検索元、検索先(任意)入力\n(プルダウンメニュー)
+    user --> ui : 検索ボタン
+    create sr
+    ui --> sr : 検索要求\n(モンスターリスト、デッキ検索元、検索先)
+    sr --> sr : 検索
+    sr --> user : 検索結果
+end
 
 @enduml
 ```
@@ -55,7 +123,60 @@ participant "スモワ乗り換え検索" as sw
 
 ```plantuml
 @startuml
-test -> test2
+object "UI表示" as ui
+note right
+streamlit
+を使用
+endnote
+class DeckInfo{
+    - html
+    + DeckInfo(url)
+    + bool Success()
+    + Get()
+}
+class MonsterNameList {
+    - list MonsterName
+    + MonsterNameList(MonsterList)
+    + Get()
+}
+class SearchResult {
+    - list SearchResult
+    + SearchResult(MonsterList, origin, destination)
+    + Get()
+}
+class Deck{
+    - list MonsterList
+    + Deck(html)
+    + bool Exists()
+    + list GetMonsterList()
+    - void CreateMonsterList(html)
+}
+class HtmlParser{
+    - MonsterInfoList
+    + HtmlParser(html)
+    + GetMonsterInfoList()
+}
+note right
+beautiful soup
+を使用
+endnote
+class Monster {
+    - name
+    - level
+    - attack
+    - defence
+    - type
+    - attribute
+    + Monster(name,level,atk,def,type,att)
+    + 各getter()
+}
+ui "1"--"*" DeckInfo
+ui "1"--"1" MonsterNameList
+ui "1"--"1" SearchResult
+
+ui "1"--"*" Deck
+Deck "1"--"1" HtmlParser
+Deck "1"--"*" Monster
 @enduml
 ```
 
