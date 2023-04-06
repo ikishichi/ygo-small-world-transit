@@ -193,3 +193,8 @@ test -> test2
 * python
 * github
 * streamlit
+* beautiful soup
+
+コーディング規約はPython公式に従う。
+
+https://docs.python.org/ja/3/tutorial/controlflow.html#intermezzo-coding-style
