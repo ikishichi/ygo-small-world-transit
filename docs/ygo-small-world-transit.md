@@ -173,3 +173,8 @@ test -> test2
 * streamlit
 * requests
 * pandas
+* beautiful soup
+
+コーディング規約はPython公式に従う。
+
+https://docs.python.org/ja/3/tutorial/controlflow.html#intermezzo-coding-style
