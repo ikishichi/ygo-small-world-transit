@@ -73,11 +73,9 @@ actor User as user
 box "スモールワールド乗り換え検索"
 participant "UI表示" as ui
 participant "DeckInfo" as di
-participant "MonsterNameList" as mnl
 participant "SearchResult" as sr
 participant "Deck" as dc
 participant "HtmlParser" as hp
-participant "Monster" as mn
 end box
 database 遊戯王DB as db
 
@@ -93,9 +91,6 @@ ui --> dc : デッキ情報(html)
 create hp
 dc --> hp : デッキ情報(html)
 hp --> dc : モンスター情報リスト
-create mn
-dc --> mn : 生成
-mn --> dc : モンスタークラス情報
 dc --> dc : モンスターリスト生成
 dc --> hp : delete
 destroy hp
@@ -103,10 +98,6 @@ dc --> ui : 結果(OK/NG)
 alt OK
     ui --> dc : モンスターリスト要求
     dc --> ui : モンスターリスト
-    create mnl
-    ui --> mnl : モンスター名リスト要求\n(モンスターリスト)
-    mnl --> mnl : モンスター名リスト生成
-    mnl --> ui : モンスター名リスト
     ui --> user : 検索用UI有効化\n(検索元、検索先、検索ボタン)
     user --> ui : 検索元、検索先(任意)入力\n(プルダウンメニュー)
     user --> ui : 検索ボタン
@@ -134,23 +125,22 @@ class DeckInfo{
     + bool Success()
     + Get()
 }
-class MonsterNameList {
-    - list MonsterName
-    + MonsterNameList(MonsterList)
-    + Get()
-}
 class SearchResult {
     - list SearchResult
     + SearchResult(MonsterList, origin, destination)
     + Get()
 }
 class Deck{
-    - list MonsterList
+    - pandas.DataFrame MonsterList
     + Deck(html)
     + bool Exists()
     + list GetMonsterList()
     - void CreateMonsterList(html)
 }
+note right
+pandas
+を使用
+endnote
 class HtmlParser{
     - MonsterInfoList
     + HtmlParser(html)
@@ -160,23 +150,11 @@ note right
 beautiful soup
 を使用
 endnote
-class Monster {
-    - name
-    - level
-    - attack
-    - defence
-    - type
-    - attribute
-    + Monster(name,level,atk,def,type,att)
-    + 各getter()
-}
 ui "1"--"*" DeckInfo
-ui "1"--"1" MonsterNameList
 ui "1"--"1" SearchResult
 
 ui "1"--"*" Deck
 Deck "1"--"1" HtmlParser
-Deck "1"--"*" Monster
 @enduml
 ```
 
@@ -193,3 +171,10 @@ test -> test2
 * python
 * github
 * streamlit
+* requests
+* pandas
+* beautiful soup
+
+コーディング規約はPython公式に従う。
+
+https://docs.python.org/ja/3/tutorial/controlflow.html#intermezzo-coding-style
