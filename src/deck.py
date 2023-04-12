@@ -3,10 +3,11 @@
 import requests
 from bs4 import BeautifulSoup
 
+
 class Deck:
     def __init__(self, html):
         """Initialize this class
 
         Args:
-            html (_type_): _description_
+            html (Response): デッキレシピのhtml
         """
