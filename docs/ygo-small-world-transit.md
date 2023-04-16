@@ -134,8 +134,7 @@ class Deck{
     - pandas.DataFrame MonsterList
     + Deck(html)
     + bool Exists()
-    + list GetMonsterList()
-    - void CreateMonsterList(html)
+    + pandas.DataFrame GetMonsterList()
 }
 note right
 pandas
