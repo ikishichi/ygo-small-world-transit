@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """デッキ情報管理クラス"""
-import requests
-from bs4 import BeautifulSoup
+import html_parser
 
 
 class Deck:
@@ -11,3 +10,8 @@ class Deck:
         Args:
             html (Response): デッキレシピのhtml
         """
+
+        parser = html_parser.HtmlParser(html)
+        monsters = parser.get_monster_info_list()
+
+    def convert_monsters_to_df(self, monsters):
