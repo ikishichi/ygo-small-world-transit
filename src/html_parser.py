@@ -7,34 +7,29 @@ class HtmlParser:
     def __init__(self, html):
         """Initialize this class
 
-        :arg
+        Args:
             html (Response): デッキレシピのhtml
-
-        :param
-            monsters (list[dict[str, str]]): メインデッキ内のモンスター情報のリスト
         """
-
         self.monsters = self.generate_monsters(html)
 
     def get_monster_info_list(self):
-        """monstersのGetter
+        """メインデッキのモンスター情報のGetter
 
-        :return (list[dict[str, str]]): メインデッキのモンスター情報のリスト
+        Returns:
+            list[dict[str, str]]: メインデッキのモンスター情報のリスト
         """
-
         return self.monsters
 
     @staticmethod
     def generate_monsters(html):
         """メインデッキ内のモンスターのリストを生成する
 
-        :arg
+        Args:
             html (Response): デッキレシピのhtml
 
-        :return
-            monsters (list[dict[str, str]]): メインデッキのモンスター情報のリスト
+        Returns:
+            list[dict[str, str]]: メインデッキのモンスター情報のリスト
         """
-
         # htmlをsoupオブジェクトに変換
         soup = BeautifulSoup(html.content, "html.parser")
 
