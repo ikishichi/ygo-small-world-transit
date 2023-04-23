@@ -47,10 +47,8 @@ class HtmlParser:
             attribute = monster_soup.find("div", class_="item_set").find("span").text
             type_ = monster_soup.find("div", class_="flex_2 other").find("span").text
             level = monster_soup.find("div", class_="num_set flex_1").find("span").text
-            attack = monster_soup.select("div.inside > div.element > div.num_set.flex_1 > div > span:nth-child(1)")[
-                0].text
-            defence = monster_soup.select("div.inside > div.element > div.num_set.flex_1 > div > span:nth-child(2)")[
-                0].text
+            attack = monster_soup.select("div.inside > div.element > div.num_set.flex_1 > div > span:nth-child(1)")[0].text
+            defence = monster_soup.select("div.inside > div.element > div.num_set.flex_1 > div > span:nth-child(2)")[0].text
 
             # 改行やタブを削除
             attribute = "".join(attribute.split())
