@@ -1,5 +1,6 @@
 import requests
 class DeckInfo:
+    STATUS_CODE_SUCCESS = 200
     def __init__(self, url):
         """Initialize this class
 
@@ -7,11 +8,10 @@ class DeckInfo:
             url (string): Deck URL
         """
         self.gets_html = False
-        correct_url = 'https://www.db.yugioh-card.com/yugiohdb/'
-        if True == url.startswith(correct_url):
+        correct_url = 'http://www.db.yugioh-card.com/yugiohdb/member_deck.action?cgid='
+        if url.startswith(correct_url):
             self.html = requests.get(url)
-            STATUS_CODE_SUCCESS = 200
-            if STATUS_CODE_SUCCESS == self.html.status_code:
+            if self.STATUS_CODE_SUCCESS == self.html.status_code:
                 self.gets_html = True
 
     def success(self):
@@ -20,10 +20,9 @@ class DeckInfo:
         Returns:
             bool: html got or not
         """
-        ret = False
         if True == self.gets_html:
-            ret = True
-        return ret
+            return True
+        return False
 
     def Get(self):
         return self.html
