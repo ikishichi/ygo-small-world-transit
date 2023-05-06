@@ -1,6 +1,6 @@
 # ygo-small-world-transit
 
-## 要件定義
+## 要件定義だよ
 
 ```plantuml
 @startuml
