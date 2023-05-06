@@ -24,5 +24,5 @@ class DeckInfo:
             return True
         return False
 
-    def Get(self):
+    def get(self):
         return self.html
