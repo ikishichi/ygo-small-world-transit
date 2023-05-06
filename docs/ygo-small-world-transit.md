@@ -9,7 +9,7 @@ left to right direction
 
 package "スモワ乗り換え検索" {
     (検索) as uc1
-    (デッキURL保存) as uc2
+    (検索結果URL保存) as uc2
 }
 user --> uc1
 user --> uc2
@@ -20,7 +20,7 @@ user --> uc2
 1. スモールワールドのサーチ先が検索できる
 1. 遊戯王DBからデッキレシピを読み込める
 1. PC/スマートフォンでの表示に対応
-1. デッキURLを保存できる
+1. 検索結果のURLを保存できる
 
 ## データフロー図
 
@@ -122,38 +122,36 @@ endnote
 class DeckInfo{
     - html
     + DeckInfo(url)
-    + bool Success()
-    + Get()
+    + bool success()
+    + get()
 }
 class SearchResult {
-    - list SearchResult
+    - list search_result
     + SearchResult(MonsterList, origin, destination)
-    + Get()
+    + get()
 }
 class Deck{
-    - pandas.DataFrame MonsterList
+    - pandas.DataFrame monster_list
     + Deck(html)
-    + bool Exists()
-    + list GetMonsterList()
-    - void CreateMonsterList(html)
+    + list get_monster_list()
 }
 note right
 pandas
 を使用
 endnote
 class HtmlParser{
-    - MonsterInfoList
+    - monster_info_list
     + HtmlParser(html)
-    + GetMonsterInfoList()
+    + get_monster_info_list()
 }
 note right
 beautiful soup
 を使用
 endnote
-ui "1"--"*" DeckInfo
+ui "1"--"1" DeckInfo
 ui "1"--"1" SearchResult
 
-ui "1"--"*" Deck
+ui "1"--"1" Deck
 Deck "1"--"1" HtmlParser
 @enduml
 ```
