@@ -2,12 +2,6 @@
 from bs4 import BeautifulSoup
 
 
-class OnlyOneMonsterError(Exception):
-    """Only one type of monster is included in the main deck."""
-    def __str__(self):
-        return "Only one type of monster is included in the main deck."
-
-
 class HtmlParser:
     def __init__(self, html):
         """Initialize this class
@@ -47,8 +41,6 @@ class HtmlParser:
 
             # モンスター1体毎のパラメータの辞書を作成し、リストに格納
             monsters: list[dict[str, str]] = []
-            if len(monsters) <= 1:
-                raise OnlyOneMonsterError("メインデッキのモンスターが1種類以下")
             for monster_soup in monster_soups:
                 # 各パラメータのタグを取得
                 name = monster_soup.find("span", class_="name").text
@@ -80,6 +72,6 @@ class HtmlParser:
 
             return monsters
         except Exception:
-            raise Exception("メインデッキに十分な数のモンスターが含まれていません")
+            raise Exception("メインデッキのモンスター情報が正しく取得できませんでした。")
 
 
