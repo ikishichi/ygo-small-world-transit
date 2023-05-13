@@ -50,6 +50,9 @@ class HtmlParser:
 
         Returns:
             list[dict[str, str]]: メインデッキのモンスター情報のリスト
+
+        Raises:
+            AttributeError: モンスター情報のタグを取得できなかった場合に発生
         """
         try:
             # モンスター1体毎のパラメータの辞書を作成し、リストに格納
