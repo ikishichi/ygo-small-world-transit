@@ -10,8 +10,12 @@ class Deck:
         Args:
             html (Response): デッキレシピのhtml
         """
-        monsters = HtmlParser(html).get_monster_info_list()
-        self.monsters_df = self.convert_monsters_to_df(monsters)
+        try:
+            monsters = HtmlParser(html).get_monster_info_list()
+        except Exception as e:
+            raise e
+        else:
+            self.monsters_df = self.convert_monsters_to_df(monsters)
 
     @staticmethod
     def convert_monsters_to_df(monsters):
