@@ -11,7 +11,7 @@ class Deck:
             html (Response): デッキレシピのhtml
         """
         try:
-            monsters = HtmlParser(html).get_monster_info_list()
+            monsters = HtmlParser(html).generate_monsters()
         except Exception as e:
             raise e
         else:

@@ -9,51 +9,17 @@ class HtmlParser:
         Args:
             html (Response): デッキレシピのhtml
         """
-        monster_soups = self.generate_monster_soups(html)
-        self.monsters = self.generate_monsters(monster_soups)
+        self.html = html
 
-    def get_monster_info_list(self):
-        """メインデッキのモンスター情報のGetter
-
-        Returns:
-            list[dict[str, str]]: メインデッキのモンスター情報のリスト
-        """
-        return self.monsters
-
-    @staticmethod
-    def generate_monster_soups(html):
-        """メインデッキのモンスター1体毎のsoupのリストを生成する
-
-        Args:
-            html (Response): デッキレシピのhtml
-
-        Returns:
-            ResultSet[Tag] :モンスター1体毎のsoup
-        """
-        # htmlをsoupオブジェクトに変換
-        soup = BeautifulSoup(html.content, "html.parser")
-
-        # メインデッキのモンスターのみのsoupを生成
-        main_monsters_soup = soup.find(id="detailtext_main").find("div", class_="t_body")
-
-        # モンスター1体毎のsoupに分解
-        monster_soups = main_monsters_soup.select("[class='t_row c_simple']")
-
-        return monster_soups
-
-    @staticmethod
-    def generate_monsters(monster_soups):
+    def generate_monsters(self):
         """メインデッキ内のモンスターのリストを生成する
-
-        Args:
-            monster_soups (ResultSet[Tag]): モンスター1体毎のsoup
-
-        Returns:
-            list[dict[str, str]]: メインデッキのモンスター情報のリスト
 
         Raises:
             AttributeError: モンスター情報のタグを取得できなかった場合に発生
         """
+
+        monster_soups = self._generate_monster_soups()
+
         try:
             # モンスター1体毎のパラメータの辞書を作成し、リストに格納
             monsters: list[dict[str, str]] = []
@@ -93,6 +59,21 @@ class HtmlParser:
         except Exception as e:
             print("予期せぬ例外が発生しました")
             print(e)
-            raise e
+            raise
 
+    def _generate_monster_soups(self):
+        """メインデッキのモンスター1体毎のsoupのリストを生成する
 
+        Returns:
+            ResultSet[Tag] :モンスター1体毎のsoup
+        """
+        # htmlをsoupオブジェクトに変換
+        soup = BeautifulSoup(self.html, "html.parser")
+
+        # メインデッキのモンスターのみのsoupを生成
+        main_monsters_soup = soup.find(id="detailtext_main").find("div", class_="t_body")
+
+        # モンスター1体毎のsoupに分解
+        monster_soups = main_monsters_soup.select("[class='t_row c_simple']")
+
+        return monster_soups
