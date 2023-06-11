@@ -14,11 +14,21 @@ class HtmlParser:
     def generate_monsters(self):
         """メインデッキ内のモンスターのリストを生成する
 
+        Returns:
+            list[dict[str, str]]: メインデッキのモンスター情報のリスト
+
         Raises:
             AttributeError: モンスター情報のタグを取得できなかった場合に発生
         """
 
-        monster_soups = self._generate_monster_soups()
+        # htmlをsoupオブジェクトに変換
+        soup = BeautifulSoup(self.html, "lxml")
+
+        # メインデッキのモンスターのみのsoupを生成
+        main_monsters_soup = soup.find(id="detailtext_main").find("div", class_="t_body")
+
+        # モンスター1体毎のsoupに分解
+        monster_soups = main_monsters_soup.select("[class='t_row c_simple']")
 
         try:
             # モンスター1体毎のパラメータの辞書を作成し、リストに格納
@@ -60,20 +70,3 @@ class HtmlParser:
             print("予期せぬ例外が発生しました")
             print(e)
             raise
-
-    def _generate_monster_soups(self):
-        """メインデッキのモンスター1体毎のsoupのリストを生成する
-
-        Returns:
-            ResultSet[Tag] :モンスター1体毎のsoup
-        """
-        # htmlをsoupオブジェクトに変換
-        soup = BeautifulSoup(self.html, "html.parser")
-
-        # メインデッキのモンスターのみのsoupを生成
-        main_monsters_soup = soup.find(id="detailtext_main").find("div", class_="t_body")
-
-        # モンスター1体毎のsoupに分解
-        monster_soups = main_monsters_soup.select("[class='t_row c_simple']")
-
-        return monster_soups
