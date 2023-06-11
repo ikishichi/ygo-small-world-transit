@@ -8,10 +8,10 @@ class DeckInfo:
             url (string): Deck URL
         """
         self.gets_html = False
-        correct_url = 'http://www.db.yugioh-card.com/yugiohdb/member_deck.action?cgid='
+        correct_url = 'https://www.db.yugioh-card.com/yugiohdb/member_deck.action?cgid='
         if url.startswith(correct_url):
-            self.html = requests.get(url)
-            if self.STATUS_CODE_SUCCESS == self.html.status_code:
+            self.htmlinfo = requests.get(url)
+            if self.STATUS_CODE_SUCCESS == self.htmlinfo.status_code:
                 self.gets_html = True
 
     def success(self):
@@ -25,4 +25,4 @@ class DeckInfo:
         return False
 
     def get(self):
-        return self.html
+        return self.htmlinfo.content
