@@ -1,6 +1,5 @@
-# -*- coding: utf-8 -*-
 """デッキ情報管理クラス"""
-import html_parser
+from html_parser import HtmlParser
 import pandas as pd
 
 
@@ -11,10 +10,12 @@ class Deck:
         Args:
             html (Response): デッキレシピのhtml
         """
-        parser = html_parser.HtmlParser(html)
-        monsters = parser.get_monster_info_list()
-
-        self.monsters_df = self.convert_monsters_to_df(monsters)
+        try:
+            monsters = HtmlParser(html).generate_monsters()
+        except Exception as e:
+            raise e
+        else:
+            self.monsters_df = self.convert_monsters_to_df(monsters)
 
     @staticmethod
     def convert_monsters_to_df(monsters):
