@@ -24,13 +24,13 @@ class HtmlParser:
         # htmlをsoupオブジェクトに変換
         soup = BeautifulSoup(self.html, "lxml")
 
-        # メインデッキのモンスターのみのsoupを生成
-        main_monsters_soup = soup.find(id="detailtext_main").find("div", class_="t_body")
-
-        # モンスター1体毎のsoupに分解
-        monster_soups = main_monsters_soup.select("[class='t_row c_simple']")
-
         try:
+            # メインデッキ内の最初のt_bodyからsoupを抽出（モンスターが含まれる場合、モンスターのsoupが抽出される）
+            main_monsters_soup = soup.find(id="detailtext_main").find("div", class_="t_body")
+
+            # モンスター1体毎のsoupに分解
+            monster_soups = main_monsters_soup.select("[class='t_row c_simple']")
+
             # モンスター1体毎のパラメータの辞書を作成し、リストに格納
             monsters: list[dict[str, str]] = []
             for monster_soup in monster_soups:
@@ -69,4 +69,4 @@ class HtmlParser:
         except Exception as e:
             print("予期せぬ例外が発生しました")
             print(e)
-            raise
+            raise e
