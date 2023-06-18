@@ -175,4 +175,4 @@ test -> test2
 
 コーディング規約はPython公式に従う。
 
-"https://docs.python.org/ja/3/tutorial/controlflow.html#intermezzo-coding-style"
+https://docs.python.org/ja/3/tutorial/controlflow.html#intermezzo-coding-style
