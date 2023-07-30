@@ -19,9 +19,9 @@ class SearchResult:
             monster_list: (pandas) name, attribute, type, level, attack, defence
             target_name: for Search
         Return:
-
+            monster data with matching name
         """
-        print(monster_list[monster_list['name'] == target_name])
+        return monster_list[monster_list['name'] == target_name]
 
     def get(self):
         """Get search result
@@ -37,23 +37,5 @@ class SearchResult:
             [search_dest_C, [transit_1, transit_2, transit_3, ...]],
             ...
         """
-        #test_pd = pd.DataFrame(['テストマン','光','サイバース','10','100','300'],columns=['name', 'attribute', 'type', 'level', 'attack', 'defence'])
-        test_pd = pd.DataFrame({'name':['テストマン','テストクリボー','LL-テスト・ダック'],
-                                'attribute':['光','闇','風'],
-                                'type':['サイバース族','悪魔族','鳥獣族'],
-                                'level':['10','1','1'],
-                                'attack':['100','0','50'],
-                                'defence':['300','200','0']})
-        print(test_pd)
-        print('Go Test __name_search Go')
-        self.__name_search(test_pd,'LL-テスト・ダック')
-        "return self.search_result"
-        return
-
-def main():
-    test_pd = pd.DataFrame(columns=['name', 'attribute', 'type', 'level', 'attack', 'defence'])
-    sr = SearchResult(test_pd,'test')
-    print('Go Test get Go')
-    sr.get()
-
-main()
+        name_search_result = self.__name_search(self.monster_list, self.origin)
+        return name_search_result
