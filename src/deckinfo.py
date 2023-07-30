@@ -1,8 +1,11 @@
 import requests
+
+
 class DeckInfo:
     STATUS_CODE_SUCCESS = 200
     CORRECT_URL_HTTP = 'http://www.db.yugioh-card.com/yugiohdb/member_deck.action?cgid='
     CORRECT_URL_HTTPS = 'https://www.db.yugioh-card.com/yugiohdb/member_deck.action?cgid='
+
     def __init__(self, url):
         """Initialize this class
 
@@ -15,7 +18,7 @@ class DeckInfo:
             if self.STATUS_CODE_SUCCESS == self.htmlinfo.status_code:
                 self.gets_html = True
 
-    def success(self):
+    def is_success(self):
         """Return true if html got
 
         Returns:
