@@ -1,6 +1,4 @@
-# -*- coding: utf-8 -*-
-"""スモール・ワールド乗り換え検索の画面表示
-"""
+"""スモール・ワールド乗り換え検索の画面表示モジュール"""
 import streamlit as st
 import pandas as pd
 from deckinfo import DeckInfo
@@ -22,14 +20,10 @@ with st.form(key="deck_url"):
 
     try:
         if submit_btn:
-            # TODO: Deckクラスにhtmlを渡す（try-exceptして例外が出たら処理終了）
-
             di = DeckInfo(url)
             if di.is_success() is False:
                 st.warning("無効なURLです。遊戯王DBの公開デッキレシピのURLを入力してください。")
                 st.stop()
-
-            # st.info("正常なデッキURLです。")
 
             deck = Deck(di.get())
             monsters_df = deck.get_monsters_df()
