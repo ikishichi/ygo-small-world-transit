@@ -1,13 +1,18 @@
-"""HTMLパーサークラス"""
+"""HTMLパーサーモジュール"""
 from bs4 import BeautifulSoup
 
 
 class HtmlParser:
+    """公開デッキのHTMLからモンスターリストを作成するパーサークラス
+
+    Attributes:
+        html (bytes): 公開デッキのhtmlバイナリデータ
+    """
     def __init__(self, html):
         """Initialize this class
 
         Args:
-            html (Response): デッキレシピのhtml
+            html (bytes): 公開デッキのhtmlバイナリデータ
         """
         self.html = html
 
