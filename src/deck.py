@@ -1,14 +1,19 @@
-"""デッキ情報管理クラス"""
+"""デッキ内容（DataFrame）管理モジュール"""
 from html_parser import HtmlParser
 import pandas as pd
 
 
 class Deck:
+    """デッキ内容管理クラス
+
+    Attributes:
+        monsters_df (Pandas.DataFrame): メインデッキのモンスターのDataFrame
+    """
     def __init__(self, html):
         """Initialize this class
 
         Args:
-            html (Response): デッキレシピのhtml
+            html (bytes): 公開デッキのhtmlバイナリデータ
         """
         try:
             monsters = HtmlParser(html).generate_monsters()
