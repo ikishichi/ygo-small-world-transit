@@ -64,5 +64,14 @@ class SearchResult:
             ]
         """
         name_search_result = self.__get_monster_data_with_name(self.monsters_df, self.origin)
-        result = self.__get_monster_data_with_only_one_matching(self.monsters_df, name_search_result)
+        transit_data = self.__get_monster_data_with_only_one_matching(self.monsters_df, name_search_result)
+        # 結果を格納する配列
+        result = pd.DataFrame(columns=['origin','transit','dest'])
+        # 中継データごとに検索する
+        for transit_index,transit_row in transit_data.iterrows():
+            dest_data = self.__get_monster_data_with_only_one_matching(self.monsters_df, transit_row)
+            for dest_index,dest_row in dest_data.iterrows():
+                if self.origin != dest_row['name']:
+                    result_data = pd.DataFrame({'origin':[self.origin],'transit':[transit_row['name']],'dest':[dest_row['name']]})
+                    result = pd.concat([result,result_data])
         return result
