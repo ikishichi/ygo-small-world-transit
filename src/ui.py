@@ -14,62 +14,58 @@ with st.form(key="deck_url"):
 
     # URL入力欄の入力値
     url = st.text_input("遊戯王DBの公開デッキのURLを入力してください。")
-    
+
     # デッキ取得ボタンの押下状態（boolean）
     submit_btn = st.form_submit_button("デッキ取得")
 
     try:
         if submit_btn:
+            # デッキ情報（htmlバイナリデータ）を取得する
             di = DeckInfo(url)
             if di.is_success() is False:
                 st.warning("無効なURLです。遊戯王DBの公開デッキレシピのURLを入力してください。")
                 st.stop()
 
+            # デッキからモンスターのDataFrameを取得する
             deck = Deck(di.get())
             monsters_df = deck.get_monsters_df()
 
-        # サーチ元指定（プルダウン）
+        # サーチ元指定（プルダウン。DataFrameの1列目が候補として表示される）
         transit_start = st.selectbox("サーチ元となるモンスターを選択してください。", monsters_df)
 
         # TODO: サーチ元に指定されたモンスターでSearchResultクラスに検索要求する。
+        search_results = pd.DataFrame(
+            {
+                "origin": ["マイクロ・コーダー", "マイクロ・コーダー", "マイクロ・コーダー", "マイクロ・コーダー", "マイクロ・コーダー", "マイクロ・コーダー", "マイクロ・コーダー", "マイクロ・コーダー"],
+                "transit": ["斬機シグマ", "斬機アディオン", "斬機シグマ", "斬機アディオン", "パラレル・エクシード", "斬機シグマ", "斬機アディオン", "パラレル・エクシード"],
+                "dest": ["ガッチリ＠イグニスター", "ガッチリ＠イグニスター", "ドット・スケーパー", "ドット・スケーパー", "ドット・スケーパー", "夢幻崩界イヴリース", "夢幻崩界イヴリース", "夢幻崩界イヴリース"]
+            }
+        )
+
         # TODO: 検索結果をUI表示。
-        # TODO: 検索結果のモンスター名一覧を取得し、サーチ先プルダウンに表示する。
+        # TODO: (opt)検索結果のモンスター名一覧を取得し、サーチ先プルダウンに表示する。
 
         # サーチ先指定（プルダウン）
         # 検索結果の中から候補を選ぶ「絞り込み検索」
-        transit_goal = st.selectbox("サーチ先とするモンスターを選択してください（任意）", monsters_df)
+        # transit_goal = st.selectbox("サーチ先とするモンスターを選択してください（任意）", monsters_df)
 
-        col1, col2, col3 = st.columns(3)
+        col2, col3 = st.columns(2)
+        origin = search_results
 
-        with col1:
-            st.header("サーチ元")
-            st.write("マイクロ・コーダー")
-            st.write("マイクロ・コーダー")
-            st.write("マイクロ・コーダー")
-            st.markdown("---")
-            st.write("マイクロ・コーダー")
-            st.write("マイクロ・コーダー")
-            st.write("マイクロ・コーダー")
+        # with col1:
+        #     st.header("サーチ元")
+        #     for origin in search_results["origin"]:
+        #         st.write(origin)
 
         with col2:
             st.header("経由")
-            st.write("斬機シグマ")
-            st.write("斬機サブトラ")
-            st.write("斬機アディオン")
-            st.markdown("---")
-            st.write("斬機シグマ")
-            st.write("斬機サブトラ")
-            st.write("斬機アディオン")
+            for transit in search_results["transit"]:
+                st.write(transit)
 
         with col3:
             st.header("サーチ先")
-            st.write("ガッチリ＠イグニスター")
-            st.write("ガッチリ＠イグニスター")
-            st.write("ガッチリ＠イグニスター")
-            st.markdown("---")
-            st.write("夢幻崩界イヴリース")
-            st.write("夢幻崩界イヴリース")
-            st.write("夢幻崩界イヴリース")
+            for dest in search_results["dest"]:
+                st.write(dest)
 
     except AttributeError as ae:
         st.error(ae)
@@ -79,3 +75,4 @@ with st.form(key="deck_url"):
     except Exception as e:
         st.error("予期せぬ例外が発生しました。繰り返し発生する場合は以下のエラーメッセージを添えてお問い合わせフォームからご連絡ください。")
         st.error(e)
+
