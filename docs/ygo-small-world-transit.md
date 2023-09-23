@@ -9,7 +9,7 @@ left to right direction
 
 package "スモワ乗り換え検索" {
     (検索) as uc1
-    (デッキURL保存) as uc2
+    (検索結果URL保存) as uc2
 }
 user --> uc1
 user --> uc2
@@ -20,7 +20,7 @@ user --> uc2
 1. スモールワールドのサーチ先が検索できる
 1. 遊戯王DBからデッキレシピを読み込める
 1. PC/スマートフォンでの表示に対応
-1. デッキURLを保存できる
+1. 検索結果のURLを保存できる
 
 ## データフロー図
 
@@ -73,11 +73,9 @@ actor User as user
 box "スモールワールド乗り換え検索"
 participant "UI表示" as ui
 participant "DeckInfo" as di
-participant "MonsterNameList" as mnl
 participant "SearchResult" as sr
 participant "Deck" as dc
 participant "HtmlParser" as hp
-participant "Monster" as mn
 end box
 database 遊戯王DB as db
 
@@ -93,9 +91,6 @@ ui --> dc : デッキ情報(html)
 create hp
 dc --> hp : デッキ情報(html)
 hp --> dc : モンスター情報リスト
-create mn
-dc --> mn : 生成
-mn --> dc : モンスタークラス情報
 dc --> dc : モンスターリスト生成
 dc --> hp : delete
 destroy hp
@@ -103,10 +98,6 @@ dc --> ui : 結果(OK/NG)
 alt OK
     ui --> dc : モンスターリスト要求
     dc --> ui : モンスターリスト
-    create mnl
-    ui --> mnl : モンスター名リスト要求\n(モンスターリスト)
-    mnl --> mnl : モンスター名リスト生成
-    mnl --> ui : モンスター名リスト
     ui --> user : 検索用UI有効化\n(検索元、検索先、検索ボタン)
     user --> ui : 検索元、検索先(任意)入力\n(プルダウンメニュー)
     user --> ui : 検索ボタン
@@ -131,52 +122,37 @@ endnote
 class DeckInfo{
     - html
     + DeckInfo(url)
-    + bool Success()
-    + Get()
-}
-class MonsterNameList {
-    - list MonsterName
-    + MonsterNameList(MonsterList)
-    + Get()
+    + bool success()
+    + get()
 }
 class SearchResult {
-    - list SearchResult
+    - list search_result
     + SearchResult(MonsterList, origin, destination)
-    + Get()
+    + get()
 }
 class Deck{
-    - list MonsterList
+    - pandas.DataFrame monster_list
     + Deck(html)
-    + bool Exists()
-    + list GetMonsterList()
-    - void CreateMonsterList(html)
+    + list get_monster_list()
 }
+note right
+pandas
+を使用
+endnote
 class HtmlParser{
-    - MonsterInfoList
+    - monster_info_list
     + HtmlParser(html)
-    + GetMonsterInfoList()
+    + get_monster_info_list()
 }
 note right
 beautiful soup
 を使用
 endnote
-class Monster {
-    - name
-    - level
-    - attack
-    - defence
-    - type
-    - attribute
-    + Monster(name,level,atk,def,type,att)
-    + 各getter()
-}
-ui "1"--"*" DeckInfo
-ui "1"--"1" MonsterNameList
+ui "1"--"1" DeckInfo
 ui "1"--"1" SearchResult
 
-ui "1"--"*" Deck
+ui "1"--"1" Deck
 Deck "1"--"1" HtmlParser
-Deck "1"--"*" Monster
 @enduml
 ```
 
@@ -193,3 +169,10 @@ test -> test2
 * python
 * github
 * streamlit
+* requests
+* pandas
+* beautiful soup
+
+コーディング規約はPython公式に従う。
+
+https://docs.python.org/ja/3/tutorial/controlflow.html#intermezzo-coding-style
