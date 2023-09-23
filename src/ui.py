@@ -3,6 +3,7 @@ import streamlit as st
 import pandas as pd
 from deckinfo import DeckInfo
 from deck import Deck
+from search_result import SearchResult
 
 st.title("遊戯王スモール・ワールド乗り換え検索")
 st.caption("遊戯王DBの公開デッキを読み込むことで、<<スモール・ワールド>>のサーチ経路を検索できます。")
@@ -33,16 +34,9 @@ with st.form(key="deck_url"):
         # サーチ元指定（プルダウン。DataFrameの1列目が候補として表示される）
         transit_start = st.selectbox("サーチ元となるモンスターを選択してください。", monsters_df)
 
-        # TODO: サーチ元に指定されたモンスターでSearchResultクラスに検索要求する。
-        search_results = pd.DataFrame(
-            {
-                "origin": ["マイクロ・コーダー", "マイクロ・コーダー", "マイクロ・コーダー", "マイクロ・コーダー", "マイクロ・コーダー", "マイクロ・コーダー", "マイクロ・コーダー", "マイクロ・コーダー"],
-                "transit": ["斬機シグマ", "斬機アディオン", "斬機シグマ", "斬機アディオン", "パラレル・エクシード", "斬機シグマ", "斬機アディオン", "パラレル・エクシード"],
-                "dest": ["ガッチリ＠イグニスター", "ガッチリ＠イグニスター", "ドット・スケーパー", "ドット・スケーパー", "ドット・スケーパー", "夢幻崩界イヴリース", "夢幻崩界イヴリース", "夢幻崩界イヴリース"]
-            }
-        )
+        # サーチ元に指定されたモンスターでSearchResultクラスに検索要求する
+        search_results = SearchResult(monsters_df, transit_start).get()
 
-        # TODO: 検索結果をUI表示。
         # TODO: (opt)検索結果のモンスター名一覧を取得し、サーチ先プルダウンに表示する。
 
         # サーチ先指定（プルダウン）
@@ -50,7 +44,6 @@ with st.form(key="deck_url"):
         # transit_goal = st.selectbox("サーチ先とするモンスターを選択してください（任意）", monsters_df)
 
         col2, col3 = st.columns(2)
-        origin = search_results
 
         # with col1:
         #     st.header("サーチ元")
