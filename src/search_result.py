@@ -1,5 +1,7 @@
 import pandas as pd
 import numpy as np
+
+
 class SearchResult:
     def __init__(self, monsters_df: pd.DataFrame, origin, destination=None):
         """Initialize this class
@@ -75,13 +77,12 @@ class SearchResult:
             return None
         transit_data = self.__get_monster_data_with_only_one_matching(self.monsters_df, name_search_result)
         # 結果を格納する配列
-        result = pd.DataFrame(columns=['origin','transit','dest'])
+        result = pd.DataFrame(columns=['origin', 'transit', 'dest'])
         # 中継データごとに検索する
-        for transit_index,transit_row in transit_data.iterrows():
+        for transit_index, transit_row in transit_data.iterrows():
             dest_data = self.__get_monster_data_with_only_one_matching(self.monsters_df, transit_row)
-            for dest_index,dest_row in dest_data.iterrows():
-                if self.origin != dest_row['name']:
-                    if (self.destination is None) or (self.destination == dest_row['name']):
-                        result_data = pd.DataFrame({'origin':[self.origin],'transit':[transit_row['name']],'dest':[dest_row['name']]})
-                        result = pd.concat([result,result_data])
+            for dest_index, dest_row in dest_data.iterrows():
+                if (self.destination is None) or (self.destination == dest_row['name']):
+                    result_data = pd.DataFrame({'origin':[self.origin], 'transit':[transit_row['name']], 'dest':[dest_row['name']]})
+                    result = pd.concat([result, result_data])
         return result
