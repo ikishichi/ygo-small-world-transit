@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 class SearchResult:
-    def __init__(self, monsters_df: pd.DataFrame, origin, destination=''):
+    def __init__(self, monsters_df: pd.DataFrame, origin, destination=None):
         """Initialize this class
         Args:
             monsters_df: (pandas) name, attribute, type, level, attack, defence
@@ -21,8 +21,13 @@ class SearchResult:
             target_name: for Search
         Return:
             monster data with matching name (ndarray)
+            or
+            None: No matching names in the monster list.
         """
-        return monsters_df[monsters_df['name'] == target_name].iloc[0]
+        ret = None
+        if any(monsters_df['name'] == target_name):
+            ret = monsters_df[monsters_df['name'] == target_name].iloc[0]
+        return ret
 
     def __get_monster_data_with_only_one_matching(self, monsters_df: pd.DataFrame, target_monster_data: np.ndarray):
         """
@@ -62,8 +67,12 @@ class SearchResult:
                 [search_origin_A, transit_B, search_dest_A], 
                 [search_origin_A, transit_C, search_dest_B], ...
             ]
+            or
+            None: No matching names in the monster list.
         """
         name_search_result = self.__get_monster_data_with_name(self.monsters_df, self.origin)
+        if name_search_result is None:  # モンスターリストから検索対象の名前が見つからなかければNoneを返して終了
+            return None
         transit_data = self.__get_monster_data_with_only_one_matching(self.monsters_df, name_search_result)
         # 結果を格納する配列
         result = pd.DataFrame(columns=['origin','transit','dest'])
@@ -72,6 +81,7 @@ class SearchResult:
             dest_data = self.__get_monster_data_with_only_one_matching(self.monsters_df, transit_row)
             for dest_index,dest_row in dest_data.iterrows():
                 if self.origin != dest_row['name']:
-                    result_data = pd.DataFrame({'origin':[self.origin],'transit':[transit_row['name']],'dest':[dest_row['name']]})
-                    result = pd.concat([result,result_data])
+                    if (self.destination is None) or (self.destination == dest_row['name']):
+                        result_data = pd.DataFrame({'origin':[self.origin],'transit':[transit_row['name']],'dest':[dest_row['name']]})
+                        result = pd.concat([result,result_data])
         return result
