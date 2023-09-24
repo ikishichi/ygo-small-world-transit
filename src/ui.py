@@ -35,18 +35,18 @@ try:
 
     with st.form(key='select_box'):
         # サーチ元指定（プルダウン。DataFrameの1列目が候補として表示される）
-        transit_start = st.selectbox("サーチ元となるモンスターを選択してください。", st.session_state["MONSTERS_DF"])
+        transit_start = st.selectbox("サーチ元とするモンスターを選択してください。", st.session_state["MONSTERS_DF"], index=None)
 
         # サーチ先指定（プルダウン）
         # 検索結果の中から候補を選ぶ「絞り込み検索」
-        # transit_goal = st.selectbox("サーチ先とするモンスターを選択してください（任意）", monsters_df)
+        transit_goal = st.selectbox("サーチ先とするモンスターを選択してください（任意）", st.session_state["MONSTERS_DF"], index=None)
 
         # 検索実行ボタン
         search_btn = st.form_submit_button("検索")
 
     if search_btn:
         # サーチ元に指定されたモンスターでSearchResultクラスに検索要求する
-        search_results = SearchResult(st.session_state["MONSTERS_DF"], transit_start).get()
+        search_results = SearchResult(st.session_state["MONSTERS_DF"], transit_start, transit_goal).get()
 
         # TODO: (opt)検索結果のモンスター名一覧を取得し、サーチ先プルダウンに表示する。
 
