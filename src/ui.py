@@ -9,10 +9,14 @@ from search_result import SearchResult
 st.title("遊戯王スモール・ワールド乗り換え検索")
 st.caption("遊戯王DBの公開デッキを読み込むことで、<<スモール・ワールド>>のサーチ経路を検索できます。")
 
-# モンスターのDataFrameを保持するsession_state変数を定義
+# モンスターのDataFrameを保持するsession_state変数
 if 'MONSTERS_DF' not in st.session_state:
     columns = ['name', 'attribute', 'type', 'level', 'attack', 'defence']
     st.session_state["MONSTERS_DF"] = pd.DataFrame(columns=columns)
+
+# 検索結果を保持するsession_state変数
+if 'SEARCH_RESULTS' not in st.session_state:
+    st.session_state["SEARCH_RESULTS"] = None
 
 try:
     with st.form(key="deck_url"):
@@ -46,21 +50,27 @@ try:
 
     if search_btn:
         # サーチ元に指定されたモンスターでSearchResultクラスに検索要求する
-        search_results = SearchResult(st.session_state["MONSTERS_DF"], transit_start, transit_goal).get()
+        st.session_state["SEARCH_RESULTS"] = SearchResult(st.session_state["MONSTERS_DF"], transit_start, transit_goal).get()
 
-        # TODO: (opt)検索結果のモンスター名一覧を取得し、サーチ先プルダウンに表示する。
+    if st.session_state["SEARCH_RESULTS"] is not None:
+        # ソート選択ラジオボタン
+        sort = st.radio("ソート順", ["経由でソート", "サーチ先でソート"], index=1, horizontal=True)
 
-        if search_results is not None:
-            col2, col3 = st.columns(2)
-            with col2:
-                st.header("経由")
-                for transit in search_results["transit"]:
-                    st.write(transit)
+        if sort == "経由でソート":
+            search_results = st.session_state["SEARCH_RESULTS"].sort_values("transit")
+        else:
+            search_results = st.session_state["SEARCH_RESULTS"].sort_values("dest")
 
-            with col3:
-                st.header("サーチ先")
-                for dest in search_results["dest"]:
-                    st.write(dest)
+        col2, col3 = st.columns(2)
+        with col2:
+            st.header("経由")
+            for transit in search_results["transit"]:
+                st.write(transit)
+
+        with col3:
+            st.header("サーチ先")
+            for dest in search_results["dest"]:
+                st.write(dest)
 
 except AttributeError as ae:
     st.error(ae)
