@@ -8,6 +8,7 @@ from deckinfo import DeckInfo
 from deck import Deck
 from search_result import SearchResult
 
+st.set_page_config(page_title="遊戯王スモール・ワールド乗り換え検索")
 st.title("遊戯王スモール・ワールド乗り換え検索")
 st.caption("遊戯王DBの公開デッキを読み込むことで、<<スモール・ワールド>>のサーチ経路を検索できます。")
 
