@@ -18,6 +18,9 @@ if 'MONSTERS_DF' not in st.session_state:
 if 'SEARCH_RESULTS' not in st.session_state:
     st.session_state["SEARCH_RESULTS"] = None
 
+# クエリパラメータ取得
+query_params = st.experimental_get_query_params()
+
 try:
     with st.form(key="deck_url"):
         # URL入力欄の入力値
@@ -26,12 +29,17 @@ try:
         # デッキ取得ボタンの押下状態（boolean）
         submit_btn = st.form_submit_button("デッキ取得")
 
-    if submit_btn:
+    if submit_btn or query_params:
+        if query_params:
+            url = "http://www.db.yugioh-card.com/yugiohdb/member_deck.action" + "?cgid=" + query_params['cgid'][0] + "&dno=" + query_params['dno'][0] + "&request_locale=" + query_params['request_locale'][0]
+
         # デッキ情報（htmlバイナリデータ）を取得する
         di = DeckInfo(url)
         if di.is_success() is False:
             st.warning("無効なURLです。遊戯王DBの公開デッキレシピのURLを入力してください。")
             st.stop()
+
+        # TODO: st.write(url)
 
         # デッキからモンスターのDataFrameを取得する
         deck = Deck(di.get())
