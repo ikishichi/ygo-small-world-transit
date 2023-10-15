@@ -39,7 +39,13 @@ try:
             st.warning("無効なURLです。遊戯王DBの公開デッキレシピのURLを入力してください。")
             st.stop()
 
-        # TODO: st.write(url)
+        st.experimental_set_query_params(
+            cgid=query_params['cgid'][0],
+            dno=query_params['dno'][0],
+            request_locale=query_params['request_locale'][0],
+        )
+
+        st.info("現在のページをブックマークしておくと、次回からURLの入力を省略できます。")
 
         # デッキからモンスターのDataFrameを取得する
         deck = Deck(di.get())
