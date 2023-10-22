@@ -8,6 +8,7 @@ class HtmlParser:
     Attributes:
         html (bytes): 公開デッキのhtmlバイナリデータ
     """
+
     def __init__(self, html):
         """Initialize this class
 

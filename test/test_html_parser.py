@@ -1,4 +1,5 @@
 import pytest
+
 from src.html_parser import HtmlParser
 
 
@@ -6911,8 +6912,10 @@ class TestHtmlParser:
 </body>
 </html>""",
             "expected": [
-                {'name': '夢幻崩界イヴリース', 'attribute': '闇属性', 'type': '【サイバース族', 'level': 'レベル2', 'attack': '攻撃力0', 'defence': '守備力0'},
-                {'name': '斬機サーキュラー', 'attribute': '光属性', 'type': '【サイバース族', 'level': 'レベル4', 'attack': '攻撃力1500', 'defence': '守備力1500'}
+                {'name': '夢幻崩界イヴリース', 'attribute': '闇属性', 'type': '【サイバース族', 'level': 'レベル2',
+                 'attack': '攻撃力0', 'defence': '守備力0'},
+                {'name': '斬機サーキュラー', 'attribute': '光属性', 'type': '【サイバース族', 'level': 'レベル4',
+                 'attack': '攻撃力1500', 'defence': '守備力1500'}
             ]
         }
     ]

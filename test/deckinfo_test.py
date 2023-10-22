@@ -1,5 +1,5 @@
-import pytest
 import requests
+
 from src import deckinfo
 
 
