@@ -1,5 +1,4 @@
 import pandas as pd
-import numpy as np
 
 
 class SearchResult:
@@ -15,7 +14,7 @@ class SearchResult:
         self.origin = origin
         self.destination = destination
 
-    def __get_monster_data_with_name(self, monsters_df: pd.DataFrame, target_name):
+    def __get_monster_data_with_name(self, monsters_df: pd.DataFrame, target_name: str):
         """
             Return rows as pandas.Series type which contain strings matching target_name.
         Args:
@@ -31,7 +30,7 @@ class SearchResult:
             ret = monsters_df[monsters_df['name'] == target_name].iloc[0]
         return ret
 
-    def __get_monster_data_with_only_one_matching(self, monsters_df: pd.DataFrame, target_monster_data: np.ndarray):
+    def __get_monster_data_with_only_one_matching(self, monsters_df: pd.DataFrame, target_monster_data: pd.Series):
         """
             Return rows as pandas.Series type which contain only one matching data with target_monster_data.
         Args:
@@ -42,7 +41,7 @@ class SearchResult:
         """
         # monsters_dfの一行ずつとtarget_monster_dataを突き合わせて、一つだけ一致するデータを取得し、リターン用のpd.DataFrameに格納する。
         result = pd.DataFrame(columns=['name', 'attribute', 'type', 'level', 'attack', 'defence'])
-        #monsters_dfから1行ずつ比較
+        # monsters_dfから1行ずつ比較
         for index, row in monsters_df.iterrows():
             match_count = 0
             # 1要素だけ一致するデータを探す
@@ -83,6 +82,7 @@ class SearchResult:
             dest_data = self.__get_monster_data_with_only_one_matching(self.monsters_df, transit_row)
             for dest_index, dest_row in dest_data.iterrows():
                 if (self.destination is None) or (self.destination == dest_row['name']):
-                    result_data = pd.DataFrame({'origin':[self.origin], 'transit':[transit_row['name']], 'dest':[dest_row['name']]})
+                    result_data = pd.DataFrame(
+                        {'origin': [self.origin], 'transit': [transit_row['name']], 'dest': [dest_row['name']]})
                     result = pd.concat([result, result_data])
         return result

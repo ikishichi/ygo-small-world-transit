@@ -1,6 +1,7 @@
 """デッキ内容（DataFrame）管理モジュール"""
-from html_parser import HtmlParser
 import pandas as pd
+
+from html_parser import HtmlParser
 
 
 class Deck:
@@ -9,6 +10,7 @@ class Deck:
     Attributes:
         monsters_df (Pandas.DataFrame): メインデッキのモンスターのDataFrame
     """
+
     def __init__(self, html):
         """Initialize this class
 
