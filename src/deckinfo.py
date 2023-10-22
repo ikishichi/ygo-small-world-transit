@@ -10,8 +10,8 @@ class DeckInfo:
         html_info (bytes): 取得した公開デッキのhtmlバイナリデータ
     """
     STATUS_CODE_SUCCESS = 200
-    CORRECT_URL_HTTP = 'http://www.db.yugioh-card.com/yugiohdb/member_deck.action?cgid='
-    CORRECT_URL_HTTPS = 'https://www.db.yugioh-card.com/yugiohdb/member_deck.action?cgid='
+    CORRECT_URL_HTTP = 'http://www.db.yugioh-card.com/yugiohdb/member_deck.action'
+    CORRECT_URL_HTTPS = 'https://www.db.yugioh-card.com/yugiohdb/member_deck.action'
 
     def __init__(self, url):
         """Initialize this class
