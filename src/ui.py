@@ -44,24 +44,25 @@ try:
     if submit_btn or query_params:
         # デッキ情報（htmlバイナリデータ）を取得する
         di = DeckInfo(url)
+
+        # デッキ情報取得判定
         if di.is_success() is False:
             st.warning("無効なURLです。遊戯王DBの公開デッキレシピのURLを入力してください。")
-            st.stop()
+        else:
+            # 取得ボタンが押下されている場合
+            if submit_btn:
+                # 遊戯王DBのURLからクエリパラメータを取得し、乗り換え検索のクエリパラメータに反映する
+                db_query_params = urllib.parse.parse_qs(str(urllib.parse.urlparse(url).query))
+                st.experimental_set_query_params(
+                    cgid=db_query_params["cgid"][0],
+                    dno=db_query_params["dno"][0],
+                    request_locale=db_query_params["request_locale"][0],
+                )
+                st.info("現在のページをブックマークしておくと、次回からURLの入力を省略できます。")
 
-        # 取得ボタンが押下されている場合
-        if submit_btn:
-            # 遊戯王DBのURLからクエリパラメータを取得し、乗り換え検索のクエリパラメータに反映する
-            db_query_params = urllib.parse.parse_qs(str(urllib.parse.urlparse(url).query))
-            st.experimental_set_query_params(
-                cgid=db_query_params["cgid"][0],
-                dno=db_query_params["dno"][0],
-                request_locale=db_query_params["request_locale"][0],
-            )
-            st.info("現在のページをブックマークしておくと、次回からURLの入力を省略できます。")
-
-        # デッキからモンスターのDataFrameを取得する
-        deck = Deck(di.get())
-        st.session_state["MONSTERS_DF"] = deck.get_monsters_df()
+            # デッキからモンスターのDataFrameを取得する
+            deck = Deck(di.get())
+            st.session_state["MONSTERS_DF"] = deck.get_monsters_df()
 
     with st.form(key='select_box'):
         # サーチ元指定（プルダウン。DataFrameの1列目が候補として表示される）
@@ -107,3 +108,7 @@ except AttributeError as ae:
 except Exception as e:
     st.error("予期せぬ例外が発生しました。ページを開き直してリトライしてください。")
     st.error(e)
+
+finally:
+    st.write("[GitHub](https://github.com/ikishichi/ygo-small-world-transit) / "
+             "お問い合わせは[こちら](https://docs.google.com/forms/d/18bz8n0Iw7zcS1Js1EhHxuyQ_HwOyts9goOyytDGqOvI/edit?pli=1)")
