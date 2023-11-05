@@ -171,7 +171,11 @@ test -> test2
 * streamlit
 * requests
 * pandas
-* beautiful soup
+* beautifulsoup4
+* lxml
+* numpy
+* pytest
+* pytest-mock
 
 コーディング規約はPython公式に従う。
 
