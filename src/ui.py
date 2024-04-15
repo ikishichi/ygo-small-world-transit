@@ -80,6 +80,7 @@ try:
         st.session_state["SEARCH_RESULTS"] = SearchResult(st.session_state["MONSTERS_DF"], transit_start,
                                                           transit_goal).get()
 
+    # 検索結果表示
     if st.session_state["SEARCH_RESULTS"] is not None:
         # ソート選択ラジオボタン
         sort = st.radio("ソート順", ["経由でソート", "サーチ先でソート"], index=1, horizontal=True)
@@ -89,16 +90,17 @@ try:
         else:
             search_results = st.session_state["SEARCH_RESULTS"].sort_values("dest")
 
-        col2, col3 = st.columns(2)
-        with col2:
+        # 経由とサーチ先を2列で表示する
+        col1, col2 = st.columns(2)
+        with col1:
             st.header("経由")
-            for transit in search_results["transit"]:
-                st.write(transit)
+            for i, transit in enumerate(search_results["transit"], 1):
+                st.write(str(i) + ". " + transit)
 
-        with col3:
+        with col2:
             st.header("サーチ先")
-            for dest in search_results["dest"]:
-                st.write(dest)
+            for i, dest in enumerate(search_results["dest"], 1):
+                st.write(str(i) + ". " + dest)
 
 except AttributeError as ae:
     st.error(ae)

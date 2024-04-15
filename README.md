@@ -2,7 +2,7 @@
 
 ## About
 
-[遊戯王スモール・ワールド乗り換え検索](https://ygo-small-world-transit.streamlit.app/?cgid=7bfe490b6b4e019e9577b4d83d00ae69&dno=5&request_locale=ja)では、遊戯王OCGデュエルモンスターズカードデータベースの公開デッキURLを読み込むことで、<<スモール・ワールド>>のサーチ経路を検索できます。
+[遊戯王スモール・ワールド乗り換え検索](https://ygo-small-world-transit.streamlit.app)では、遊戯王OCGデュエルモンスターズカードデータベースの公開デッキURLを読み込むことで、<<スモール・ワールド>>のサーチ経路を検索できます。
 
 ## ライセンス
 
