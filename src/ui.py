@@ -10,7 +10,8 @@ from search_result import SearchResult
 
 st.set_page_config(page_title="遊戯王スモール・ワールド乗り換え検索")
 st.title("遊戯王スモール・ワールド乗り換え検索")
-st.caption("遊戯王DBの公開デッキを読み込むことで、<<スモール・ワールド>>のサーチ経路を検索できます。")
+st.caption("[遊戯王DB](https://www.db.yugioh-card.com/yugiohdb/)の公開デッキを読み込むことで、"
+           "[<<スモール・ワールド>>](https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=2&cid=16555&request_locale=ja)のサーチ経路を検索できます。")
 
 # モンスターのDataFrameを保持するsession_state変数
 if 'MONSTERS_DF' not in st.session_state:
