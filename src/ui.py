@@ -22,7 +22,7 @@ if 'SEARCH_RESULTS' not in st.session_state:
     st.session_state["SEARCH_RESULTS"] = None
 
 # クエリパラメータ取得
-query_params = st.experimental_get_query_params()
+query_params = st.query_params
 
 try:
     with st.form(key="deck_url"):
@@ -30,9 +30,9 @@ try:
         # クエリパラメータの設定がある場合、遊戯王DBのURLはクエリパラメータから生成する
         if query_params:
             input_url = "http://www.db.yugioh-card.com/yugiohdb/member_deck.action" \
-                        + "?cgid=" + query_params["cgid"][0] \
-                        + "&dno=" + query_params["dno"][0] \
-                        + "&request_locale=" + query_params["request_locale"][0]
+                        + "?cgid=" + query_params["cgid"] \
+                        + "&dno=" + query_params["dno"] \
+                        + "&request_locale=" + query_params["request_locale"]
 
         # URL入力欄の入力値
         url = st.text_input("遊戯王DBの公開デッキのURLを入力してください。", input_url)
@@ -53,11 +53,9 @@ try:
             if submit_btn:
                 # 遊戯王DBのURLからクエリパラメータを取得し、乗り換え検索のクエリパラメータに反映する
                 db_query_params = urllib.parse.parse_qs(str(urllib.parse.urlparse(url).query))
-                st.experimental_set_query_params(
-                    cgid=db_query_params["cgid"][0],
-                    dno=db_query_params["dno"][0],
-                    request_locale=db_query_params["request_locale"][0],
-                )
+                st.query_params["cgid"] = db_query_params["cgid"][0]
+                st.query_params["dno"] = db_query_params["dno"][0]
+                st.query_params["request_locale"] = db_query_params["request_locale"][0]
                 st.info("現在のページをブックマークしておくと、次回からURLの入力を省略できます。")
 
             # デッキからモンスターのDataFrameを取得する
