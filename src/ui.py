@@ -105,11 +105,15 @@ try:
             for i, dest in enumerate(search_results["dest"], 1):
                 st.write(str(i) + ". " + dest)
 
+except ValueError as ve:
+    st.error(ve)
 except AttributeError as ae:
     st.error(ae)
     st.error("""以下の点をご確認ください。
              (1)デッキレシピが「公開」になっているか
              (2)デッキに最低1体以上のモンスターが含まれているか""")
+except RuntimeError as re:
+    st.error(re)
 except Exception as e:
     st.error("予期せぬ例外が発生しました。ページを開き直してリトライしてください。")
     st.error(e)
