@@ -8,21 +8,21 @@ class Deck:
     """デッキ内容管理クラス
 
     Attributes:
+        html (bytes): 公開デッキのhtmlバイナリデータ
         monsters_df (Pandas.DataFrame): メインデッキのモンスターのDataFrame
     """
 
     def __init__(self, html):
-        """Initialize this class
+        self.html = html
+        self.monsters_df = None
 
-        Args:
-            html (bytes): 公開デッキのhtmlバイナリデータ
-        """
+    def parse_html(self):
+        """HTMLを解析し、モンスター情報を取得"""
         try:
-            monsters = HtmlParser(html).generate_monsters()
-        except Exception as e:
-            raise e
-        else:
+            monsters = HtmlParser(self.html).generate_monsters()
             self.monsters_df = self.convert_monsters_to_df(monsters)
+        except Exception:
+            raise
 
     @staticmethod
     def convert_monsters_to_df(monsters):
@@ -37,11 +37,3 @@ class Deck:
         monsters_df = pd.DataFrame(monsters)
 
         return monsters_df
-
-    def get_monsters_df(self):
-        """モンスター情報のDataFrameのGetter
-
-        Returns:
-            pd.DataFrame: メインデッキのモンスター情報のPandas.DataFrame
-        """
-        return self.monsters_df

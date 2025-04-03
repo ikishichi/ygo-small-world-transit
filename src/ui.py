@@ -5,7 +5,7 @@ import pandas as pd
 import streamlit as st
 
 from deck import Deck
-from deckinfo import DeckInfo
+from deck_info import DeckInfo
 from search_result import SearchResult
 
 st.set_page_config(page_title="遊戯王スモール・ワールド乗り換え検索")
@@ -44,7 +44,8 @@ try:
     # 取得ボタン押下、またはクエリパラメータの指定がある場合
     if submit_btn or query_params:
         # デッキ情報（htmlバイナリデータ）を取得する
-        di = DeckInfo(url)
+        deckInfo = DeckInfo(url)
+        deckInfo.fetch_html()
 
         # デッキ情報取得判定
         if di.is_success() is False:
@@ -58,10 +59,22 @@ try:
                 st.query_params["dno"] = db_query_params["dno"][0]
                 st.query_params["request_locale"] = db_query_params["request_locale"][0]
                 st.info("現在のページをブックマークしておくと、次回からURLの入力を省略できます。")
+        # 取得ボタンが押下されている場合
+        if submit_btn:
+            # 遊戯王DBのURLからクエリパラメータを取得し、乗り換え検索のクエリパラメータに反映する
+            db_query_params = urllib.parse.parse_qs(str(urllib.parse.urlparse(url).query))
+            st.query_params["cgid"] = db_query_params["cgid"][0]
+            st.query_params["dno"] = db_query_params["dno"][0]
+            st.query_params["request_locale"] = db_query_params["request_locale"][0]
+            st.info("現在のページをブックマークしておくと、次回からURLの入力を省略できます。")
 
             # デッキからモンスターのDataFrameを取得する
             deck = Deck(di.get())
             st.session_state["MONSTERS_DF"] = deck.get_monsters_df()
+        # デッキからモンスターのDataFrameを取得する
+        deck = Deck(deckInfo.html_content)
+        deck.parse_html()
+        st.session_state["MONSTERS_DF"] = deck.monsters_df
 
     with st.form(key='select_box'):
         # サーチ元指定（プルダウン。DataFrameの1列目が候補として表示される）
