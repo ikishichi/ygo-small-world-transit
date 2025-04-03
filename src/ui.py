@@ -120,4 +120,4 @@ except Exception as e:
 
 finally:
     st.write("[GitHub](https://github.com/ikishichi/ygo-small-world-transit) / "
-             "お問い合わせは[こちら](https://docs.google.com/forms/d/18bz8n0Iw7zcS1Js1EhHxuyQ_HwOyts9goOyytDGqOvI/edit?pli=1)")
+             "お問い合わせ・バグ報告は[こちら](https://docs.google.com/forms/d/18bz8n0Iw7zcS1Js1EhHxuyQ_HwOyts9goOyytDGqOvI/edit?pli=1)")
