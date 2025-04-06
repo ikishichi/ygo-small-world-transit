@@ -92,10 +92,9 @@ class HtmlParser:
                 monsters.append(monster_dct)
 
             return monsters
-        except AttributeError:
-            print("AttributeError: メインデッキのモンスター情報が正しく取得できませんでした。")
-            raise AttributeError("メインデッキのモンスター情報が正しく取得できませんでした。")
+        except AttributeError as e:
+            logging.error(f"モンスター取得失敗:{e}")
+            raise AttributeError("デッキの読み込みに失敗しました")
         except Exception as e:
-            print("予期せぬ例外が発生しました")
-            print(e)
+            logging.error(f"モンスター取得失敗:{e}")
             raise

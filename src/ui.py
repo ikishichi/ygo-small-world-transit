@@ -1,4 +1,5 @@
 """スモール・ワールド乗り換え検索の画面表示モジュール"""
+import logging
 import urllib.parse
 
 import pandas as pd
@@ -138,14 +139,15 @@ except ValueError as ve:
     st.error(ve)
 except AttributeError as ae:
     st.error(ae)
-    st.error("""以下の点をご確認ください。
-             (1)デッキレシピが「公開」になっているか
-             (2)デッキに最低1体以上のモンスターが含まれているか""")
+    st.error("""以下の点をご確認ください。\n
+    (1)デッキレシピが「公開」になっているか\n
+    (2)デッキに最低1体以上のモンスターが含まれているか""")
 except RuntimeError as re:
     st.error(re)
 except Exception as e:
-    st.error("予期せぬ例外が発生しました。ページを開き直してリトライしてください。")
-    st.error(e)
+    logging.error(f"予期せぬ例外：{e}")
+    st.error("""エラーが発生しました。以下の点をご確認ください。\n
+             ・URLが間違っていないか""")
 
 finally:
     st.write("[GitHub](https://github.com/ikishichi/ygo-small-world-transit) / "

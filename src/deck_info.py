@@ -1,5 +1,8 @@
 """デッキ情報取得モジュール"""
+import logging
+
 import requests
+
 
 class DeckInfo:
     """デッキ情報クラス
@@ -20,5 +23,5 @@ class DeckInfo:
             response.raise_for_status() # ステータスコードが200番台（成功）以外の場合に例外をスロー
             self.html_content = response.content
         except requests.exceptions.RequestException as e:
-            print(f"Error fetching deck info: {e}")
+            logging.error(f"Error fetching deck info: {e}")
             raise
