@@ -8,6 +8,8 @@ from deck import Deck
 from deck_info import DeckInfo
 from search_result import SearchResult
 
+VALID_PREFIX_HTTP = 'http://www.db.yugioh-card.com/yugiohdb/member_deck.action'
+VALID_PREFIX_HTTPS = 'https://www.db.yugioh-card.com/yugiohdb/member_deck.action'
 
 def initialize_session_state():
     """session_state変数を初期化する"""
@@ -17,6 +19,17 @@ def initialize_session_state():
 
     # 検索結果を保持するsession_state変数
     st.session_state["SEARCH_RESULTS"] = None
+
+def has_query_params(query_params):
+    """デッキを一意に識別できるクエリパラメータを持っているか
+
+    Args:
+        query_params:
+
+    Returns:
+        (bool): has query params or not
+    """
+    return all(key in query_params for key in {"cgid", "dno"})
 
 st.set_page_config(page_title="遊戯王スモール・ワールド乗り換え検索")
 st.title("遊戯王スモール・ワールド乗り換え検索")
@@ -31,41 +44,57 @@ query_params = st.query_params
 
 try:
     with st.form(key="deck_url"):
-        input_url = None
+        url = ""
         # クエリパラメータの設定がある場合、遊戯王DBのURLはクエリパラメータから生成する
-        if query_params:
-            input_url = "http://www.db.yugioh-card.com/yugiohdb/member_deck.action" \
+        if has_query_params(query_params):
+            # 国と地域の指定がない場合は日本をデフォルト値とする
+            if "request_locale" not in query_params:
+                query_params["request_locale"] = "ja"
+
+            url = "http://www.db.yugioh-card.com/yugiohdb/member_deck.action" \
                         + "?cgid=" + query_params["cgid"] \
                         + "&dno=" + query_params["dno"] \
                         + "&request_locale=" + query_params["request_locale"]
 
         # URL入力欄の入力値
-        url = st.text_input("遊戯王DBの公開デッキのURLを入力してください。", input_url)
+        input_url = st.text_input("遊戯王DBの公開デッキのURLを入力してください。")
 
         # デッキ取得ボタンの押下状態（boolean）
         submit_btn = st.form_submit_button("デッキ取得")
 
-    # 取得ボタン押下、またはクエリパラメータの指定がある場合
-    if submit_btn or query_params:
-        # デッキ情報（htmlバイナリデータ）を取得する
-        deckInfo = DeckInfo(url)
-        deckInfo.fetch_html()
+    container = st.container(border=True)
 
+    # 取得ボタン押下、またはクエリパラメータの指定がある場合
+    if submit_btn or has_query_params(query_params):
         # 取得ボタンが押下されている場合
         if submit_btn:
+            url = input_url
+            if not url.startswith(VALID_PREFIX_HTTP) and not url.startswith(VALID_PREFIX_HTTPS):
+                logging.warning(f"無効なURL: {url}")
+                raise ValueError("無効なURLです。遊戯王DBの公開デッキレシピのURLを入力してください。")
+
             initialize_session_state()
 
             # 遊戯王DBのURLからクエリパラメータを取得し、乗り換え検索のクエリパラメータに反映する
             db_query_params = urllib.parse.parse_qs(str(urllib.parse.urlparse(url).query))
             st.query_params["cgid"] = db_query_params["cgid"][0]
             st.query_params["dno"] = db_query_params["dno"][0]
-            st.query_params["request_locale"] = db_query_params["request_locale"][0]
+            if "request_locale" in db_query_params:
+                st.query_params["request_locale"] = db_query_params["request_locale"][0]
             st.info("現在のページをブックマークしておくと、次回からURLの入力を省略できます。")
+
+        # デッキ情報（htmlバイナリデータ）を取得する
+        deckInfo = DeckInfo(url)
+        deckInfo.fetch_html()
 
         # デッキからモンスターのDataFrameを取得する
         deck = Deck(deckInfo.html_content)
         deck.parse_html()
         st.session_state["MONSTERS_DF"] = deck.monsters_df
+        deck_name = deck.deck_name
+
+        container.badge("取得成功", icon=":material/check:", color="green")
+        container.write(f"デッキ：:blue-background[{deck_name}]")
 
     with st.form(key='select_box'):
         # サーチ元指定（プルダウン。DataFrameの1列目が候補として表示される）

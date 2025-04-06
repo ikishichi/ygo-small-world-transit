@@ -1,4 +1,6 @@
 """デッキ内容（DataFrame）管理モジュール"""
+import logging
+
 import pandas as pd
 
 from html_parser import HtmlParser
@@ -15,13 +17,16 @@ class Deck:
     def __init__(self, html):
         self.html = html
         self.monsters_df = None
+        self.deck_name = ""
 
     def parse_html(self):
         """HTMLを解析し、モンスター情報を取得"""
         try:
-            monsters = HtmlParser(self.html).generate_monsters()
-            self.monsters_df = self.convert_monsters_to_df(monsters)
-        except Exception:
+            html_parser = HtmlParser(self.html)
+            self.monsters_df = self.convert_monsters_to_df(html_parser.generate_monsters())
+            self.deck_name = html_parser.get_deck_name()
+        except Exception as e:
+            logging.error(f"HTML PARSE ERROR: {e}")
             raise
 
     @staticmethod

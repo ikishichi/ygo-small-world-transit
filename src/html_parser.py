@@ -1,4 +1,6 @@
 """HTMLパーサーモジュール"""
+import logging
+
 from bs4 import BeautifulSoup
 
 
@@ -6,16 +8,37 @@ class HtmlParser:
     """公開デッキのHTMLからモンスターリストを作成するパーサークラス
 
     Attributes:
-        html (bytes): 公開デッキのhtmlバイナリデータ
+        soup (BeautifulSoup): 公開デッキの解析データ
     """
 
     def __init__(self, html):
-        """Initialize this class
+        # htmlをsoupオブジェクトに変換
+        self.soup = BeautifulSoup(html, "lxml")
 
-        Args:
-            html (bytes): 公開デッキのhtmlバイナリデータ
+    def get_deck_name(self):
+        """デッキ名を取得する
+
+        Returns:
+            (str): 公開デッキのデッキ名
+
+        Raises:
+            AttributeError: デッキ名のタグを取得できなかった場合に発生
         """
-        self.html = html
+
+        try:
+            # htmlをsoupオブジェクトに変換
+            meta_tag = self.soup.find("meta", attrs={"name": "description"})
+            if not meta_tag or "content" not in meta_tag.attrs:
+                raise AttributeError("デッキ名の取得に失敗しました。HTML構造が変更された可能性があります。")
+
+            return meta_tag["content"].strip(" /")  # 末尾の不要なスラッシュと空白を削除
+
+        except AttributeError as e:
+            logging.error(f"デッキ名取得失敗:{e}")
+            raise AttributeError("デッキの読み込みに失敗しました")
+        except Exception as e:
+            logging.error(f"デッキ名取得失敗:{e}")
+            raise
 
     def generate_monsters(self):
         """メインデッキ内のモンスターのリストを生成する
@@ -27,12 +50,9 @@ class HtmlParser:
             AttributeError: モンスター情報のタグを取得できなかった場合に発生
         """
 
-        # htmlをsoupオブジェクトに変換
-        soup = BeautifulSoup(self.html, "lxml")
-
         try:
             # メインデッキ内の最初のt_bodyからsoupを抽出（モンスターが含まれる場合、モンスターのsoupが抽出される）
-            main_monsters_soup = soup.find(id="detailtext_main").find("div", class_="t_body mlist_m")
+            main_monsters_soup = self.soup.find(id="detailtext_main").find("div", class_="t_body mlist_m")
 
             # モンスター1体毎のsoupに分解
             monster_soups = main_monsters_soup.select("[class='t_row c_normal']")
@@ -47,6 +67,9 @@ class HtmlParser:
                 type_ = monster_soup.find("span", class_="card_info_species_and_other_item").text
                 attack = monster_soup.find("span", class_="atk_power").find("span").text
                 defence = monster_soup.find("span", class_="def_power").find("span").text
+
+                if None in [name, attribute, level, type_, attack, defence]:
+                    raise AttributeError("モンスターのパラメータ取得に失敗しました。HTML構造が変更された可能性があります。")
 
                 # 改行やタブを削除
                 attribute = "".join(attribute.split())
