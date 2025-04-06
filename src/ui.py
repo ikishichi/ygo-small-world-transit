@@ -99,7 +99,7 @@ try:
 
     with st.form(key='select_box'):
         # サーチ元指定（プルダウン。DataFrameの1列目が候補として表示される）
-        transit_start = st.selectbox("サーチ元とするモンスターを選択してください。", st.session_state["MONSTERS_DF"], index=None)
+        transit_start = st.selectbox("サーチ元とするモンスターを選択してください:red[（必須）]", st.session_state["MONSTERS_DF"], index=None)
 
         # サーチ先指定（プルダウン）
         # 検索結果の中から候補を選ぶ「絞り込み検索」
