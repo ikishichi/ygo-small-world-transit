@@ -5,22 +5,26 @@ import pandas as pd
 import streamlit as st
 
 from deck import Deck
-from deckinfo import DeckInfo
+from deck_info import DeckInfo
 from search_result import SearchResult
+
+
+def initialize_session_state():
+    """session_state変数を初期化する"""
+    # モンスターのDataFrameを保持するsession_state変数
+    columns = ['name', 'attribute', 'type', 'level', 'attack', 'defence']
+    st.session_state["MONSTERS_DF"] = pd.DataFrame(columns=columns)
+
+    # 検索結果を保持するsession_state変数
+    st.session_state["SEARCH_RESULTS"] = None
 
 st.set_page_config(page_title="遊戯王スモール・ワールド乗り換え検索")
 st.title("遊戯王スモール・ワールド乗り換え検索")
 st.caption("[遊戯王DB](https://www.db.yugioh-card.com/yugiohdb/)の公開デッキを読み込むことで、"
            "[<<スモール・ワールド>>](https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=2&cid=16555&request_locale=ja)のサーチ経路を検索できます。")
 
-# モンスターのDataFrameを保持するsession_state変数
 if 'MONSTERS_DF' not in st.session_state:
-    columns = ['name', 'attribute', 'type', 'level', 'attack', 'defence']
-    st.session_state["MONSTERS_DF"] = pd.DataFrame(columns=columns)
-
-# 検索結果を保持するsession_state変数
-if 'SEARCH_RESULTS' not in st.session_state:
-    st.session_state["SEARCH_RESULTS"] = None
+    initialize_session_state()
 
 # クエリパラメータ取得
 query_params = st.query_params
@@ -44,24 +48,24 @@ try:
     # 取得ボタン押下、またはクエリパラメータの指定がある場合
     if submit_btn or query_params:
         # デッキ情報（htmlバイナリデータ）を取得する
-        di = DeckInfo(url)
+        deckInfo = DeckInfo(url)
+        deckInfo.fetch_html()
 
-        # デッキ情報取得判定
-        if di.is_success() is False:
-            st.warning("無効なURLです。遊戯王DBの公開デッキレシピのURLを入力してください。")
-        else:
-            # 取得ボタンが押下されている場合
-            if submit_btn:
-                # 遊戯王DBのURLからクエリパラメータを取得し、乗り換え検索のクエリパラメータに反映する
-                db_query_params = urllib.parse.parse_qs(str(urllib.parse.urlparse(url).query))
-                st.query_params["cgid"] = db_query_params["cgid"][0]
-                st.query_params["dno"] = db_query_params["dno"][0]
-                st.query_params["request_locale"] = db_query_params["request_locale"][0]
-                st.info("現在のページをブックマークしておくと、次回からURLの入力を省略できます。")
+        # 取得ボタンが押下されている場合
+        if submit_btn:
+            initialize_session_state()
 
-            # デッキからモンスターのDataFrameを取得する
-            deck = Deck(di.get())
-            st.session_state["MONSTERS_DF"] = deck.get_monsters_df()
+            # 遊戯王DBのURLからクエリパラメータを取得し、乗り換え検索のクエリパラメータに反映する
+            db_query_params = urllib.parse.parse_qs(str(urllib.parse.urlparse(url).query))
+            st.query_params["cgid"] = db_query_params["cgid"][0]
+            st.query_params["dno"] = db_query_params["dno"][0]
+            st.query_params["request_locale"] = db_query_params["request_locale"][0]
+            st.info("現在のページをブックマークしておくと、次回からURLの入力を省略できます。")
+
+        # デッキからモンスターのDataFrameを取得する
+        deck = Deck(deckInfo.html_content)
+        deck.parse_html()
+        st.session_state["MONSTERS_DF"] = deck.monsters_df
 
     with st.form(key='select_box'):
         # サーチ元指定（プルダウン。DataFrameの1列目が候補として表示される）
@@ -101,15 +105,19 @@ try:
             for i, dest in enumerate(search_results["dest"], 1):
                 st.write(str(i) + ". " + dest)
 
+except ValueError as ve:
+    st.error(ve)
 except AttributeError as ae:
     st.error(ae)
     st.error("""以下の点をご確認ください。
              (1)デッキレシピが「公開」になっているか
              (2)デッキに最低1体以上のモンスターが含まれているか""")
+except RuntimeError as re:
+    st.error(re)
 except Exception as e:
     st.error("予期せぬ例外が発生しました。ページを開き直してリトライしてください。")
     st.error(e)
 
 finally:
     st.write("[GitHub](https://github.com/ikishichi/ygo-small-world-transit) / "
-             "お問い合わせは[こちら](https://docs.google.com/forms/d/18bz8n0Iw7zcS1Js1EhHxuyQ_HwOyts9goOyytDGqOvI/edit?pli=1)")
+             "お問い合わせ・バグ報告は[こちら](https://docs.google.com/forms/d/18bz8n0Iw7zcS1Js1EhHxuyQ_HwOyts9goOyytDGqOvI/edit?pli=1)")

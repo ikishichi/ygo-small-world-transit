@@ -75,4 +75,4 @@ class HtmlParser:
         except Exception as e:
             print("予期せぬ例外が発生しました")
             print(e)
-            raise e
+            raise
