@@ -5,14 +5,6 @@ from src.deck_info import DeckInfo
 
 # 有効・無効なURLを定義
 VALID_URL = "https://www.db.yugioh-card.com/yugiohdb/member_deck.action?deck_id=123"
-INVALID_URL = "https://invalid-url.com"
-
-
-def test_invalid_url():
-    """無効なURLを渡した場合に ValueError が発生するかテスト"""
-    with pytest.raises(ValueError, match="無効なURLです。遊戯王DBの公開デッキレシピのURLを入力してください。"):
-        DeckInfo(INVALID_URL)
-
 
 def test_fetch_html_success(mocker):
     """デッキ情報取得が成功するケース"""

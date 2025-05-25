@@ -35,7 +35,7 @@ class HtmlParser:
 
         except AttributeError as e:
             logging.error(f"デッキ名取得失敗:{e}")
-            raise AttributeError("デッキの読み込みに失敗しました")
+            raise AttributeError(e)
         except Exception as e:
             logging.error(f"デッキ名取得失敗:{e}")
             raise
