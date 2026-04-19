@@ -8,9 +8,14 @@ import streamlit as st
 from deck import Deck
 from deck_info import DeckInfo
 from search_result import SearchResult
+from url_resolver import (
+    VALID_PREFIX_HTTP,
+    VALID_PREFIX_HTTPS,
+    build_url_from_query_params,
+    has_query_params,
+    select_url,
+)
 
-VALID_PREFIX_HTTP = 'http://www.db.yugioh-card.com/yugiohdb/member_deck.action'
-VALID_PREFIX_HTTPS = 'https://www.db.yugioh-card.com/yugiohdb/member_deck.action'
 
 def initialize_session_state():
     """session_state変数を初期化する"""
@@ -20,17 +25,6 @@ def initialize_session_state():
 
     # 検索結果を保持するsession_state変数
     st.session_state["SEARCH_RESULTS"] = None
-
-def has_query_params(query_params):
-    """デッキを一意に識別できるクエリパラメータを持っているか
-
-    Args:
-        query_params:
-
-    Returns:
-        (bool): has query params or not
-    """
-    return all(key in query_params for key in {"cgid", "dno"})
 
 st.set_page_config(page_title="遊戯王スモール・ワールド乗り換え検索")
 st.title("遊戯王スモール・ワールド乗り換え検索")
@@ -44,21 +38,15 @@ if 'MONSTERS_DF' not in st.session_state:
 query_params = st.query_params
 
 try:
+    # クエリパラメータから遊戯王DBのURLを構築（必須パラメータが欠ければ空文字）
+    query_params_url = build_url_from_query_params(query_params)
+
     with st.form(key="deck_url"):
-        url = ""
-        # クエリパラメータの設定がある場合、遊戯王DBのURLはクエリパラメータから生成する
-        if has_query_params(query_params):
-            # 国と地域の指定がない場合は日本をデフォルト値とする
-            if "request_locale" not in query_params:
-                query_params["request_locale"] = "ja"
-
-            url = "http://www.db.yugioh-card.com/yugiohdb/member_deck.action" \
-                        + "?cgid=" + query_params["cgid"] \
-                        + "&dno=" + query_params["dno"] \
-                        + "&request_locale=" + query_params["request_locale"]
-
-        # URL入力欄の入力値
-        input_url = st.text_input("遊戯王DBの公開デッキのURLを入力してください。")
+        # URL入力欄の入力値。ブックマーク経由アクセス時は構築済みURLを初期値として表示。
+        input_url = st.text_input(
+            "遊戯王DBの公開デッキのURLを入力してください。",
+            value=query_params_url,
+        )
 
         # デッキ取得ボタンの押下状態（boolean）
         submit_btn = st.form_submit_button("デッキ取得")
@@ -67,9 +55,11 @@ try:
 
     # 取得ボタン押下、またはクエリパラメータの指定がある場合
     if submit_btn or has_query_params(query_params):
+        # Issue #32: submit 時は必ずユーザー入力を採用し、クエリパラメータで上書きしない
+        url = select_url(input_url, query_params_url, submit_btn)
+
         # 取得ボタンが押下されている場合
         if submit_btn:
-            url = input_url
             if not url.startswith(VALID_PREFIX_HTTP) and not url.startswith(VALID_PREFIX_HTTPS):
                 logging.warning(f"無効なURL: {url}")
                 raise ValueError("無効なURLです。遊戯王DBの公開デッキレシピのURLを入力してください。")
