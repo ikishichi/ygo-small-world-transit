@@ -1,6 +1,8 @@
 """デッキ内容（DataFrame）管理モジュール"""
 import logging
 
+logger = logging.getLogger(__name__)
+
 import pandas as pd
 
 from html_parser import HtmlParser
@@ -26,7 +28,7 @@ class Deck:
             self.monsters_df = self.convert_monsters_to_df(html_parser.generate_monsters())
             self.deck_name = html_parser.get_deck_name()
         except Exception as e:
-            logging.error(f"HTML PARSE ERROR: {e}")
+            logger.error(f"HTML PARSE ERROR: {e}")
             raise
 
     @staticmethod

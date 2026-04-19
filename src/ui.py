@@ -1,5 +1,7 @@
 """スモール・ワールド乗り換え検索の画面表示モジュール"""
 import logging
+
+logger = logging.getLogger(__name__)
 import urllib.parse
 
 import pandas as pd
@@ -61,7 +63,7 @@ try:
         # 取得ボタンが押下されている場合
         if submit_btn:
             if not url.startswith(VALID_PREFIX_HTTP) and not url.startswith(VALID_PREFIX_HTTPS):
-                logging.warning(f"無効なURL: {url}")
+                logger.warning(f"無効なURL: {url}")
                 raise ValueError("無効なURLです。遊戯王DBの公開デッキレシピのURLを入力してください。")
 
             initialize_session_state()
@@ -135,7 +137,7 @@ except AttributeError as ae:
 except RuntimeError as re:
     st.error(re)
 except Exception as e:
-    logging.error(f"予期せぬ例外：{e}")
+    logger.error(f"予期せぬ例外：{e}")
     st.error("""エラーが発生しました。以下の点をご確認ください。\n
              ・URLが間違っていないか""")
 

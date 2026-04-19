@@ -1,6 +1,8 @@
 """HTMLパーサーモジュール"""
 import logging
 
+logger = logging.getLogger(__name__)
+
 from bs4 import BeautifulSoup
 
 
@@ -26,7 +28,6 @@ class HtmlParser:
         """
 
         try:
-            # htmlをsoupオブジェクトに変換
             meta_tag = self.soup.find("meta", attrs={"name": "description"})
             if not meta_tag or "content" not in meta_tag.attrs:
                 raise AttributeError("デッキ名の取得に失敗しました。HTML構造が変更された可能性があります。")
@@ -34,10 +35,10 @@ class HtmlParser:
             return meta_tag["content"].strip(" /")  # 末尾の不要なスラッシュと空白を削除
 
         except AttributeError as e:
-            logging.error(f"デッキ名取得失敗:{e}")
-            raise AttributeError(e)
+            logger.error(f"デッキ名取得失敗:{e}")
+            raise
         except Exception as e:
-            logging.error(f"デッキ名取得失敗:{e}")
+            logger.error(f"デッキ名取得失敗:{e}")
             raise
 
     def generate_monsters(self):
@@ -93,8 +94,8 @@ class HtmlParser:
 
             return monsters
         except AttributeError as e:
-            logging.error(f"モンスター取得失敗:{e}")
+            logger.error(f"モンスター取得失敗:{e}")
             raise AttributeError("デッキの読み込みに失敗しました")
         except Exception as e:
-            logging.error(f"モンスター取得失敗:{e}")
+            logger.error(f"モンスター取得失敗:{e}")
             raise
