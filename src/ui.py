@@ -1,4 +1,7 @@
 """スモール・ワールド乗り換え検索の画面表示モジュール"""
+import logging
+
+logger = logging.getLogger(__name__)
 import urllib.parse
 
 import pandas as pd
@@ -7,6 +10,13 @@ import streamlit as st
 from deck import Deck
 from deck_info import DeckInfo
 from search_result import SearchResult
+from url_resolver import (
+    VALID_PREFIX_HTTP,
+    VALID_PREFIX_HTTPS,
+    build_url_from_query_params,
+    has_query_params,
+    select_url,
+)
 
 
 def initialize_session_state():
@@ -30,46 +40,58 @@ if 'MONSTERS_DF' not in st.session_state:
 query_params = st.query_params
 
 try:
-    with st.form(key="deck_url"):
-        input_url = None
-        # クエリパラメータの設定がある場合、遊戯王DBのURLはクエリパラメータから生成する
-        if query_params:
-            input_url = "http://www.db.yugioh-card.com/yugiohdb/member_deck.action" \
-                        + "?cgid=" + query_params["cgid"] \
-                        + "&dno=" + query_params["dno"] \
-                        + "&request_locale=" + query_params["request_locale"]
+    # クエリパラメータから遊戯王DBのURLを構築（必須パラメータが欠ければ空文字）
+    query_params_url = build_url_from_query_params(query_params)
 
-        # URL入力欄の入力値
-        url = st.text_input("遊戯王DBの公開デッキのURLを入力してください。", input_url)
+    with st.form(key="deck_url"):
+        # URL入力欄の入力値。ブックマーク経由アクセス時は構築済みURLを初期値として表示。
+        input_url = st.text_input(
+            "遊戯王DBの公開デッキのURLを入力してください。",
+            value=query_params_url,
+        )
 
         # デッキ取得ボタンの押下状態（boolean）
         submit_btn = st.form_submit_button("デッキ取得")
 
+    container = st.container(border=True)
+
     # 取得ボタン押下、またはクエリパラメータの指定がある場合
-    if submit_btn or query_params:
-        # デッキ情報（htmlバイナリデータ）を取得する
-        deckInfo = DeckInfo(url)
-        deckInfo.fetch_html()
+    if submit_btn or has_query_params(query_params):
+        # Issue #32: submit 時は必ずユーザー入力を採用し、クエリパラメータで上書きしない
+        url = select_url(input_url, query_params_url, submit_btn)
 
         # 取得ボタンが押下されている場合
         if submit_btn:
+            if not url.startswith(VALID_PREFIX_HTTP) and not url.startswith(VALID_PREFIX_HTTPS):
+                logger.warning(f"無効なURL: {url}")
+                raise ValueError("無効なURLです。遊戯王DBの公開デッキレシピのURLを入力してください。")
+
             initialize_session_state()
 
             # 遊戯王DBのURLからクエリパラメータを取得し、乗り換え検索のクエリパラメータに反映する
             db_query_params = urllib.parse.parse_qs(str(urllib.parse.urlparse(url).query))
             st.query_params["cgid"] = db_query_params["cgid"][0]
             st.query_params["dno"] = db_query_params["dno"][0]
-            st.query_params["request_locale"] = db_query_params["request_locale"][0]
+            if "request_locale" in db_query_params:
+                st.query_params["request_locale"] = db_query_params["request_locale"][0]
             st.info("現在のページをブックマークしておくと、次回からURLの入力を省略できます。")
+
+        # デッキ情報（htmlバイナリデータ）を取得する
+        deckInfo = DeckInfo(url)
+        deckInfo.fetch_html()
 
         # デッキからモンスターのDataFrameを取得する
         deck = Deck(deckInfo.html_content)
         deck.parse_html()
         st.session_state["MONSTERS_DF"] = deck.monsters_df
+        deck_name = deck.deck_name
+
+        container.badge("取得成功", icon=":material/check:", color="green")
+        container.write(f"デッキ：:blue-background[{deck_name}]")
 
     with st.form(key='select_box'):
         # サーチ元指定（プルダウン。DataFrameの1列目が候補として表示される）
-        transit_start = st.selectbox("サーチ元とするモンスターを選択してください。", st.session_state["MONSTERS_DF"], index=None)
+        transit_start = st.selectbox("サーチ元とするモンスターを選択してください:red[（必須）]", st.session_state["MONSTERS_DF"], index=None)
 
         # サーチ先指定（プルダウン）
         # 検索結果の中から候補を選ぶ「絞り込み検索」
@@ -109,14 +131,15 @@ except ValueError as ve:
     st.error(ve)
 except AttributeError as ae:
     st.error(ae)
-    st.error("""以下の点をご確認ください。
-             (1)デッキレシピが「公開」になっているか
-             (2)デッキに最低1体以上のモンスターが含まれているか""")
+    st.error("""以下の点をご確認ください。\n
+    (1)デッキレシピが「公開」になっているか\n
+    (2)デッキに最低1体以上のモンスターが含まれているか""")
 except RuntimeError as re:
     st.error(re)
 except Exception as e:
-    st.error("予期せぬ例外が発生しました。ページを開き直してリトライしてください。")
-    st.error(e)
+    logger.error(f"予期せぬ例外：{e}")
+    st.error("""エラーが発生しました。以下の点をご確認ください。\n
+             ・URLが間違っていないか""")
 
 finally:
     st.write("[GitHub](https://github.com/ikishichi/ygo-small-world-transit) / "
