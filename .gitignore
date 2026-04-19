@@ -1,1 +1,4 @@
 /tmp/
+/.idea/
+/src/__pycache__/
+/test/__pycache__/
