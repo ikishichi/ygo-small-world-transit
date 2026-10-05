@@ -72,8 +72,9 @@ try:
             db_query_params = urllib.parse.parse_qs(str(urllib.parse.urlparse(url).query))
             st.query_params["cgid"] = db_query_params["cgid"][0]
             st.query_params["dno"] = db_query_params["dno"][0]
-            if "request_locale" in db_query_params:
-                st.query_params["request_locale"] = db_query_params["request_locale"][0]
+            st.query_params["request_locale"] = db_query_params.get(
+                "request_locale", ["ja"]
+            )[0]
             st.info("現在のページをブックマークしておくと、次回からURLの入力を省略できます。")
 
         # デッキ情報（htmlバイナリデータ）を取得する

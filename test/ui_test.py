@@ -1,0 +1,62 @@
+"""デッキ切り替え時のブックマーク更新の回帰テスト。"""
+from pathlib import Path
+
+import pytest
+from streamlit.testing.v1 import AppTest
+
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+DECK_HTML = """
+<html>
+<head><meta name="description" content="テストデッキ"></head>
+<body>
+<div id="detailtext_main">
+  <div class="t_body mlist_m">
+    <div class="t_row c_normal">
+      <span class="card_name">テストモンスター</span>
+      <span class="box_card_attribute"><span>光属性</span></span>
+      <span class="box_card_level_rank level"><span>レベル1</span></span>
+      <span class="card_info_species_and_other_item">【戦士族／通常】</span>
+      <span class="atk_power"><span>攻撃力0</span></span>
+      <span class="def_power"><span>守備力0</span></span>
+    </div>
+  </div>
+</div>
+</body>
+</html>
+"""
+
+
+@pytest.mark.parametrize("input_locale, expected_locale", [(None, "ja"), ("en", "en")])
+def test_switch_deck_updates_bookmark_locale(mocker, monkeypatch, input_locale, expected_locale):
+    """古い言語を残さず、送信したURLの言語または既定値を保存する。"""
+    monkeypatch.syspath_prepend(str(PROJECT_ROOT / "src"))
+    response = mocker.Mock()
+    response.content = DECK_HTML.encode("utf-8")
+    get = mocker.patch("requests.get", return_value=response)
+    app = AppTest.from_file(str(PROJECT_ROOT / "src" / "ui.py"))
+    app.query_params.update({"cgid": "A", "dno": "1", "request_locale": "en"})
+    app.run()
+    assert not app.exception
+    assert not app.error
+
+    input_url = "https://www.db.yugioh-card.com/yugiohdb/member_deck.action?cgid=B&dno=2"
+    if input_locale is not None:
+        input_url += "&request_locale=" + input_locale
+    app.text_input[0].set_value(input_url)
+    app.button[0].click().run()
+
+    assert not app.exception
+    assert not app.error
+    assert app.query_params["cgid"] == ["B"]
+    assert app.query_params["dno"] == ["2"]
+    assert app.query_params["request_locale"] == [expected_locale]
+    get.assert_called_with(input_url)
+
+    app.run()
+    assert not app.exception
+    assert not app.error
+    get.assert_called_with(
+        "http://www.db.yugioh-card.com/yugiohdb/member_deck.action"
+        + "?cgid=B&dno=2&request_locale=" + expected_locale
+    )
