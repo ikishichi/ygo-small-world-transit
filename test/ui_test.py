@@ -1,7 +1,9 @@
 """デッキ切り替え時のブックマーク更新の回帰テスト。"""
 from pathlib import Path
 
+import pandas as pd
 import pytest
+import requests
 from streamlit.testing.v1 import AppTest
 
 
@@ -102,3 +104,54 @@ def test_switch_decks_without_initial_bookmark(mocker, monkeypatch):
         assert app.session_state["MONSTERS_DF"]["name"].tolist() == [
             f"モンスター{deck}"
         ]
+
+
+@pytest.mark.parametrize("failure", ["http_error", "connection_error"])
+def test_failed_deck_switch_preserves_state(mocker, monkeypatch, failure):
+    """取得失敗時は元の状態を保ち、再試行成功時にデッキを切り替える。"""
+    monkeypatch.syspath_prepend(str(PROJECT_ROOT / "src"))
+    response = mocker.Mock(content=DECK_HTML.encode("utf-8"))
+    get = mocker.patch("requests.get", return_value=response)
+    app = AppTest.from_file(str(PROJECT_ROOT / "src" / "ui.py"))
+    app.query_params.update({"cgid": "A", "dno": "1", "request_locale": "en"})
+    app.run()
+    assert not app.exception
+    assert not app.error
+    previous_params = app.query_params.copy()
+    previous_monsters = app.session_state["MONSTERS_DF"].copy()
+    previous_results = pd.DataFrame(
+        {"origin": ["元モンスター"], "transit": ["経由モンスター"], "dest": ["先モンスター"]}
+    )
+    app.session_state["SEARCH_RESULTS"] = previous_results.copy()
+
+    if failure == "http_error":
+        response.raise_for_status.side_effect = requests.exceptions.HTTPError("503")
+    else:
+        get.side_effect = requests.exceptions.ConnectionError("接続失敗")
+    input_url = (
+        "https://www.db.yugioh-card.com/yugiohdb/member_deck.action"
+        + "?cgid=B&dno=2&request_locale=ja"
+    )
+    app.text_input[0].set_value(input_url)
+    app.button[0].click().run()
+
+    assert not app.exception
+    assert app.error
+    assert not app.info
+    get.assert_called_with(input_url)
+    assert app.query_params == previous_params
+    pd.testing.assert_frame_equal(app.session_state["MONSTERS_DF"], previous_monsters)
+    pd.testing.assert_frame_equal(app.session_state["SEARCH_RESULTS"], previous_results)
+    assert app.text_input[0].value == input_url
+
+    get.side_effect = None
+    response.raise_for_status.side_effect = None
+    response.content = DECK_HTML.replace("テストモンスター", "モンスターB").encode("utf-8")
+    app.button[0].click().run()
+
+    assert not app.exception
+    assert not app.error
+    get.assert_called_with(input_url)
+    assert app.query_params == {"cgid": ["B"], "dno": ["2"], "request_locale": ["ja"]}
+    assert app.session_state["MONSTERS_DF"]["name"].tolist() == ["モンスターB"]
+    assert app.session_state["SEARCH_RESULTS"] is None
