@@ -43,11 +43,15 @@ try:
     # クエリパラメータから遊戯王DBのURLを構築（必須パラメータが欠ければ空文字）
     query_params_url = build_url_from_query_params(query_params)
 
+    # 初期値は一度だけ設定し、送信後も同じ入力欄でユーザー入力を保持する。
+    if "deck_url_input" not in st.session_state:
+        st.session_state["deck_url_input"] = query_params_url
+
     with st.form(key="deck_url"):
         # URL入力欄の入力値。ブックマーク経由アクセス時は構築済みURLを初期値として表示。
         input_url = st.text_input(
             "遊戯王DBの公開デッキのURLを入力してください。",
-            value=query_params_url,
+            key="deck_url_input",
         )
 
         # デッキ取得ボタンの押下状態（boolean）

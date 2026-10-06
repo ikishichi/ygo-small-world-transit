@@ -39,6 +39,10 @@ def test_switch_deck_updates_bookmark_locale(mocker, monkeypatch, input_locale, 
     app.run()
     assert not app.exception
     assert not app.error
+    assert app.text_input[0].value == (
+        "http://www.db.yugioh-card.com/yugiohdb/member_deck.action"
+        + "?cgid=A&dno=1&request_locale=en"
+    )
 
     input_url = "https://www.db.yugioh-card.com/yugiohdb/member_deck.action?cgid=B&dno=2"
     if input_locale is not None:
@@ -60,3 +64,41 @@ def test_switch_deck_updates_bookmark_locale(mocker, monkeypatch, input_locale, 
         "http://www.db.yugioh-card.com/yugiohdb/member_deck.action"
         + "?cgid=B&dno=2&request_locale=" + expected_locale
     )
+
+
+def test_switch_decks_without_initial_bookmark(mocker, monkeypatch):
+    """初回アクセス後も、連続したデッキ切り替えを1回の送信で反映する。"""
+    monkeypatch.syspath_prepend(str(PROJECT_ROOT / "src"))
+    responses = []
+    for deck in ("A", "B", "C"):
+        response = mocker.Mock()
+        response.content = DECK_HTML.replace(
+            "テストモンスター", f"モンスター{deck}"
+        ).encode("utf-8")
+        responses.append(response)
+    get = mocker.patch("requests.get", side_effect=responses)
+    app = AppTest.from_file(str(PROJECT_ROOT / "src" / "ui.py"))
+    app.run()
+    assert not app.exception
+    assert not app.error
+    assert app.text_input[0].value == ""
+    get.assert_not_called()
+
+    for count, deck in enumerate(("A", "B", "C"), start=1):
+        input_url = (
+            "https://www.db.yugioh-card.com/yugiohdb/member_deck.action"
+            + f"?cgid={deck}&dno={count}&request_locale=ja"
+        )
+        app.text_input[0].set_value(input_url)
+        app.button[0].click().run()
+
+        assert not app.exception
+        assert not app.error
+        assert get.call_count == count
+        get.assert_called_with(input_url)
+        assert app.text_input[0].value == input_url
+        assert app.query_params["cgid"] == [deck]
+        assert app.query_params["dno"] == [str(count)]
+        assert app.session_state["MONSTERS_DF"]["name"].tolist() == [
+            f"モンスター{deck}"
+        ]
