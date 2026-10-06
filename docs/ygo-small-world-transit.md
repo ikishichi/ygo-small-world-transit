@@ -132,6 +132,7 @@ class SearchResult {
 }
 class Deck{
     - pandas.DataFrame monster_list
+    + str deck_name
     + Deck(html)
     + list get_monster_list()
 }
@@ -143,15 +144,22 @@ class HtmlParser{
     - monster_info_list
     + HtmlParser(html)
     + get_monster_info_list()
+    + get_deck_name()
 }
 note right
 beautiful soup
 を使用
 endnote
+class url_resolver <<module>> {
+    + has_query_params(query_params)
+    + build_url_from_query_params(query_params)
+    + select_url(input_url, query_params_url, submit_btn)
+}
 ui "1"--"1" DeckInfo
 ui "1"--"1" SearchResult
 
 ui "1"--"1" Deck
+ui "1"--"1" url_resolver
 Deck "1"--"1" HtmlParser
 @enduml
 ```
