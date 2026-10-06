@@ -57,8 +57,6 @@ try:
         # デッキ取得ボタンの押下状態（boolean）
         submit_btn = st.form_submit_button("デッキ取得")
 
-    container = st.container(border=True)
-
     # 取得ボタン押下、またはクエリパラメータの指定がある場合
     if submit_btn or has_query_params(query_params):
         # Issue #32: submit 時は必ずユーザー入力を採用し、クエリパラメータで上書きしない
@@ -92,6 +90,7 @@ try:
         st.session_state["MONSTERS_DF"] = deck.monsters_df
         deck_name = deck.deck_name
 
+        container = st.container(border=True)
         container.badge("取得成功", icon=":material/check:", color="green")
         container.write(f"デッキ：:blue-background[{deck_name}]")
 
