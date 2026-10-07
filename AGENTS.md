@@ -25,16 +25,17 @@ pytest test/html_parser_test.py::TestHtmlParser::test_get_deck_name_normal
 
 ## 実行パス上の落とし穴
 
-- `src/` 配下のモジュール同士は相対 import ではなく裸の import（例：`from deck import Deck`）を使っている。これは `streamlit run ./src/ui.py` が `src/` を sys.path に追加することに依存している。**`src/` 配下のモジュールをルートから直接 `python` で実行すると ImportError になる**。
+- `src/` 配下のモジュール同士は相対 import ではなく裸の import（例：`from deck import Deck`）を使っている。`streamlit run ./src/ui.py` やスクリプトを直接実行する `python src/deck.py` では `src/` が sys.path に追加される。一方、**プロジェクトルートから `python -m src.deck` のようにモジュールとして実行すると、裸の import を解決できず ImportError になる**。UI の起動には Streamlit のコマンドを使用する。
 - 一方、`test/` 配下のテストは `from src.deck_info import DeckInfo` のように `src.` プレフィックス付きで import している。**pytest はプロジェクトルートから実行する必要がある**（`test/` に `cd` してから実行すると解決しない）。
 - 実行経路とテスト経路で import 形式が非対称な点に注意すること。モジュール名の変更や新規モジュール追加時は両方の経路で確認する。
 
 ## アーキテクチャ
 
-UI は 5 モジュールに分割されており、それぞれ単一責務を持つ。データの流れは基本的に一方向：
+アプリは 6 モジュールで構成され、それぞれ単一責務を持つ。データの流れは基本的に一方向：
 
 ```
 ui.py (Streamlit)
+  ├─ url_resolver                       → クエリパラメータからURLを構築し、取得URLを選択
   ├─ DeckInfo(url).fetch_html()          → 遊戯王DBからHTML取得 (requests)
   ├─ Deck(html).parse_html()             → HtmlParser でモンスター情報を抽出し DataFrame 化
   │    └─ HtmlParser                     → BeautifulSoup(lxml) で detailtext_main を解析
@@ -44,8 +45,9 @@ ui.py (Streamlit)
 - [src/ui.py](src/ui.py): Streamlit UI、クエリパラメータによるブックマーク対応、例外→画面エラー表示の責務。`session_state` に `MONSTERS_DF` と `SEARCH_RESULTS` を保持する。
 - [src/deck_info.py](src/deck_info.py): HTTP 取得のみ。`raise_for_status()` で失敗を例外化。
 - [src/deck.py](src/deck.py): HtmlParser の結果を pandas.DataFrame 化する薄いラッパー。
-- [src/html_parser.py](src/html_parser.py): 遊戯王DB の HTML 構造（`detailtext_main` → `t_body mlist_m` → `t_row c_normal`、`card_name` / `box_card_attribute` / `box_card_level_rank level` / `card_info_species_and_other_item` / `atk_power` / `def_power`）に強く依存している。**遊戯王DBの HTML 構造変更がこのプロジェクトの最大の破壊要因**。構造変更時は `AttributeError("デッキの読み込みに失敗しました")` に集約される。
+- [src/html_parser.py](src/html_parser.py): 遊戯王DB の HTML 構造（`detailtext_main` → `t_body mlist_m` → `t_row c_normal`、`card_name` / `box_card_attribute` / `box_card_level_rank level` / `card_info_species_and_other_item` / `atk_power` / `def_power`）に強く依存している。**遊戯王DBの HTML 構造変更がこのプロジェクトの最大の破壊要因**。`generate_monsters()` で発生した `AttributeError` は `AttributeError("デッキの読み込みに失敗しました")` に変換される。`get_deck_name()` で必要な meta タグや content 属性が見つからない場合は、デッキ名取得に失敗した旨の `AttributeError` をそのまま送出する。
 - [src/search_result.py](src/search_result.py): 《スモール・ワールド》のロジックの本体。モンスター属性 6 項目（name, attribute, type, level, attack, defence）のうち**ちょうど 1 項目だけが一致する**組を「経由可能」と判定する二重ループ。origin → transit → dest の 2 ホップで全経路を列挙し DataFrame で返す。
+- [src/url_resolver.py](src/url_resolver.py): デッキ識別用クエリパラメータの有無を判定し、遊戯王DBのURLを構築する。デッキ取得ボタン押下時は入力URL、それ以外はクエリパラメータから構築したURLを選択する。
 
 ## 遊戯王DB の URL 仕様
 
@@ -73,7 +75,7 @@ ui.py (Streamlit)
 
 ### レビュー文面のフォーマット
 
-- 各指摘は `[must|should|imo|nits] サマリー` で始め、ラベルは必須修正・推奨修正・議論したい提案・軽微な改善から1つ選ぶ。
-- 本文は「なぜ」（発生条件・根拠・影響）、「どのように」（修正方針と対象言語・形式のコードブロックによる最小限の修正案）、「メリット」（修正の効果）の順で記載し、対象ファイル・最小限の行範囲を特定する。
-- 修正案の動作が未検証なら明記する。仕様の質問・判断保留やレビュー全体の検証結果は、指摘とは別に報告する。
-- GitHubへのレビュー本文には `レビュー実行モデル: 実際のモデル識別子` を記載し、単独コメントでは末尾に追記する。
+- 各指摘は `[must|should|imo|nits] サマリー` で始める。
+- 本文は「なぜ」（発生条件・根拠・影響）、「どのように」（修正方針と対象言語・形式のコードブロックによる最小限の修正案）、「メリット」（修正の効果）の順で改行して記載し、対象ファイル・最小限の行範囲を特定する。
+- 仕様の質問・判断保留やレビュー全体の検証結果は、指摘とは別に報告する。
+- GitHubへのレビュー本文には `レビュー実行モデル: モデル識別子` を記載し、単独コメントでは末尾に追記する。
