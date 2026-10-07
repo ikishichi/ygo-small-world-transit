@@ -4,5 +4,5 @@ numpy>=1.26.0
 pandas>=2.1.1
 pytest>=7.4.2
 pytest-mock>=3.11.1
-requests>=2.31.0
-streamlit>=1.44.0
+requests>=2.32.4
+streamlit>=1.54.0

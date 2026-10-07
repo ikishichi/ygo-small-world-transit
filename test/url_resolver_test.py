@@ -1,6 +1,7 @@
 """url_resolver.py の単体テスト"""
 from src.url_resolver import (
     VALID_PREFIX_HTTP,
+    VALID_PREFIX_HTTPS,
     build_url_from_query_params,
     has_query_params,
     select_url,
@@ -27,13 +28,13 @@ class TestHasQueryParams:
 class TestBuildUrlFromQueryParams:
     def test_with_locale(self):
         params = {"cgid": "A", "dno": "1", "request_locale": "en"}
-        expected = VALID_PREFIX_HTTP + "?cgid=A&dno=1&request_locale=en"
+        expected = VALID_PREFIX_HTTPS + "?cgid=A&dno=1&request_locale=en"
         assert build_url_from_query_params(params) == expected
 
     def test_default_locale_ja(self):
         """request_locale が無い場合は ja を補完する"""
         params = {"cgid": "A", "dno": "1"}
-        expected = VALID_PREFIX_HTTP + "?cgid=A&dno=1&request_locale=ja"
+        expected = VALID_PREFIX_HTTPS + "?cgid=A&dno=1&request_locale=ja"
         assert build_url_from_query_params(params) == expected
 
     def test_empty_when_no_query_params(self):

@@ -5,6 +5,11 @@ logger = logging.getLogger(__name__)
 
 import requests
 
+try:
+    from .url_resolver import normalize_deck_url
+except ImportError:
+    from url_resolver import normalize_deck_url
+
 
 class DeckInfo:
     """デッキ情報クラス
@@ -21,8 +26,11 @@ class DeckInfo:
     def fetch_html(self):
         """Fetch HTML content"""
         try:
-            response = requests.get(self.url)
-            response.raise_for_status() # ステータスコードが200番台（成功）以外の場合に例外をスロー
+            url = normalize_deck_url(self.url)
+            response = requests.get(url, allow_redirects=False)
+            if 300 <= response.status_code < 400:
+                raise ValueError("デッキ取得先から転送応答が返されました")
+            response.raise_for_status()
             self.html_content = response.content
         except requests.exceptions.RequestException as e:
             logger.error(f"Error fetching deck info: {e}")
