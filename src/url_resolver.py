@@ -1,7 +1,23 @@
 """URL構築・選択ロジックモジュール"""
 
+from urllib.parse import urlsplit, urlunsplit
+
 VALID_PREFIX_HTTP = "http://www.db.yugioh-card.com/yugiohdb/member_deck.action"
 VALID_PREFIX_HTTPS = "https://www.db.yugioh-card.com/yugiohdb/member_deck.action"
+
+
+def normalize_deck_url(url):
+    """許可されたデッキURLを検査し、HTTPSの取得URLを返す。"""
+    parts = urlsplit(url)
+    if (
+        parts.scheme not in {"http", "https"}
+        or parts.netloc != "www.db.yugioh-card.com"
+        or parts.path != "/yugiohdb/member_deck.action"
+    ):
+        raise ValueError(
+            "無効なURLです。遊戯王DBの公開デッキレシピのURLを入力してください。"
+        )
+    return urlunsplit(("https", parts.netloc, parts.path, parts.query, ""))
 
 
 def has_query_params(query_params):
@@ -30,7 +46,7 @@ def build_url_from_query_params(query_params):
         return ""
     locale = query_params.get("request_locale", "ja")
     return (
-        VALID_PREFIX_HTTP
+        VALID_PREFIX_HTTPS
         + "?cgid=" + query_params["cgid"]
         + "&dno=" + query_params["dno"]
         + "&request_locale=" + locale
