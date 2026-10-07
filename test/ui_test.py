@@ -164,7 +164,10 @@ def test_failed_deck_switch_preserves_state(mocker, monkeypatch, failure):
 
     assert not app.exception
     assert app.error
-    assert not app.info
+    if failure in {"missing_monsters", "missing_deck", "missing_deck_name"}:
+        assert app.info
+    else:
+        assert not app.info
     get.assert_called_with(input_url, allow_redirects=False)
     assert normalize_query_params(app.query_params) == previous_params
     pd.testing.assert_frame_equal(app.session_state["MONSTERS_DF"], previous_monsters)
@@ -210,8 +213,8 @@ def test_first_deck_parse_failure_does_not_offer_bookmark(mocker, monkeypatch, h
     app.button[0].click().run()
 
     assert not app.exception
-    assert len(app.error) == 2
-    assert not app.info
+    assert len(app.error) == 1
+    assert len(app.info) == 1
     assert not app.query_params
     pd.testing.assert_frame_equal(app.session_state["MONSTERS_DF"], previous_monsters)
     assert app.session_state["SEARCH_RESULTS"] is None
@@ -266,3 +269,75 @@ def test_invalid_deck_path_preserves_bookmark_without_request(mocker, monkeypatc
     get.assert_not_called()
     assert normalize_query_params(app.query_params) == previous_params
     pd.testing.assert_frame_equal(app.session_state["MONSTERS_DF"], previous_monsters)
+
+
+@pytest.mark.parametrize("query", ["cgid=A", "dno=1", "cgid=&dno=1"])
+def test_deck_url_missing_required_identity_is_rejected_before_request(
+    mocker, monkeypatch, query
+):
+    """cgidまたはdnoが欠けたURLは入力不備を示し、通信を開始しない。"""
+    monkeypatch.syspath_prepend(str(PROJECT_ROOT / "src"))
+    get = mocker.patch("requests.get")
+    app = AppTest.from_file(str(PROJECT_ROOT / "src" / "ui.py")).run()
+
+    app.text_input[0].set_value(
+        "https://www.db.yugioh-card.com/yugiohdb/member_deck.action?" + query
+    )
+    app.button[0].click().run()
+
+    assert not app.exception
+    assert len(app.error) == 1
+    assert "必須情報（cgid、dno）がありません" in app.error[0].value
+    assert not app.info
+    get.assert_not_called()
+
+
+@pytest.mark.parametrize("error", [
+    requests.exceptions.Timeout("timeout"),
+    requests.exceptions.HTTPError("503"),
+    requests.exceptions.ConnectionError("connection failed"),
+])
+def test_network_failures_show_retry_guidance_without_blame_on_url(
+    mocker, monkeypatch, error
+):
+    """タイムアウト・HTTP・接続失敗は通信案内となり、URL不備を示さない。"""
+    monkeypatch.syspath_prepend(str(PROJECT_ROOT / "src"))
+    get = mocker.patch("requests.get", side_effect=error)
+    app = AppTest.from_file(str(PROJECT_ROOT / "src" / "ui.py")).run()
+    url = "https://www.db.yugioh-card.com/yugiohdb/member_deck.action?cgid=A&dno=1"
+
+    app.text_input[0].set_value(url)
+    app.button[0].click().run()
+
+    assert not app.exception
+    assert len(app.error) == 1
+    assert "通信状態を確認し、時間を置いて再試行" in app.error[0].value
+    assert "無効なURL" not in app.error[0].value
+    assert not app.info
+    get.assert_called_once_with(url, allow_redirects=False)
+
+
+def test_no_monster_deck_shows_specific_guidance(mocker, monkeypatch):
+    """モンスターがないデッキではモンスターを含むURLを案内する。"""
+    monkeypatch.syspath_prepend(str(PROJECT_ROOT / "src"))
+    response = mocker.Mock(
+        status_code=200,
+        content=(
+            '<html><head><meta name="description" content="魔法罠デッキ"></head>'
+            '<body><div id="detailtext_main"><div class="t_body mlist_s"></div>'
+            '</div></body></html>'
+        ).encode("utf-8"),
+    )
+    get = mocker.patch("requests.get", return_value=response)
+    app = AppTest.from_file(str(PROJECT_ROOT / "src" / "ui.py")).run()
+    url = "https://www.db.yugioh-card.com/yugiohdb/member_deck.action?cgid=A&dno=1"
+
+    app.text_input[0].set_value(url)
+    app.button[0].click().run()
+
+    assert not app.exception
+    assert len(app.error) == 1
+    assert "モンスターが見つかりませんでした" in app.error[0].value
+    assert len(app.info) == 1
+    assert "モンスターを含む公開デッキ" in app.info[0].value
+    get.assert_called_once_with(url, allow_redirects=False)

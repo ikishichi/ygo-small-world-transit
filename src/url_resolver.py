@@ -1,6 +1,6 @@
 """URL構築・選択ロジックモジュール"""
 
-from urllib.parse import urlsplit, urlunsplit
+from urllib.parse import parse_qs, urlsplit, urlunsplit
 
 VALID_PREFIX_HTTP = "http://www.db.yugioh-card.com/yugiohdb/member_deck.action"
 VALID_PREFIX_HTTPS = "https://www.db.yugioh-card.com/yugiohdb/member_deck.action"
@@ -16,6 +16,11 @@ def normalize_deck_url(url):
     ):
         raise ValueError(
             "無効なURLです。遊戯王DBの公開デッキレシピのURLを入力してください。"
+        )
+    query_params = parse_qs(parts.query)
+    if not all(query_params.get(key, [""])[0] for key in ("cgid", "dno")):
+        raise ValueError(
+            "デッキURLに必須情報（cgid、dno）がありません。公開デッキのURLを確認してください。"
         )
     return urlunsplit(("https", parts.netloc, parts.path, parts.query, ""))
 

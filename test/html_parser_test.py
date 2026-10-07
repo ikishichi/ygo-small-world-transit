@@ -1,6 +1,20 @@
 import pytest
 
-from src.html_parser import HtmlParser
+from src.html_parser import DeckStructureError, HtmlParser, NoMonsterError
+
+
+MONSTER_HTML = """<div id="detailtext_main">
+  <div class="mlist_m t_body">
+    <div class="extra t_row c_normal">
+      <span class="card_name">テストモンスター</span>
+      <span class="box_card_attribute"><span>光属性</span></span>
+      <span class="box_card_level_rank level"><span>レベル 4</span></span>
+      <span class="card_info_species_and_other_item">【戦士族／通常】</span>
+      <span class="atk_power"><span>攻撃力 1500</span></span>
+      <span class="def_power"><span>守備力 1200</span></span>
+    </div>
+  </div>
+</div>"""
 
 
 class TestHtmlParser:
@@ -36,7 +50,7 @@ class TestHtmlParser:
             "html": """<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
                     <meta name="TEST" content="テストデッキ/ ">
                 </head></html>""",
-            "err_msg": "デッキ名の取得に失敗しました。HTML構造が変更された可能性があります。"
+            "err_msg": "デッキ名を読み取れませんでした。遊戯王DBのHTML構造が変更された可能性があります。"
         }
     ]
 
@@ -563,7 +577,7 @@ class TestHtmlParser:
 	</div>
 </head>
 </html>""",
-            "err_msg": "デッキの読み込みに失敗しました"
+            "err_msg": "メインデッキにモンスターが見つかりませんでした。"
         }
     ]
 
@@ -576,8 +590,53 @@ class TestHtmlParser:
         parser = HtmlParser(test_data["html"])
 
         # 実行
-        with pytest.raises(AttributeError) as e:
+        with pytest.raises(NoMonsterError) as e:
             parser.generate_monsters()
 
         # 検証
         assert str(e.value) == test_data["err_msg"], test_data["title"]
+
+    def test_generate_monsters_accepts_reordered_classes(self):
+        """DB側のクラス順序や追加クラスが変わってもカードを解析する。"""
+        parser = HtmlParser(MONSTER_HTML)
+
+        assert parser.generate_monsters() == [{
+            "name": "テストモンスター",
+            "attribute": "光属性",
+            "type": "【戦士族",
+            "level": "レベル4",
+            "attack": "攻撃力1500",
+            "defence": "守備力1200",
+        }]
+
+    @pytest.mark.parametrize("missing_class", [
+        "card_name", "box_card_attribute", "box_card_level_rank level",
+        "card_info_species_and_other_item", "atk_power", "def_power",
+    ])
+    def test_generate_monsters_reports_missing_card_field_as_structure_change(self, missing_class):
+        """必要なカード項目が欠落した場合は構造変更として識別する。"""
+        html = MONSTER_HTML.replace(f'class="{missing_class}"', 'class="unexpected"')
+
+        with pytest.raises(DeckStructureError, match="HTML構造が変更"):
+            HtmlParser(html).generate_monsters()
+
+    def test_generate_monsters_reports_changed_row_class_as_structure_change(self):
+        html = MONSTER_HTML.replace('class="extra t_row c_normal"', 'class="extra card_row"')
+
+        with pytest.raises(DeckStructureError, match="HTML構造が変更"):
+            HtmlParser(html).generate_monsters()
+
+    @pytest.mark.parametrize("html", [
+        '<html></html>',
+        '<div id="detailtext_main"><div class="t_body mlist_s"></div></div>',
+        '<div id="detailtext_main"><div class="t_body mlist_m"></div></div>',
+    ])
+    def test_generate_monsters_distinguishes_missing_structure_from_empty_monsters(self, html):
+        parser = HtmlParser(html)
+
+        if 'id="detailtext_main"' not in html:
+            with pytest.raises(DeckStructureError):
+                parser.generate_monsters()
+        else:
+            with pytest.raises(NoMonsterError, match="モンスターが見つかりません"):
+                parser.generate_monsters()
