@@ -29,6 +29,14 @@ DECK_HTML = """
 """
 
 
+def normalize_query_params(query_params):
+    """AppTestのバージョンによる単一クエリ値の形式差を吸収する。"""
+    return {
+        key: [value] if isinstance(value, str) else value
+        for key, value in query_params.items()
+    }
+
+
 @pytest.mark.parametrize("input_locale, expected_locale", [(None, "ja"), ("en", "en")])
 def test_switch_deck_updates_bookmark_locale(mocker, monkeypatch, input_locale, expected_locale):
     """古い言語を残さず、送信したURLの言語または既定値を保存する。"""
@@ -54,9 +62,10 @@ def test_switch_deck_updates_bookmark_locale(mocker, monkeypatch, input_locale, 
 
     assert not app.exception
     assert not app.error
-    assert app.query_params["cgid"] == ["B"]
-    assert app.query_params["dno"] == ["2"]
-    assert app.query_params["request_locale"] == [expected_locale]
+    query_params = normalize_query_params(app.query_params)
+    assert query_params["cgid"] == ["B"]
+    assert query_params["dno"] == ["2"]
+    assert query_params["request_locale"] == [expected_locale]
     get.assert_called_with(input_url)
 
     app.run()
@@ -99,8 +108,9 @@ def test_switch_decks_without_initial_bookmark(mocker, monkeypatch):
         assert get.call_count == count
         get.assert_called_with(input_url)
         assert app.text_input[0].value == input_url
-        assert app.query_params["cgid"] == [deck]
-        assert app.query_params["dno"] == [str(count)]
+        query_params = normalize_query_params(app.query_params)
+        assert query_params["cgid"] == [deck]
+        assert query_params["dno"] == [str(count)]
         assert app.session_state["MONSTERS_DF"]["name"].tolist() == [
             f"モンスター{deck}"
         ]
@@ -117,7 +127,7 @@ def test_failed_deck_switch_preserves_state(mocker, monkeypatch, failure):
     app.run()
     assert not app.exception
     assert not app.error
-    previous_params = app.query_params.copy()
+    previous_params = normalize_query_params(app.query_params)
     previous_monsters = app.session_state["MONSTERS_DF"].copy()
     previous_results = pd.DataFrame(
         {"origin": ["元モンスター"], "transit": ["経由モンスター"], "dest": ["先モンスター"]}
@@ -139,7 +149,7 @@ def test_failed_deck_switch_preserves_state(mocker, monkeypatch, failure):
     assert app.error
     assert not app.info
     get.assert_called_with(input_url)
-    assert app.query_params == previous_params
+    assert normalize_query_params(app.query_params) == previous_params
     pd.testing.assert_frame_equal(app.session_state["MONSTERS_DF"], previous_monsters)
     pd.testing.assert_frame_equal(app.session_state["SEARCH_RESULTS"], previous_results)
     assert app.text_input[0].value == input_url
@@ -152,6 +162,8 @@ def test_failed_deck_switch_preserves_state(mocker, monkeypatch, failure):
     assert not app.exception
     assert not app.error
     get.assert_called_with(input_url)
-    assert app.query_params == {"cgid": ["B"], "dno": ["2"], "request_locale": ["ja"]}
+    assert normalize_query_params(app.query_params) == {
+        "cgid": ["B"], "dno": ["2"], "request_locale": ["ja"]
+    }
     assert app.session_state["MONSTERS_DF"]["name"].tolist() == ["モンスターB"]
     assert app.session_state["SEARCH_RESULTS"] is None
