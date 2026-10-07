@@ -120,7 +120,10 @@ def test_switch_decks_without_initial_bookmark(mocker, monkeypatch, input_scheme
         ]
 
 
-@pytest.mark.parametrize("failure", ["http_error", "connection_error", "redirect"])
+@pytest.mark.parametrize("failure", [
+    "http_error", "connection_error", "redirect",
+    "missing_deck", "missing_monsters", "missing_deck_name",
+])
 def test_failed_deck_switch_preserves_state(mocker, monkeypatch, failure):
     """取得失敗時は元の状態を保ち、再試行成功時にデッキを切り替える。"""
     monkeypatch.syspath_prepend(str(PROJECT_ROOT / "src"))
@@ -142,6 +145,14 @@ def test_failed_deck_switch_preserves_state(mocker, monkeypatch, failure):
         response.raise_for_status.side_effect = requests.exceptions.HTTPError("503")
     elif failure == "redirect":
         response.status_code = 302
+    elif failure == "missing_deck":
+        response.content = b"<html></html>"
+    elif failure == "missing_monsters":
+        response.content = b'<html><div id="detailtext_main"></div></html>'
+    elif failure == "missing_deck_name":
+        response.content = DECK_HTML.replace(
+            '<meta name="description" content="テストデッキ">', ""
+        ).encode("utf-8")
     else:
         get.side_effect = requests.exceptions.ConnectionError("接続失敗")
     input_url = (
@@ -174,6 +185,60 @@ def test_failed_deck_switch_preserves_state(mocker, monkeypatch, failure):
     }
     assert app.session_state["MONSTERS_DF"]["name"].tolist() == ["モンスターB"]
     assert app.session_state["SEARCH_RESULTS"] is None
+    assert len(app.info) == 1
+
+
+@pytest.mark.parametrize("html", [
+    b"<html></html>",
+    b'<html><div id="detailtext_main"></div></html>',
+    DECK_HTML.replace(
+        '<meta name="description" content="テストデッキ">', ""
+    ).encode("utf-8"),
+], ids=["missing_deck", "missing_monsters", "missing_deck_name"])
+def test_first_deck_parse_failure_does_not_offer_bookmark(mocker, monkeypatch, html):
+    """初回取得でも解析失敗時は案内を出さず、未取得の状態を保持する。"""
+    monkeypatch.syspath_prepend(str(PROJECT_ROOT / "src"))
+    response = mocker.Mock(status_code=200, content=html)
+    mocker.patch("requests.get", return_value=response)
+    app = AppTest.from_file(str(PROJECT_ROOT / "src" / "ui.py"))
+    app.run()
+    previous_monsters = app.session_state["MONSTERS_DF"].copy()
+
+    app.text_input[0].set_value(
+        "https://www.db.yugioh-card.com/yugiohdb/member_deck.action?cgid=A&dno=1"
+    )
+    app.button[0].click().run()
+
+    assert not app.exception
+    assert len(app.error) == 2
+    assert not app.info
+    assert not app.query_params
+    pd.testing.assert_frame_equal(app.session_state["MONSTERS_DF"], previous_monsters)
+    assert app.session_state["SEARCH_RESULTS"] is None
+
+
+def test_successful_deck_display_order(mocker, monkeypatch):
+    """取得成功時の入力欄・案内・取得結果・検索欄の表示順を維持する。"""
+    monkeypatch.syspath_prepend(str(PROJECT_ROOT / "src"))
+    response = mocker.Mock(status_code=200, content=DECK_HTML.encode("utf-8"))
+    mocker.patch("requests.get", return_value=response)
+    app = AppTest.from_file(str(PROJECT_ROOT / "src" / "ui.py")).run()
+    app.text_input[0].set_value(
+        "https://www.db.yugioh-card.com/yugiohdb/member_deck.action?cgid=A&dno=1"
+    )
+    app.button[0].click().run()
+
+    assert not app.exception
+    assert not app.error
+    elements = [element.type for element in app.main]
+    assert [kind for kind in elements if kind in {
+        "text_input", "info", "markdown", "selectbox",
+    }] == [
+        "text_input", "info", "markdown", "markdown",
+        "selectbox", "selectbox", "markdown",
+    ]
+    assert "取得成功" in app.markdown[0].value
+    assert "デッキ：:blue-background[テストデッキ]" == app.markdown[1].value
 
 
 def test_invalid_deck_path_preserves_bookmark_without_request(mocker, monkeypatch):

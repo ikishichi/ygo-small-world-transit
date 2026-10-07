@@ -68,9 +68,13 @@ try:
                 logger.warning(f"無効なURL: {url}")
                 raise ValueError("無効なURLです。遊戯王DBの公開デッキレシピのURLを入力してください。")
 
-        # 取得に失敗した場合は、現在の検索状態とブックマークを保持する。
+        # 取得・解析に失敗した場合は、現在の検索状態とブックマークを保持する。
         deckInfo = DeckInfo(url)
         deckInfo.fetch_html()
+
+        # 状態更新やブックマーク案内の表示前に、デッキの解析を完了する。
+        deck = Deck(deckInfo.html_content)
+        deck.parse_html()
 
         if submit_btn:
             initialize_session_state()
@@ -84,9 +88,7 @@ try:
             )[0]
             st.info("現在のページをブックマークしておくと、次回からURLの入力を省略できます。")
 
-        # デッキからモンスターのDataFrameを取得する
-        deck = Deck(deckInfo.html_content)
-        deck.parse_html()
+        # 解析に成功したデッキのモンスター情報を保存する
         st.session_state["MONSTERS_DF"] = deck.monsters_df
         deck_name = deck.deck_name
 
