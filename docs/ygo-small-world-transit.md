@@ -9,7 +9,7 @@ left to right direction
 
 package "スモワ乗り換え検索" {
     (検索) as uc1
-    (検索結果URL保存) as uc2
+    (デッキ再取得用URL保存) as uc2
 }
 user --> uc1
 user --> uc2
@@ -20,7 +20,9 @@ user --> uc2
 1. スモールワールドのサーチ先が検索できる
 1. 遊戯王DBからデッキレシピを読み込める
 1. PC/スマートフォンでの表示に対応
-1. 検索結果のURLを保存できる
+1. 読み込んだデッキを再取得するためのURLをブックマークできる
+
+ブックマーク用URLには `cgid`、`dno`、`request_locale` を保存する。サーチ元・サーチ先の選択と検索結果はURLには保存しない。
 
 ## データフロー図
 
@@ -36,6 +38,7 @@ user --> sw : デッキURL入力, 検索元, 検索先(任意)
 sw --> user : 検索結果
 sw --> db : デッキ情報要求
 db --> sw : デッキ情報
+sw --> user : デッキ再取得用URL（ブックマーク用）
 @enduml
 ```
 
@@ -49,17 +52,24 @@ actor User as user
 participant "スモールワールド乗り換え検索" as sw
 database 遊戯王DB as db
 
-user --> sw : デッキURL
+user --> sw : デッキURL入力・「デッキ取得」押下\nまたはブックマーク経由のアクセス
 sw --> db : デッキ情報取得要求
 db --> sw : デッキ情報(html)
-sw --> user : 結果(OK/NG)
-alt OK
-    sw --> sw : デッキ情報解析(検索元、検索先表示用)
-    sw --> sw : 検索用UI有効化
-    user --> sw : 検索元、検索先(任意)入力(プルダウンメニュー)
-    user --> sw : 検索ボタン
-    sw --> sw : デッキ情報解析(検索)
-    sw --> user : 検索結果
+alt HTTP取得成功
+    opt デッキ取得ボタン押下時
+        sw --> sw : 検索状態初期化・ブックマーク用クエリパラメータ更新
+    end
+    sw --> sw : HTML解析・モンスターDataFrameとデッキ名を取得
+    alt HTML解析成功
+        sw --> user : 取得成功・デッキ名・モンスター選択候補を表示
+        user --> sw : サーチ元、サーチ先(任意)選択・「検索」押下
+        sw --> sw : DataFrameからサーチ経路を算出
+        sw --> user : 検索結果を経由・サーチ先の2列で表示
+    else HTML解析失敗
+        sw --> user : エラー表示
+    end
+else HTTP取得失敗
+    sw --> user : エラー表示
 end
 
 @enduml
@@ -67,11 +77,14 @@ end
 
 ### ソフトウェア詳細版
 
+以下はデッキ取得・解析・検索の正常系を示す。取得・解析時の例外は UI で捕捉し、画面にエラーを表示する。Streamlit の再実行時も、`cgid` と `dno` があればデッキを取得・解析する。
+
 ```plantuml
 @startuml
 actor User as user
 box "スモールワールド乗り換え検索"
 participant "UI表示" as ui
+participant "url_resolver" as ur
 participant "DeckInfo" as di
 participant "SearchResult" as sr
 participant "Deck" as dc
@@ -79,32 +92,55 @@ participant "HtmlParser" as hp
 end box
 database 遊戯王DB as db
 
-user --> ui : デッキURL
+user --> ui : デッキURL入力・「デッキ取得」押下\nまたはブックマーク経由のアクセス
+ui --> ur : build_url_from_query_params(query_params)
+ur --> ui : クエリパラメータ由来のURL
+ui --> ur : has_query_params(query_params)
+ur --> ui : cgid と dno の有無
+ui --> ur : select_url(input_url, query_params_url, submit_btn)
+ur --> ui : 使用するURL
+opt デッキ取得ボタン押下時
+    ui --> ui : URLプレフィックス検査
+end
 create di
-ui --> di : デッキURL
-di --> db : デッキ情報取得要求
+ui --> di : DeckInfo(url)
+ui --> di : fetch_html()
+di --> db : requests.get(url)
 db --> di : デッキ情報(html)
-di --> ui : 結果(OK/NG)
+di --> di : raise_for_status()\nhtml_content にHTMLを保存
+di --> ui : fetch_html() 完了
+ui --> di : html_content を参照
 di --> ui : デッキ情報(html)
+opt デッキ取得ボタン押下時
+    ui --> ui : initialize_session_state()\nブックマーク用クエリパラメータ更新
+    ui --> user : ブックマークの案内
+end
 create dc
-ui --> dc : デッキ情報(html)
+ui --> dc : Deck(html_content)
+ui --> dc : parse_html()
 create hp
-dc --> hp : デッキ情報(html)
+dc --> hp : HtmlParser(html)
+dc --> hp : generate_monsters()
 hp --> dc : モンスター情報リスト
-dc --> dc : モンスターリスト生成
-dc --> hp : delete
-destroy hp
-dc --> ui : 結果(OK/NG)
-alt OK
-    ui --> dc : モンスターリスト要求
-    dc --> ui : モンスターリスト
-    ui --> user : 検索用UI有効化\n(検索元、検索先、検索ボタン)
-    user --> ui : 検索元、検索先(任意)入力\n(プルダウンメニュー)
-    user --> ui : 検索ボタン
-    create sr
-    ui --> sr : 検索要求\n(モンスターリスト、デッキ検索元、検索先)
-    sr --> sr : 検索
-    sr --> user : 検索結果
+dc --> dc : convert_monsters_to_df(monsters)\nmonsters_df に保存
+dc --> hp : get_deck_name()
+hp --> dc : デッキ名
+dc --> dc : deck_name に保存
+dc --> ui : parse_html() 完了
+ui --> dc : monsters_df・deck_name を参照
+dc --> ui : モンスターDataFrame・デッキ名
+ui --> ui : MONSTERS_DF を更新
+ui --> user : 取得成功・デッキ名・モンスター選択候補を表示
+user --> ui : サーチ元、サーチ先(任意)選択・「検索」押下
+create sr
+ui --> sr : SearchResult(monsters_df, origin, destination)
+ui --> sr : get()
+sr --> sr : サーチ経路を算出
+sr --> ui : 検索結果DataFrame または None
+ui --> ui : SEARCH_RESULTS に保存
+opt SEARCH_RESULTS が None ではない
+    ui --> ui : 経由またはサーチ先でソート
+    ui --> user : 検索結果を2列で表示
 end
 
 @enduml
@@ -120,30 +156,35 @@ streamlit
 を使用
 endnote
 class DeckInfo{
-    - html
+    + url
+    + html_content
     + DeckInfo(url)
-    + bool success()
-    + get()
+    + fetch_html()
 }
 class SearchResult {
-    - list search_result
-    + SearchResult(MonsterList, origin, destination)
+    + monsters_df
+    + origin
+    + destination
+    + search_result
+    + SearchResult(monsters_df, origin, destination=None)
     + get()
 }
 class Deck{
-    - pandas.DataFrame monster_list
-    + str deck_name
+    + html
+    + monsters_df
+    + deck_name
     + Deck(html)
-    + list get_monster_list()
+    + parse_html()
+    {static} + convert_monsters_to_df(monsters)
 }
 note right
 pandas
 を使用
 endnote
 class HtmlParser{
-    - monster_info_list
+    + soup
     + HtmlParser(html)
-    + get_monster_info_list()
+    + generate_monsters()
     + get_deck_name()
 }
 note right
@@ -155,20 +196,64 @@ class url_resolver <<module>> {
     + build_url_from_query_params(query_params)
     + select_url(input_url, query_params_url, submit_btn)
 }
-ui "1"--"1" DeckInfo
-ui "1"--"1" SearchResult
-
-ui "1"--"1" Deck
-ui "1"--"1" url_resolver
-Deck "1"--"1" HtmlParser
+ui ..> DeckInfo : 取得
+ui ..> SearchResult : 検索
+ui ..> Deck : 解析
+ui ..> url_resolver : URL構築・選択
+Deck ..> HtmlParser : HTMLから情報抽出
 @enduml
 ```
+
+`Deck.monsters_df` は `name`、`attribute`、`type`、`level`、`attack`、`defence` の6列を持つ DataFrame。`SearchResult.get()` は `origin`、`transit`、`dest` の3列を持つ DataFrame を返し、サーチ元が見つからない場合は `None` を返す。
 
 ## フローチャート
 
 ```plantuml
 @startuml
-test -> test2
+start
+:session_state の初期化（未初期化時）;
+:クエリパラメータからURLを構築し、入力フォームを表示;
+if (デッキ取得ボタン押下 または cgid・dnoあり?) then (はい)
+    :入力URLまたはクエリパラメータ由来のURLを選択;
+    if (デッキ取得ボタン押下?) then (はい)
+        :URLプレフィックス検査;
+        if (許可プレフィックス?) then (はい)
+        else (いいえ)
+            :無効なURLのエラーを表示;
+            :GitHub・問い合わせリンクを表示;
+            stop
+        endif
+    endif
+    :HTML取得;
+    if (HTTP取得成功?) then (はい)
+        if (デッキ取得ボタン押下?) then (はい)
+            :検索状態初期化・ブックマーク用クエリパラメータ更新;
+            :ブックマークの案内;
+        endif
+        :HTML解析;
+        if (HTML解析成功?) then (はい)
+            :MONSTERS_DF 更新・取得成功とデッキ名を表示;
+        else (いいえ)
+            :エラー表示;
+            :GitHub・問い合わせリンクを表示;
+            stop
+        endif
+    else (いいえ)
+        :エラー表示（検索状態とブックマークを保持）;
+        :GitHub・問い合わせリンクを表示;
+        stop
+    endif
+endif
+:サーチ元・サーチ先の選択フォームを表示;
+if (検索ボタン押下?) then (はい)
+    :SearchResult.get() の結果を SEARCH_RESULTS に保存;
+endif
+if (SEARCH_RESULTS が None ではない?) then (はい)
+    :選択したソート順で並べ替え;
+    :経由・サーチ先を2列で表示;
+endif
+:GitHub・問い合わせリンクを表示;
+stop
 @enduml
 ```
 
