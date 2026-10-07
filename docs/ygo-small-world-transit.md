@@ -56,11 +56,12 @@ user --> sw : デッキURL入力・「デッキ取得」押下\nまたはブッ�
 sw --> db : デッキ情報取得要求
 db --> sw : デッキ情報(html)
 alt HTTP取得成功
-    opt デッキ取得ボタン押下時
-        sw --> sw : 検索状態初期化・ブックマーク用クエリパラメータ更新
-    end
     sw --> sw : HTML解析・モンスターDataFrameとデッキ名を取得
     alt HTML解析成功
+        opt デッキ取得ボタン押下時
+            sw --> sw : 検索状態初期化・ブックマーク用クエリパラメータ更新
+            sw --> user : ブックマークの案内
+        end
         sw --> user : 取得成功・デッキ名・モンスター選択候補を表示
         user --> sw : サーチ元、サーチ先(任意)選択・「検索」押下
         sw --> sw : DataFrameからサーチ経路を算出
@@ -111,10 +112,6 @@ di --> di : raise_for_status()\nhtml_content にHTMLを保存
 di --> ui : fetch_html() 完了
 ui --> di : html_content を参照
 di --> ui : デッキ情報(html)
-opt デッキ取得ボタン押下時
-    ui --> ui : initialize_session_state()\nブックマーク用クエリパラメータ更新
-    ui --> user : ブックマークの案内
-end
 create dc
 ui --> dc : Deck(html_content)
 ui --> dc : parse_html()
@@ -127,6 +124,10 @@ dc --> hp : get_deck_name()
 hp --> dc : デッキ名
 dc --> dc : deck_name に保存
 dc --> ui : parse_html() 完了
+opt デッキ取得ボタン押下時
+    ui --> ui : initialize_session_state()\nブックマーク用クエリパラメータ更新
+    ui --> user : ブックマークの案内
+end
 ui --> dc : monsters_df・deck_name を参照
 dc --> ui : モンスターDataFrame・デッキ名
 ui --> ui : MONSTERS_DF を更新
@@ -226,12 +227,12 @@ if (デッキ取得ボタン押下 または cgid・dnoあり?) then (はい)
     endif
     :HTML取得;
     if (HTTP取得成功?) then (はい)
-        if (デッキ取得ボタン押下?) then (はい)
-            :検索状態初期化・ブックマーク用クエリパラメータ更新;
-            :ブックマークの案内;
-        endif
         :HTML解析;
         if (HTML解析成功?) then (はい)
+            if (デッキ取得ボタン押下?) then (はい)
+                :検索状態初期化・ブックマーク用クエリパラメータ更新;
+                :ブックマークの案内;
+            endif
             :MONSTERS_DF 更新・取得成功とデッキ名を表示;
         else (いいえ)
             :エラー表示;
