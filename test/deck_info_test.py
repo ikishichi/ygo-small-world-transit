@@ -52,7 +52,7 @@ def test_fetch_html_normalizes_allowed_url(mocker, url, expected_url):
     deck_info = DeckInfo(url)
     deck_info.fetch_html()
 
-    get.assert_called_once_with(expected_url, allow_redirects=False)
+    get.assert_called_once_with(expected_url, allow_redirects=False, timeout=(5, 15))
     assert deck_info.html_content == response.content
 
 
@@ -101,7 +101,7 @@ def test_fetch_html_rejects_redirect_without_following_it(mocker, status_code):
     with pytest.raises(ValueError, match="デッキ取得先から転送応答が返されました"):
         DeckInfo(VALID_URL).fetch_html()
 
-    get.assert_called_once_with(VALID_URL, allow_redirects=False)
+    get.assert_called_once_with(VALID_URL, allow_redirects=False, timeout=(5, 15))
 
 
 @pytest.mark.parametrize("status_code", [400, 500])
@@ -126,7 +126,7 @@ def test_fetch_html_preserves_connection_error(mocker):
     with pytest.raises(requests.exceptions.ConnectionError, match="connection failed"):
         DeckInfo(VALID_URL).fetch_html()
 
-    get.assert_called_once_with(VALID_URL, allow_redirects=False)
+    get.assert_called_once_with(VALID_URL, allow_redirects=False, timeout=(5, 15))
 
 
 if __name__ == "__main__":

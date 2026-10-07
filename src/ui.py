@@ -30,6 +30,10 @@ def initialize_session_state():
     # 検索結果を保持するsession_state変数
     st.session_state["SEARCH_RESULTS"] = None
 
+    # 取得済みデッキの情報。再実行時はこの値を再利用する。
+    st.session_state["DECK_NAME"] = None
+    st.session_state["LOADED_DECK_URL"] = None
+
 st.set_page_config(page_title="遊戯王スモール・ワールド乗り換え検索")
 st.title("遊戯王スモール・ワールド乗り換え検索")
 st.caption("[遊戯王DB](https://www.db.yugioh-card.com/yugiohdb/)の公開デッキを読み込むことで、"
@@ -37,6 +41,10 @@ st.caption("[遊戯王DB](https://www.db.yugioh-card.com/yugiohdb/)の公開デ�
 
 if 'MONSTERS_DF' not in st.session_state:
     initialize_session_state()
+else:
+    # 既存セッションにも新しいキャッシュ状態を追加する。
+    st.session_state.setdefault("DECK_NAME", None)
+    st.session_state.setdefault("LOADED_DECK_URL", None)
 
 # クエリパラメータ取得
 query_params = st.query_params
@@ -70,29 +78,38 @@ try:
                 logger.warning(f"無効なURL: {url}")
                 raise ValueError("無効なURLです。遊戯王DBの公開デッキレシピのURLを入力してください。")
 
-        # 取得・解析に失敗した場合は、現在の検索状態とブックマークを保持する。
-        deckInfo = DeckInfo(url)
-        deckInfo.fetch_html()
+        # ソートや検索による再実行では取得済みデッキを再利用する。
+        # 明示的な取得操作は、同じURLでも最新状態を読み直す。
+        if submit_btn or st.session_state["LOADED_DECK_URL"] != url:
+            # 取得・解析に失敗した場合は、現在の検索状態とブックマークを保持する。
+            deck_info = DeckInfo(url)
+            deck_info.fetch_html()
 
-        # 状態更新やブックマーク案内の表示前に、デッキの解析を完了する。
-        deck = Deck(deckInfo.html_content)
-        deck.parse_html()
+            # 状態更新やブックマーク案内の表示前に、デッキの解析を完了する。
+            deck = Deck(deck_info.html_content)
+            deck.parse_html()
 
-        if submit_btn:
-            initialize_session_state()
+            if submit_btn:
+                # 遊戯王DBのURLからクエリパラメータを取得し、乗り換え検索のクエリパラメータに反映する
+                db_query_params = urllib.parse.parse_qs(str(urllib.parse.urlparse(url).query))
+                st.query_params["cgid"] = db_query_params["cgid"][0]
+                st.query_params["dno"] = db_query_params["dno"][0]
+                st.query_params["request_locale"] = db_query_params.get(
+                    "request_locale", ["ja"]
+                )[0]
+                st.info("現在のページをブックマークしておくと、次回からURLの入力を省略できます。")
+                # 入力URLに言語指定がなくても、ブックマーク側の既定値と一致させる。
+                loaded_url = build_url_from_query_params(st.query_params)
+            else:
+                loaded_url = url
 
-            # 遊戯王DBのURLからクエリパラメータを取得し、乗り換え検索のクエリパラメータに反映する
-            db_query_params = urllib.parse.parse_qs(str(urllib.parse.urlparse(url).query))
-            st.query_params["cgid"] = db_query_params["cgid"][0]
-            st.query_params["dno"] = db_query_params["dno"][0]
-            st.query_params["request_locale"] = db_query_params.get(
-                "request_locale", ["ja"]
-            )[0]
-            st.info("現在のページをブックマークしておくと、次回からURLの入力を省略できます。")
+            # 解析成功後にまとめて状態を更新し、失敗時は前のデッキを保つ。
+            st.session_state["MONSTERS_DF"] = deck.monsters_df
+            st.session_state["DECK_NAME"] = deck.deck_name
+            st.session_state["LOADED_DECK_URL"] = loaded_url
+            st.session_state["SEARCH_RESULTS"] = None
 
-        # 解析に成功したデッキのモンスター情報を保存する
-        st.session_state["MONSTERS_DF"] = deck.monsters_df
-        deck_name = deck.deck_name
+        deck_name = st.session_state["DECK_NAME"]
 
         container = st.container(border=True)
         container.badge("取得成功", icon=":material/check:", color="green")
