@@ -21,6 +21,37 @@ from url_resolver import (
 )
 
 
+MATCH_FIELDS = {
+    "attribute": "属性",
+    "type": "種族",
+    "level": "レベル",
+    "attack": "攻撃力",
+    "defence": "守備力",
+}
+
+
+def get_matching_attributes(
+    monsters_df: pd.DataFrame, first_name: str, second_name: str
+):
+    """2体のモンスターで一致する検索項目を名前以外から返す。"""
+    first_rows = monsters_df[monsters_df["name"] == first_name]
+    second_rows = monsters_df[monsters_df["name"] == second_name]
+    if first_rows.empty or second_rows.empty:
+        return []
+
+    first = first_rows.iloc[0]
+    second = second_rows.iloc[0]
+    return [
+        (label, str(first[field]))
+        for field, label in MATCH_FIELDS.items()
+        if (
+            pd.notna(first[field])
+            and pd.notna(second[field])
+            and first[field] == second[field]
+        )
+    ]
+
+
 def initialize_session_state():
     """session_state変数を初期化する"""
     # モンスターのDataFrameを保持するsession_state変数
@@ -158,21 +189,38 @@ try:
         sort = st.radio("ソート順", ["経由でソート", "サーチ先でソート"], index=1, horizontal=True)
 
         if sort == "経由でソート":
-            search_results = st.session_state["SEARCH_RESULTS"].sort_values("transit")
+            search_results = st.session_state["SEARCH_RESULTS"].sort_values(
+                "transit", kind="stable"
+            )
         else:
-            search_results = st.session_state["SEARCH_RESULTS"].sort_values("dest")
+            search_results = st.session_state["SEARCH_RESULTS"].sort_values(
+                "dest", kind="stable"
+            )
 
-        # 経由とサーチ先を2列で表示する
-        col1, col2 = st.columns(2)
-        with col1:
-            st.header("経由")
-            for i, transit in enumerate(search_results["transit"], 1):
-                st.write(str(i) + ". " + transit)
-
-        with col2:
-            st.header("サーチ先")
-            for i, dest in enumerate(search_results["dest"], 1):
-                st.write(str(i) + ". " + dest)
+        st.header("検索結果")
+        monsters_df = st.session_state["MONSTERS_DF"]
+        for i, route in enumerate(search_results.itertuples(index=False), 1):
+            with st.container(border=True):
+                st.markdown(f"**経路 {i}**")
+                st.markdown(f"**手札から見せるカード：** {route.origin}")
+                first_matches = get_matching_attributes(
+                    monsters_df, route.origin, route.transit
+                )
+                if first_matches:
+                    label, value = first_matches[0]
+                    st.caption(f"↓ {label}が一致：{value}")
+                else:
+                    st.caption("↓ 一致項目を表示できません")
+                st.markdown(f"**経由するカード：** {route.transit}")
+                second_matches = get_matching_attributes(
+                    monsters_df, route.transit, route.dest
+                )
+                if second_matches:
+                    label, value = second_matches[0]
+                    st.caption(f"↓ {label}が一致：{value}")
+                else:
+                    st.caption("↓ 一致項目を表示できません")
+                st.markdown(f"**サーチするカード：** {route.dest}")
 
 except NoMonsterError as error:
     st.error(error)
