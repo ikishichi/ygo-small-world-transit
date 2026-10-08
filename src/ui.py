@@ -5,10 +5,12 @@ logger = logging.getLogger(__name__)
 import urllib.parse
 
 import pandas as pd
+import requests
 import streamlit as st
 
 from deck import Deck
 from deck_info import DeckInfo
+from html_parser import DeckStructureError, NoMonsterError
 from search_result import SearchResult
 from url_resolver import (
     VALID_PREFIX_HTTP,
@@ -134,19 +136,23 @@ try:
             for i, dest in enumerate(search_results["dest"], 1):
                 st.write(str(i) + ". " + dest)
 
+except NoMonsterError as error:
+    st.error(error)
+    st.info("モンスターを含む公開デッキのURLを指定してください。")
+except DeckStructureError:
+    logger.exception("遊戯王DBのデッキHTMLを解析できませんでした")
+    st.error("デッキ情報を解析できませんでした。時間を置いて再試行してください。")
+    st.info("デッキレシピが「公開」になっているか確認してください。")
+except requests.exceptions.RequestException:
+    logger.exception("遊戯王DBからデッキ情報を取得できませんでした")
+    st.error("デッキ情報を取得できませんでした。通信状態を確認し、時間を置いて再試行してください。")
 except ValueError as ve:
     st.error(ve)
-except AttributeError as ae:
-    st.error(ae)
-    st.error("""以下の点をご確認ください。\n
-    (1)デッキレシピが「公開」になっているか\n
-    (2)デッキに最低1体以上のモンスターが含まれているか""")
 except RuntimeError as re:
     st.error(re)
-except Exception as e:
-    logger.error(f"予期せぬ例外：{e}")
-    st.error("""エラーが発生しました。以下の点をご確認ください。\n
-             ・URLが間違っていないか""")
+except Exception:
+    logger.exception("予期せぬ例外")
+    st.error("予期しないエラーが発生しました。時間を置いて再試行してください。")
 
 finally:
     st.write("[GitHub](https://github.com/ikishichi/ygo-small-world-transit) / "

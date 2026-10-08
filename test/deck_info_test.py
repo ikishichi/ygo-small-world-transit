@@ -4,7 +4,7 @@ import requests
 from src.deck_info import DeckInfo
 
 # 有効・無効なURLを定義
-VALID_URL = "https://www.db.yugioh-card.com/yugiohdb/member_deck.action?deck_id=123"
+VALID_URL = "https://www.db.yugioh-card.com/yugiohdb/member_deck.action?cgid=1&dno=2"
 
 def test_fetch_html_success(mocker):
     """デッキ情報取得が成功するケース"""
@@ -73,6 +73,20 @@ def test_fetch_html_rejects_untrusted_url_without_request(mocker, url):
     get = mocker.patch("requests.get")
 
     with pytest.raises(ValueError):
+        DeckInfo(url).fetch_html()
+
+    get.assert_not_called()
+
+
+@pytest.mark.parametrize("url", [
+    "https://www.db.yugioh-card.com/yugiohdb/member_deck.action?dno=2",
+    "https://www.db.yugioh-card.com/yugiohdb/member_deck.action?cgid=1",
+    "https://www.db.yugioh-card.com/yugiohdb/member_deck.action?cgid=&dno=2",
+])
+def test_fetch_html_rejects_url_without_deck_identity(mocker, url):
+    get = mocker.patch("requests.get")
+
+    with pytest.raises(ValueError, match="必須情報（cgid、dno）"):
         DeckInfo(url).fetch_html()
 
     get.assert_not_called()
