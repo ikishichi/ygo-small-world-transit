@@ -577,7 +577,7 @@ class TestHtmlParser:
 	</div>
 </head>
 </html>""",
-            "err_msg": "メインデッキにモンスターが見つかりませんでした。"
+            "err_msg": "モンスター情報を読み取れませんでした。遊戯王DBのHTML構造が変更された可能性があります。"
         }
     ]
 
@@ -590,7 +590,7 @@ class TestHtmlParser:
         parser = HtmlParser(test_data["html"])
 
         # 実行
-        with pytest.raises(NoMonsterError) as e:
+        with pytest.raises(DeckStructureError) as e:
             parser.generate_monsters()
 
         # 検証
@@ -634,9 +634,20 @@ class TestHtmlParser:
     def test_generate_monsters_distinguishes_missing_structure_from_empty_monsters(self, html):
         parser = HtmlParser(html)
 
-        if 'id="detailtext_main"' not in html:
+        if 'class="t_body mlist_m"' not in html:
             with pytest.raises(DeckStructureError):
                 parser.generate_monsters()
         else:
             with pytest.raises(NoMonsterError, match="モンスターが見つかりません"):
                 parser.generate_monsters()
+
+    @pytest.mark.parametrize("other_list", ["mlist_s", "mlist_t"])
+    def test_changed_monster_list_with_other_cards_is_structure_error(self, other_list):
+        """魔法・罠の一覧が残っても、モンスター領域の欠落は構造変更とする。"""
+        html = MONSTER_HTML.replace("mlist_m", "changed_monsters").replace(
+            '</div>\n</div>',
+            f'</div><div class="t_body {other_list}"></div>\n</div>',
+        )
+
+        with pytest.raises(DeckStructureError, match="HTML構造が変更"):
+            HtmlParser(html).generate_monsters()
