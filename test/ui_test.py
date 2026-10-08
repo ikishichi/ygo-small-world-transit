@@ -119,7 +119,8 @@ def test_switch_decks_without_initial_bookmark(mocker, monkeypatch, input_scheme
 
 @pytest.mark.parametrize("failure", [
     "http_error", "connection_error", "redirect",
-    "timeout", "missing_deck", "missing_monsters", "missing_deck_name",
+    "missing_deck", "missing_monsters", "missing_deck_name", "changed_monster_list",
+    "changed_monster_content", "timeout",
 ])
 def test_failed_deck_switch_preserves_state(mocker, monkeypatch, failure):
     """取得失敗時は元の状態を保ち、再試行成功時にデッキを切り替える。"""
@@ -152,6 +153,15 @@ def test_failed_deck_switch_preserves_state(mocker, monkeypatch, failure):
         ).encode("utf-8")
     elif failure == "timeout":
         get.side_effect = requests.exceptions.Timeout("取得タイムアウト")
+    elif failure == "changed_monster_list":
+        response.content = DECK_HTML.replace("mlist_m", "changed_monsters").replace(
+            '</div>\n</body>',
+            '<div class="t_body mlist_s"></div></div>\n</body>',
+        ).encode("utf-8")
+    elif failure == "changed_monster_content":
+        response.content = DECK_HTML.replace("t_row c_normal", "card_row").replace(
+            "card_name", "renamed_card"
+        ).encode("utf-8")
     else:
         get.side_effect = requests.exceptions.ConnectionError("接続失敗")
     input_url = (
@@ -163,7 +173,10 @@ def test_failed_deck_switch_preserves_state(mocker, monkeypatch, failure):
 
     assert not app.exception
     assert app.error
-    if failure in {"missing_monsters", "missing_deck", "missing_deck_name"}:
+    if failure in {
+        "missing_monsters", "missing_deck", "missing_deck_name", "changed_monster_list",
+        "changed_monster_content",
+    }:
         assert app.info
     else:
         assert not app.info
@@ -172,6 +185,11 @@ def test_failed_deck_switch_preserves_state(mocker, monkeypatch, failure):
     pd.testing.assert_frame_equal(app.session_state["MONSTERS_DF"], previous_monsters)
     pd.testing.assert_frame_equal(app.session_state["SEARCH_RESULTS"], previous_results)
     assert app.text_input[0].value == input_url
+
+    if failure in {"changed_monster_list", "changed_monster_content"}:
+        assert "デッキ情報を解析できませんでした" in app.error[0].value
+        assert "公開" in app.info[0].value
+        assert "モンスターを含む公開デッキ" not in app.info[0].value
 
     get.side_effect = None
     response.status_code = 200
@@ -413,7 +431,8 @@ def test_no_monster_deck_shows_specific_guidance(mocker, monkeypatch):
         status_code=200,
         content=(
             '<html><head><meta name="description" content="魔法罠デッキ"></head>'
-            '<body><div id="detailtext_main"><div class="t_body mlist_s"></div>'
+            '<body><div id="detailtext_main"><div class="t_body mlist_m"></div>'
+            '<div class="t_body mlist_s"></div>'
             '</div></body></html>'
         ).encode("utf-8"),
     )
