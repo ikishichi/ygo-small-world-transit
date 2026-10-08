@@ -65,7 +65,10 @@ class HtmlParser:
 
         monster_soups = main_monsters_soup.select(".t_row.c_normal")
         if not monster_soups:
-            if main_monsters_soup.select_one(".t_row, .card_name"):
+            if (
+                main_monsters_soup.find() is not None
+                or main_monsters_soup.get_text(strip=True)
+            ):
                 raise DeckStructureError(
                     "モンスター情報を読み取れませんでした。遊戯王DBのHTML構造が変更された可能性があります。"
                 )

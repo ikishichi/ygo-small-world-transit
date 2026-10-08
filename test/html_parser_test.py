@@ -651,3 +651,28 @@ class TestHtmlParser:
 
         with pytest.raises(DeckStructureError, match="HTML構造が変更"):
             HtmlParser(html).generate_monsters()
+
+    @pytest.mark.parametrize("content", [
+        '<div class="card_row"><span class="renamed_card">モンスター</span></div>',
+        "モンスター情報",
+    ], ids=["unknown_elements", "text_only"])
+    def test_unknown_monster_content_is_structure_error(self, content):
+        """旧クラスが残っていなくても、空でない領域は構造変更とする。"""
+        html = (
+            '<div id="detailtext_main"><div class="t_body mlist_m">'
+            + content + '</div></div>'
+        )
+
+        with pytest.raises(DeckStructureError, match="HTML構造が変更"):
+            HtmlParser(html).generate_monsters()
+
+    @pytest.mark.parametrize("content", ["", " \n\t ", "<!-- empty -->"])
+    def test_empty_monster_region_remains_no_monster(self, content):
+        """空白やコメントだけのモンスター領域は従来の分類を維持する。"""
+        html = (
+            '<div id="detailtext_main"><div class="t_body mlist_m">'
+            + content + '</div></div>'
+        )
+
+        with pytest.raises(NoMonsterError, match="モンスターが見つかりません"):
+            HtmlParser(html).generate_monsters()
