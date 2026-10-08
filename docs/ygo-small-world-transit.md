@@ -46,34 +46,35 @@ sw --> user : デッキ再取得用URL（ブックマーク用）
 
 ### 概略版
 
-```mermaid
-sequenceDiagram
-    actor user as User
-    participant sw as スモールワールド乗り換え検索
-    participant db as 遊戯王DB
-    user->>sw: デッキURL入力・デッキ取得、またはブックマーク経由のアクセス
+```plantuml
+@startuml
+actor "User" as user
+participant "スモールワールド乗り換え検索" as sw
+database "遊戯王DB" as db
+    user --> sw : デッキURL入力・デッキ取得、またはブックマーク経由のアクセス
     alt デッキ取得ボタン押下、または未取得・取得済みURLと異なる
-        sw->>db: デッキ取得（接続5秒・読み取り15秒、転送追従なし）
-        db-->>sw: デッキ情報HTML、または通信エラー
+        sw --> db : デッキ取得（接続5秒・読み取り15秒、転送追従なし）
+        db --> sw : デッキ情報HTML、または通信エラー
         alt HTTP取得・HTML解析成功
-            sw->>sw: HTMLからモンスター情報とデッキ名を取得
+            sw --> sw : HTMLからモンスター情報とデッキ名を取得
             opt デッキ取得ボタン押下時
-                sw->>sw: ブックマーク用クエリパラメータ更新
-                sw-->>user: ブックマークの案内
+                sw --> sw : ブックマーク用クエリパラメータ更新
+                sw --> user : ブックマークの案内
             end
-            sw->>sw: 取得済みデッキを更新・検索結果をクリア
+            sw --> sw : 取得済みデッキを更新・検索結果をクリア
         else 取得・解析失敗
-            sw-->>user: エラー表示（元のデッキ・検索結果・ブックマークを保持）
+            sw --> user : エラー表示（元のデッキ・検索結果・ブックマークを保持）
         end
     else 同じ取得済みURLで再実行
-        sw->>sw: セッション内のデッキを再利用（通信・解析なし）
+        sw --> sw : セッション内のデッキを再利用（通信・解析なし）
     end
     opt 取得成功またはキャッシュ再利用時
-        sw-->>user: 取得済みデッキ名・モンスター選択候補を表示
-        user->>sw: サーチ元・サーチ先（任意）を選択して検索
-        sw->>sw: セッション内のDataFrameからサーチ経路を算出
-        sw-->>user: 経由・サーチ先を選択したソート順で表示
+        sw --> user : 取得済みデッキ名・モンスター選択候補を表示
+        user --> sw : サーチ元・サーチ先（任意）を選択して検索
+        sw --> sw : セッション内のDataFrameからサーチ経路を算出
+        sw --> user : 経由・サーチ先を選択したソート順で表示
     end
+@enduml
 ```
 
 ### ソフトウェア詳細版
@@ -84,66 +85,67 @@ HTTP取得には接続5秒・読み取り15秒のタイムアウトを設定し�
 
 解析成功後、`MONSTERS_DF`・`DECK_NAME`・`LOADED_DECK_URL` を更新し、`SEARCH_RESULTS` をクリアする。ブックマークの更新と案内はデッキ取得ボタン押下時だけ行う。このとき保存する取得済みURLは更新後のクエリパラメータから構築し、`request_locale` 未指定時の既定値 `ja` と一致させる。キャッシュはセッション単位で、新しいセッションでは再取得する。
 
-```mermaid
-sequenceDiagram
-    actor user as User
-    participant ui as UI表示
-    participant ur as url_resolver
-    participant di as DeckInfo
-    participant dc as Deck
-    participant hp as HtmlParser
-    participant sr as SearchResult
-    participant db as 遊戯王DB
-    user->>ui: デッキ取得またはStreamlit再実行
-    ui->>ui: 初回のsession_state初期化・既存セッションのキャッシュキー補完
-    ui->>ur: build_url_from_query_params(query_params)
-    ur-->>ui: クエリパラメータ由来のURL（言語未指定はja）
-    ui->>ui: URL入力フォームを表示
-    ui->>ur: has_query_params(query_params)
-    ur-->>ui: cgidとdnoの有無
+```plantuml
+@startuml
+actor "User" as user
+participant "UI表示" as ui
+participant "url_resolver" as ur
+participant "DeckInfo" as di
+participant "Deck" as dc
+participant "HtmlParser" as hp
+participant "SearchResult" as sr
+database "遊戯王DB" as db
+    user --> ui : デッキ取得またはStreamlit再実行
+    ui --> ui : 初回のsession_state初期化・既存セッションのキャッシュキー補完
+    ui --> ur : build_url_from_query_params(query_params)
+    ur --> ui : クエリパラメータ由来のURL（言語未指定はja）
+    ui --> ui : URL入力フォームを表示
+    ui --> ur : has_query_params(query_params)
+    ur --> ui : cgidとdnoの有無
     opt デッキ取得ボタン押下またはcgid・dnoあり
-        ui->>ur: select_url(input_url, query_params_url, submit_btn)
-        ur-->>ui: 使用するURL
+        ui --> ur : select_url(input_url, query_params_url, submit_btn)
+        ur --> ui : 使用するURL
         opt デッキ取得ボタン押下時
-            ui->>ui: URLプレフィックス検査
+            ui --> ui : URLプレフィックス検査
         end
         alt submit_btnまたはLOADED_DECK_URLとURLが異なる
-            ui->>di: DeckInfo(url)・fetch_html()
-            di->>ur: normalize_deck_url(url)
-            ur-->>di: 検査済みHTTPS URL
-            di->>db: requests.get(url, allow_redirects=False, timeout=(5, 15))
-            db-->>di: デッキ情報HTML
-            di->>di: 転送応答の拒否・raise_for_status()・html_content保存
-            di-->>ui: 取得完了
-            ui->>dc: Deck(html_content)・parse_html()
-            dc->>hp: HtmlParser(html)・generate_monsters()
-            hp-->>dc: モンスター情報リスト
-            dc->>dc: convert_monsters_to_df(monsters)
-            dc->>hp: get_deck_name()
-            hp-->>dc: デッキ名
-            dc-->>ui: 解析完了（monsters_df・deck_name）
+            ui --> di : DeckInfo(url)・fetch_html()
+            di --> ur : normalize_deck_url(url)
+            ur --> di : 検査済みHTTPS URL
+            di --> db : requests.get(url, allow_redirects=False, timeout=(5, 15))
+            db --> di : デッキ情報HTML
+            di --> di : 転送応答の拒否・raise_for_status()・html_content保存
+            di --> ui : 取得完了
+            ui --> dc : Deck(html_content)・parse_html()
+            dc --> hp : HtmlParser(html)・generate_monsters()
+            hp --> dc : モンスター情報リスト
+            dc --> dc : convert_monsters_to_df(monsters)
+            dc --> hp : get_deck_name()
+            hp --> dc : デッキ名
+            dc --> ui : 解析完了（monsters_df・deck_name）
             opt デッキ取得ボタン押下時
-                ui->>ui: ブックマーク用クエリパラメータ更新
-                ui-->>user: ブックマークの案内
-                ui->>ur: build_url_from_query_params(st.query_params)
-                ur-->>ui: 保存する取得済みURL
+                ui --> ui : ブックマーク用クエリパラメータ更新
+                ui --> user : ブックマークの案内
+                ui --> ur : build_url_from_query_params(st.query_params)
+                ur --> ui : 保存する取得済みURL
             end
-            ui->>ui: MONSTERS_DF・DECK_NAME・LOADED_DECK_URL更新、SEARCH_RESULTSクリア
+            ui --> ui : MONSTERS_DF・DECK_NAME・LOADED_DECK_URL更新、SEARCH_RESULTSクリア
         else 同じ取得済みURLで再実行
-            ui->>ui: セッション内のデッキを再利用（通信・解析なし）
+            ui --> ui : セッション内のデッキを再利用（通信・解析なし）
         end
-        ui-->>user: 取得済みデッキ名を表示
+        ui --> user : 取得済みデッキ名を表示
     end
-    ui-->>user: サーチ元・サーチ先の選択フォーム
+    ui --> user : サーチ元・サーチ先の選択フォーム
     opt 検索ボタン押下時
-        ui->>sr: SearchResult(MONSTERS_DF, origin, destination)・get()
-        sr-->>ui: 検索結果DataFrameまたはNone
-        ui->>ui: SEARCH_RESULTSに保存
+        ui --> sr : SearchResult(MONSTERS_DF, origin, destination)・get()
+        sr --> ui : 検索結果DataFrameまたはNone
+        ui --> ui : SEARCH_RESULTSに保存
     end
     opt SEARCH_RESULTSがNoneではない
-        ui->>ui: 経由またはサーチ先でソート
-        ui-->>user: 検索結果を2列で表示
+        ui --> ui : 経由またはサーチ先でソート
+        ui --> user : 検索結果を2列で表示
     end
+@enduml
 ```
 
 ## クラス図
@@ -208,43 +210,57 @@ Deck ..> HtmlParser : HTMLから情報抽出
 
 ## フローチャート
 
-```mermaid
-flowchart TD
-    start([開始]) --> init[session_state初期化またはキャッシュキー補完]
-    init --> form[クエリパラメータからURLを構築・入力フォーム表示]
-    form --> load{デッキ取得ボタン押下<br/>またはcgid・dnoあり?}
-    load -->|はい| select[入力URLまたはクエリパラメータ由来のURLを選択]
-    select --> submit{デッキ取得ボタン押下?}
-    submit -->|はい| valid{許可プレフィックス?}
-    valid -->|いいえ| invalid[無効なURLのエラー表示]
-    valid -->|はい| cache
-    submit -->|いいえ| cache{明示取得または<br/>LOADED_DECK_URLとURLが異なる?}
-    cache -->|はい| fetch[URL検査・HTTPS化・HTML取得<br/>接続5秒・読み取り15秒・転送追従なし]
-    fetch --> http{HTTP取得成功?}
-    http -->|はい| parse[HTML解析]
-    parse --> parsed{解析成功?}
-    http -->|いいえ| failure[エラー表示<br/>元のデッキ・検索結果・ブックマークを保持]
-    parsed -->|いいえ| failure
-    parsed -->|はい| bookmark{デッキ取得ボタン押下?}
-    bookmark -->|はい| save[ブックマーク更新・案内表示<br/>更新後のクエリから取得済みURLを構築]
-    bookmark -->|いいえ| auto[使用したURLを取得済みURLとする]
-    save --> update[MONSTERS_DF・DECK_NAME・LOADED_DECK_URL更新<br/>SEARCH_RESULTSをクリア]
-    auto --> update
-    cache -->|いいえ| reuse[セッション内のデッキを再利用<br/>通信・解析なし]
-    update --> display[取得済みデッキ名を表示]
-    reuse --> display
-    display --> searchform[サーチ元・サーチ先の選択フォーム表示]
-    load -->|いいえ| searchform
-    searchform --> search{検索ボタン押下?}
-    search -->|はい| result[SearchResult.getの結果をSEARCH_RESULTSに保存]
-    search -->|いいえ| hasresult
-    result --> hasresult{SEARCH_RESULTSがNoneではない?}
-    hasresult -->|はい| sort[選択したソート順で並べ替え<br/>経由・サーチ先を2列で表示]
-    hasresult -->|いいえ| footer
-    sort --> footer[GitHub・問い合わせリンク表示]
-    invalid --> footer
-    failure --> footer
-    footer --> finish([終了])
+```plantuml
+@startuml
+start
+:session_state初期化またはキャッシュキー補完;
+:クエリパラメータからURLを構築・入力フォーム表示;
+if (デッキ取得ボタン押下 または cgid・dnoあり?) then (はい)
+    :入力URLまたはクエリパラメータ由来のURLを選択;
+    if (デッキ取得ボタン押下?) then (はい)
+        if (許可プレフィックス?) then (はい)
+        else (いいえ)
+            :無効なURLのエラー表示;
+            :GitHub・問い合わせリンク表示;
+            stop
+        endif
+    endif
+    if (明示取得 または LOADED_DECK_URLとURLが異なる?) then (はい)
+        :URL検査・HTTPS化・HTML取得\n接続5秒・読み取り15秒・転送追従なし;
+        if (HTTP取得成功?) then (はい)
+            :HTML解析;
+            if (解析成功?) then (はい)
+                if (デッキ取得ボタン押下?) then (はい)
+                    :ブックマーク更新・案内表示\n更新後のクエリから取得済みURLを構築;
+                else (いいえ)
+                    :使用したURLを取得済みURLとする;
+                endif
+                :MONSTERS_DF・DECK_NAME・LOADED_DECK_URL更新\nSEARCH_RESULTSをクリア;
+            else (いいえ)
+                :エラー表示\n元のデッキ・検索結果・ブックマークを保持;
+                :GitHub・問い合わせリンク表示;
+                stop
+            endif
+        else (いいえ)
+            :エラー表示\n元のデッキ・検索結果・ブックマークを保持;
+            :GitHub・問い合わせリンク表示;
+            stop
+        endif
+    else (いいえ)
+        :セッション内のデッキを再利用\n通信・解析なし;
+    endif
+    :取得済みデッキ名を表示;
+endif
+:サーチ元・サーチ先の選択フォーム表示;
+if (検索ボタン押下?) then (はい)
+    :SearchResult.getの結果をSEARCH_RESULTSに保存;
+endif
+if (SEARCH_RESULTSがNoneではない?) then (はい)
+    :選択したソート順で並べ替え\n経由・サーチ先を2列で表示;
+endif
+:GitHub・問い合わせリンク表示;
+stop
+@enduml
 ```
 
 ## 開発環境
