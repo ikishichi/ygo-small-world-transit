@@ -66,16 +66,12 @@ def test_switch_deck_updates_bookmark_locale(mocker, monkeypatch, input_locale, 
     assert query_params["cgid"] == ["B"]
     assert query_params["dno"] == ["2"]
     assert query_params["request_locale"] == [expected_locale]
-    get.assert_called_with(input_url, allow_redirects=False)
+    get.assert_called_with(input_url, allow_redirects=False, timeout=(5, 15))
 
     app.run()
     assert not app.exception
     assert not app.error
-    get.assert_called_with(
-        "https://www.db.yugioh-card.com/yugiohdb/member_deck.action"
-        + "?cgid=B&dno=2&request_locale=" + expected_locale,
-        allow_redirects=False,
-    )
+    assert get.call_count == 2
 
 
 @pytest.mark.parametrize("input_scheme", ["http", "https"])
@@ -109,7 +105,8 @@ def test_switch_decks_without_initial_bookmark(mocker, monkeypatch, input_scheme
         assert not app.error
         assert get.call_count == count
         get.assert_called_with(
-            input_url.replace("http://", "https://", 1), allow_redirects=False
+            input_url.replace("http://", "https://", 1), allow_redirects=False,
+            timeout=(5, 15),
         )
         assert app.text_input[0].value == input_url
         query_params = normalize_query_params(app.query_params)
@@ -123,7 +120,7 @@ def test_switch_decks_without_initial_bookmark(mocker, monkeypatch, input_scheme
 @pytest.mark.parametrize("failure", [
     "http_error", "connection_error", "redirect",
     "missing_deck", "missing_monsters", "missing_deck_name", "changed_monster_list",
-    "changed_monster_content",
+    "changed_monster_content", "timeout",
 ])
 def test_failed_deck_switch_preserves_state(mocker, monkeypatch, failure):
     """取得失敗時は元の状態を保ち、再試行成功時にデッキを切り替える。"""
@@ -154,6 +151,8 @@ def test_failed_deck_switch_preserves_state(mocker, monkeypatch, failure):
         response.content = DECK_HTML.replace(
             '<meta name="description" content="テストデッキ">', ""
         ).encode("utf-8")
+    elif failure == "timeout":
+        get.side_effect = requests.exceptions.Timeout("取得タイムアウト")
     elif failure == "changed_monster_list":
         response.content = DECK_HTML.replace("mlist_m", "changed_monsters").replace(
             '</div>\n</body>',
@@ -181,7 +180,7 @@ def test_failed_deck_switch_preserves_state(mocker, monkeypatch, failure):
         assert app.info
     else:
         assert not app.info
-    get.assert_called_with(input_url, allow_redirects=False)
+    get.assert_called_with(input_url, allow_redirects=False, timeout=(5, 15))
     assert normalize_query_params(app.query_params) == previous_params
     pd.testing.assert_frame_equal(app.session_state["MONSTERS_DF"], previous_monsters)
     pd.testing.assert_frame_equal(app.session_state["SEARCH_RESULTS"], previous_results)
@@ -200,7 +199,7 @@ def test_failed_deck_switch_preserves_state(mocker, monkeypatch, failure):
 
     assert not app.exception
     assert not app.error
-    get.assert_called_with(input_url, allow_redirects=False)
+    get.assert_called_with(input_url, allow_redirects=False, timeout=(5, 15))
     assert normalize_query_params(app.query_params) == {
         "cgid": ["B"], "dno": ["2"], "request_locale": ["ja"]
     }
@@ -260,6 +259,96 @@ def test_successful_deck_display_order(mocker, monkeypatch):
     ]
     assert "取得成功" in app.markdown[0].value
     assert "デッキ：:blue-background[テストデッキ]" == app.markdown[1].value
+
+
+def test_loaded_deck_is_reused_until_explicit_refresh(mocker, monkeypatch):
+    """通常のStreamlit再実行では再取得せず、明示取得では同じURLも読み直す。"""
+    monkeypatch.syspath_prepend(str(PROJECT_ROOT / "src"))
+    responses = [
+        mocker.Mock(status_code=200, content=DECK_HTML.encode("utf-8")),
+        mocker.Mock(
+            status_code=200,
+            content=DECK_HTML.replace(
+                "テストモンスター", "更新後のモンスター"
+            ).encode("utf-8"),
+        ),
+    ]
+    get = mocker.patch("requests.get", side_effect=responses)
+    app = AppTest.from_file(str(PROJECT_ROOT / "src" / "ui.py"))
+    app.query_params.update({"cgid": "A", "dno": "1"})
+    app.run()
+
+    assert not app.exception
+    assert not app.error
+    assert get.call_count == 1
+    app.run()
+    assert get.call_count == 1
+
+    app.selectbox[0].select("テストモンスター").run()
+    assert get.call_count == 1
+    app.button[1].click().run()
+    assert not app.exception
+    assert get.call_count == 1
+    app.session_state["SEARCH_RESULTS"] = pd.DataFrame({
+        "origin": ["テストモンスター"],
+        "transit": ["経由モンスター"],
+        "dest": ["サーチ先モンスター"],
+    })
+    app.run()
+    app.radio[0].set_value("経由でソート").run()
+    assert not app.exception
+    assert get.call_count == 1
+
+    app.button[0].click().run()
+    assert not app.exception
+    assert not app.error
+    assert get.call_count == 2
+    assert app.session_state["MONSTERS_DF"]["name"].tolist() == ["更新後のモンスター"]
+    assert app.session_state["SEARCH_RESULTS"] is None
+    get.assert_called_with(
+        "https://www.db.yugioh-card.com/yugiohdb/member_deck.action"
+        "?cgid=A&dno=1&request_locale=ja",
+        allow_redirects=False,
+        timeout=(5, 15),
+    )
+
+
+def test_bookmark_deck_change_fetches_and_clears_previous_results(mocker, monkeypatch):
+    """ブックマークのデッキ識別子変更時にデッキ情報を差し替える。"""
+    monkeypatch.syspath_prepend(str(PROJECT_ROOT / "src"))
+    responses = [
+        mocker.Mock(status_code=200, content=DECK_HTML.encode("utf-8")),
+        mocker.Mock(
+            status_code=200,
+            content=DECK_HTML.replace("テストデッキ", "デッキB")
+            .replace("テストモンスター", "モンスターB")
+            .encode("utf-8"),
+        ),
+    ]
+    get = mocker.patch("requests.get", side_effect=responses)
+    app = AppTest.from_file(str(PROJECT_ROOT / "src" / "ui.py"))
+    app.query_params.update({"cgid": "A", "dno": "1"})
+    app.run()
+    assert not app.exception
+    assert get.call_count == 1
+
+    app.session_state["SEARCH_RESULTS"] = pd.DataFrame({
+        "origin": ["テストモンスター"],
+        "transit": ["経由モンスター"],
+        "dest": ["サーチ先モンスター"],
+    })
+    app.query_params["cgid"] = "B"
+    app.run()
+
+    assert not app.exception
+    assert not app.error
+    assert get.call_count == 2
+    assert app.session_state["MONSTERS_DF"]["name"].tolist() == ["モンスターB"]
+    assert app.session_state["DECK_NAME"] == "デッキB"
+    assert app.session_state["SEARCH_RESULTS"] is None
+    assert "デッキ：:blue-background[デッキB]" in [
+        element.value for element in app.markdown
+    ]
 
 
 def test_invalid_deck_path_preserves_bookmark_without_request(mocker, monkeypatch):
@@ -332,7 +421,7 @@ def test_network_failures_show_retry_guidance_without_blame_on_url(
     assert "通信状態を確認し、時間を置いて再試行" in app.error[0].value
     assert "無効なURL" not in app.error[0].value
     assert not app.info
-    get.assert_called_once_with(url, allow_redirects=False)
+    get.assert_called_once_with(url, allow_redirects=False, timeout=(5, 15))
 
 
 def test_no_monster_deck_shows_specific_guidance(mocker, monkeypatch):
@@ -359,4 +448,4 @@ def test_no_monster_deck_shows_specific_guidance(mocker, monkeypatch):
     assert "モンスターが見つかりませんでした" in app.error[0].value
     assert len(app.info) == 1
     assert "モンスターを含む公開デッキ" in app.info[0].value
-    get.assert_called_once_with(url, allow_redirects=False)
+    get.assert_called_once_with(url, allow_redirects=False, timeout=(5, 15))

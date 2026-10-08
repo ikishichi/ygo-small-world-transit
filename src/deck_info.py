@@ -27,7 +27,7 @@ class DeckInfo:
         """Fetch HTML content"""
         try:
             url = normalize_deck_url(self.url)
-            response = requests.get(url, allow_redirects=False)
+            response = requests.get(url, allow_redirects=False, timeout=(5, 15))
             if 300 <= response.status_code < 400:
                 raise ValueError("デッキ取得先から転送応答が返されました")
             response.raise_for_status()
