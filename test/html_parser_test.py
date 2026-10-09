@@ -339,9 +339,9 @@ class TestHtmlParser:
 </head>
 </html>""",
             "expected": [
-                {'name': '夢幻崩界イヴリース', 'attribute': '闇属性', 'type': '【サイバース族', 'level': 'レベル2',
+                {'name': '夢幻崩界イヴリース', 'attribute': '闇属性', 'type': 'サイバース族', 'level': 'レベル2',
                  'attack': '攻撃力0', 'defence': '守備力0'},
-                {'name': '斬機サーキュラー', 'attribute': '光属性', 'type': '【サイバース族', 'level': 'レベル4',
+                {'name': '斬機サーキュラー', 'attribute': '光属性', 'type': 'サイバース族', 'level': 'レベル4',
                  'attack': '攻撃力1500', 'defence': '守備力1500'}
             ]
         }
@@ -603,11 +603,21 @@ class TestHtmlParser:
         assert parser.generate_monsters() == [{
             "name": "テストモンスター",
             "attribute": "光属性",
-            "type": "【戦士族",
+            "type": "戦士族",
             "level": "レベル4",
             "attack": "攻撃力1500",
             "defence": "守備力1200",
         }]
+
+    @pytest.mark.parametrize("species_text", [
+        "【戦士族／通常】", "戦士族／通常", "【戦士族】",
+        "\n\t【 戦士族 ／ 効果 】\n",
+    ])
+    def test_generate_monsters_removes_species_brackets(self, species_text):
+        """種族から表示用の括弧を除き、括弧がない形式も受け付ける。"""
+        html = MONSTER_HTML.replace("【戦士族／通常】", species_text)
+
+        assert HtmlParser(html).generate_monsters()[0]["type"] == "戦士族"
 
     @pytest.mark.parametrize("missing_class", [
         "card_name", "box_card_attribute", "box_card_level_rank level",

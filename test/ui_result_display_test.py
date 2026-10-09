@@ -5,6 +5,10 @@ import pandas as pd
 import pytest
 from streamlit.testing.v1 import AppTest
 
+from src.html_parser import HtmlParser
+from src.search_result import SearchResult
+from test.html_parser_test import MONSTER_HTML
+
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
@@ -82,6 +86,41 @@ def test_search_results_display_complete_routes_and_matching_fields(monkeypatch)
             2, "手札のカード", "経由Zulu", "レベルが一致：1",
             "サーチAardvark", "種族が一致：ドラゴン",
         )
+    )
+
+
+def test_parsed_species_match_is_displayed_without_brackets(monkeypatch):
+    """HTML解析・検索を通した種族の一致理由に表示用の括弧が残らない。"""
+    monkeypatch.syspath_prepend(str(PROJECT_ROOT / "src"))
+    monsters = []
+    for name, attribute, species, level, attack, defence in [
+        ("手札", "光", "サイバース族", 4, 1500, 1200),
+        ("経由", "闇", "サイバース族", 5, 2000, 1600),
+        ("サーチ先", "闇", "魔法使い族", 6, 2500, 1800),
+    ]:
+        html = (
+            MONSTER_HTML.replace("テストモンスター", name)
+            .replace("光属性", f"{attribute}属性")
+            .replace("戦士族", species)
+            .replace("レベル 4", f"レベル {level}")
+            .replace("攻撃力 1500", f"攻撃力 {attack}")
+            .replace("守備力 1200", f"守備力 {defence}")
+        )
+        monsters.extend(HtmlParser(html).generate_monsters())
+    monsters_df = pd.DataFrame(monsters)
+    app = AppTest.from_file(str(PROJECT_ROOT / "src" / "ui.py")).run()
+    app.session_state["MONSTERS_DF"] = monsters_df
+    app.session_state["SEARCH_RESULTS"] = SearchResult(
+        monsters_df, "手札", "サーチ先"
+    ).get()
+
+    app.run()
+
+    assert not app.exception
+    assert not app.error
+    assert route_output_events(app) == expected_route(
+        1, "手札", "経由", "種族が一致：サイバース族",
+        "サーチ先", "属性が一致：闇属性",
     )
 
 
