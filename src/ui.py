@@ -122,7 +122,7 @@ try:
     with st.form(key='select_box'):
         # サーチ元指定（プルダウン。DataFrameの1列目が候補として表示される）
         transit_start = st.selectbox(
-            "サーチ元とするモンスターを選択してください:red[（必須）]",
+            "手札から見せるモンスターを選択してください:red[（必須）]",
             st.session_state["MONSTERS_DF"], index=None,
         )
 
