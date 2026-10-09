@@ -93,14 +93,6 @@ try:
         input_url = st.text_input(
             "遊戯王DBの公開デッキのURLを入力してください。",
             key="deck_url_input",
-            placeholder=(
-                "https://www.db.yugioh-card.com/yugiohdb/"
-                "member_deck.action?cgid=…&dno=…"
-            ),
-            help=(
-                "遊戯王DBのデッキを公開設定にし、"
-                "デッキページ上部のURLをコピーしてください。"
-            ),
         )
 
         # デッキ取得ボタンの押下状態（boolean）
@@ -155,39 +147,33 @@ try:
         container.badge("取得成功", icon=":material/check:", color="green")
         container.write(f"デッキ：:blue-background[{deck_name}]")
 
-    if st.session_state["MONSTERS_DF"].empty:
-        st.caption(
-            "① 公開デッキのURLを貼り付け、②「デッキ取得」を押すと、"
-            "③ モンスターを選んで検索できます。"
+    with st.form(key='select_box'):
+        # サーチ元指定（プルダウン。DataFrameの1列目が候補として表示される）
+        transit_start = st.selectbox(
+            "手札から見せるモンスターを選択してください:red[（必須）]",
+            st.session_state["MONSTERS_DF"], index=None,
         )
-    else:
-        with st.form(key='select_box'):
-            # サーチ元指定（プルダウン。DataFrameの1列目が候補として表示される）
-            transit_start = st.selectbox(
-                "サーチ元とするモンスターを選択してください:red[（必須）]",
-                st.session_state["MONSTERS_DF"], index=None,
-            )
 
-            # サーチ先指定（プルダウン）
-            # 検索結果の中から候補を選ぶ「絞り込み検索」
-            transit_goal = st.selectbox(
-                "サーチ先とするモンスターを選択してください（任意）",
-                st.session_state["MONSTERS_DF"], index=None,
-            )
+        # サーチ先指定（プルダウン）
+        # 検索結果の中から候補を選ぶ「絞り込み検索」
+        transit_goal = st.selectbox(
+            "サーチ先とするモンスターを選択してください（任意）",
+            st.session_state["MONSTERS_DF"], index=None,
+        )
 
-            # 検索実行ボタン
-            search_btn = st.form_submit_button(
-                "検索", disabled=st.session_state["MONSTERS_DF"].empty
-            )
+        # 検索実行ボタン
+        search_btn = st.form_submit_button(
+            "検索", disabled=st.session_state["MONSTERS_DF"].empty
+        )
 
-        if search_btn:
-            if transit_start is None:
-                st.session_state["SEARCH_RESULTS"] = None
-                st.warning("サーチ元のモンスターを選択してください。")
-            else:
-                st.session_state["SEARCH_RESULTS"] = SearchResult(
-                    st.session_state["MONSTERS_DF"], transit_start, transit_goal
-                ).get()
+    if search_btn:
+        if transit_start is None:
+            st.session_state["SEARCH_RESULTS"] = None
+            st.warning("サーチ元のモンスターを選択してください。")
+        else:
+            st.session_state["SEARCH_RESULTS"] = SearchResult(
+                st.session_state["MONSTERS_DF"], transit_start, transit_goal
+            ).get()
 
     # 検索結果表示
     if st.session_state["SEARCH_RESULTS"] is not None:

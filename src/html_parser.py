@@ -99,7 +99,7 @@ class HtmlParser:
 
             # 改行やタブを削除
             attribute = "".join(attribute.split())
-            type_ = "".join(type_.split()).split('／')[0]
+            type_ = "".join(type_.split()).split('／')[0].strip("【】")
             level = "".join(level.split())
             attack = "".join(attack.split())
             defence = "".join(defence.split())

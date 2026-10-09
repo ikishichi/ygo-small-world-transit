@@ -21,7 +21,9 @@ def test_search_disabled_until_deck_is_loaded(mocker, monkeypatch):
     app = make_app(mocker, monkeypatch, loaded=False)
     assert not app.exception
     search_buttons = [button for button in app.button if button.label == "検索"]
-    assert not search_buttons or all(button.disabled for button in search_buttons)
+    assert len(app.selectbox) == 2
+    assert len(search_buttons) == 1
+    assert search_buttons[0].disabled
 
 
 def test_missing_origin_does_not_search_and_clears_previous_results(mocker, monkeypatch):
