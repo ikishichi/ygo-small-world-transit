@@ -112,13 +112,14 @@ try:
         # ソートや検索による再実行では取得済みデッキを再利用する。
         # 明示的な取得操作は、同じURLでも最新状態を読み直す。
         if submit_btn or st.session_state["LOADED_DECK_URL"] != url:
-            # 取得・解析に失敗した場合は、現在の検索状態とブックマークを保持する。
-            deck_info = DeckInfo(url)
-            deck_info.fetch_html()
+            with st.spinner("デッキを読み込んでいます…"):
+                # 取得・解析に失敗した場合は、現在の検索状態とブックマークを保持する。
+                deck_info = DeckInfo(url)
+                deck_info.fetch_html()
 
-            # 状態更新やブックマーク案内の表示前に、デッキの解析を完了する。
-            deck = Deck(deck_info.html_content)
-            deck.parse_html()
+                # 状態更新やブックマーク案内の表示前に、デッキの解析を完了する。
+                deck = Deck(deck_info.html_content)
+                deck.parse_html()
 
             if submit_btn:
                 # 遊戯王DBのURLからクエリパラメータを取得し、乗り換え検索のクエリパラメータに反映する
@@ -162,53 +163,63 @@ try:
 
         # 検索実行ボタン
         search_btn = st.form_submit_button(
-            "検索", disabled=st.session_state["MONSTERS_DF"].empty,
+            "検索", disabled=st.session_state["MONSTERS_DF"].empty
         )
 
     if search_btn:
-        # サーチ元に指定されたモンスターでSearchResultクラスに検索要求する
-        st.session_state["SEARCH_RESULTS"] = SearchResult(
-            st.session_state["MONSTERS_DF"], transit_start, transit_goal
-        ).get()
+        if transit_start is None:
+            st.session_state["SEARCH_RESULTS"] = None
+            st.warning("サーチ元のモンスターを選択してください。")
+        else:
+            st.session_state["SEARCH_RESULTS"] = SearchResult(
+                st.session_state["MONSTERS_DF"], transit_start, transit_goal
+            ).get()
 
     # 検索結果表示
     if st.session_state["SEARCH_RESULTS"] is not None:
-        # ソート選択ラジオボタン
-        sort = st.radio("ソート順", ["経由でソート", "サーチ先でソート"], index=1, horizontal=True)
-
-        if sort == "経由でソート":
-            search_results = st.session_state["SEARCH_RESULTS"].sort_values(
-                "transit", kind="stable"
+        if st.session_state["SEARCH_RESULTS"].empty:
+            st.info(
+                "該当する経路はありません。サーチ元を変更するか、"
+                "サーチ先の指定を外してお試しください。"
             )
         else:
-            search_results = st.session_state["SEARCH_RESULTS"].sort_values(
-                "dest", kind="stable"
-            )
+            st.caption(f"検索結果：{len(st.session_state['SEARCH_RESULTS'])}経路")
+            # ソート選択ラジオボタン
+            sort = st.radio("ソート順", ["経由でソート", "サーチ先でソート"], index=1, horizontal=True)
 
-        st.header("検索結果")
-        monsters_df = st.session_state["MONSTERS_DF"]
-        for i, route in enumerate(search_results.itertuples(index=False), 1):
-            with st.container(border=True):
-                st.markdown(f"**経路 {i}**")
-                st.markdown(f"**手札から見せるカード：** {route.origin}")
-                first_matches = get_matching_attributes(
-                    monsters_df, route.origin, route.transit
+            if sort == "経由でソート":
+                search_results = st.session_state["SEARCH_RESULTS"].sort_values(
+                    "transit", kind="stable"
                 )
-                if first_matches:
-                    label, value = first_matches[0]
-                    st.caption(f"↓ {label}が一致：{value}")
-                else:
-                    st.caption("↓ 一致項目を表示できません")
-                st.markdown(f"**経由するカード：** {route.transit}")
-                second_matches = get_matching_attributes(
-                    monsters_df, route.transit, route.dest
+            else:
+                search_results = st.session_state["SEARCH_RESULTS"].sort_values(
+                    "dest", kind="stable"
                 )
-                if second_matches:
-                    label, value = second_matches[0]
-                    st.caption(f"↓ {label}が一致：{value}")
-                else:
-                    st.caption("↓ 一致項目を表示できません")
-                st.markdown(f"**サーチするカード：** {route.dest}")
+
+            st.header("検索結果")
+            monsters_df = st.session_state["MONSTERS_DF"]
+            for i, route in enumerate(search_results.itertuples(index=False), 1):
+                with st.container(border=True):
+                    st.markdown(f"**経路 {i}**")
+                    st.markdown(f"**手札から見せるカード：** {route.origin}")
+                    first_matches = get_matching_attributes(
+                        monsters_df, route.origin, route.transit
+                    )
+                    if first_matches:
+                        label, value = first_matches[0]
+                        st.caption(f"↓ {label}が一致：{value}")
+                    else:
+                        st.caption("↓ 一致項目を表示できません")
+                    st.markdown(f"**経由するカード：** {route.transit}")
+                    second_matches = get_matching_attributes(
+                        monsters_df, route.transit, route.dest
+                    )
+                    if second_matches:
+                        label, value = second_matches[0]
+                        st.caption(f"↓ {label}が一致：{value}")
+                    else:
+                        st.caption("↓ 一致項目を表示できません")
+                    st.markdown(f"**サーチするカード：** {route.dest}")
 
 except NoMonsterError as error:
     st.error(error)
