@@ -143,7 +143,7 @@ database "遊戯王DB" as db
     end
     opt SEARCH_RESULTSがNoneではない
         ui --> ui : 経由またはサーチ先でソート
-        ui --> user : 検索結果を2列で表示
+        ui --> user : 経路ごとに手札・経由・サーチ先と一致理由を表示
     end
 @enduml
 ```
@@ -256,7 +256,7 @@ if (検索ボタン押下?) then (はい)
     :SearchResult.getの結果をSEARCH_RESULTSに保存;
 endif
 if (SEARCH_RESULTSがNoneではない?) then (はい)
-    :選択したソート順で並べ替え\n経由・サーチ先を2列で表示;
+    :選択したソート順で並べ替え\n経路ごとに3カードと一致理由を表示;
 endif
 :GitHub・問い合わせリンク表示;
 stop
