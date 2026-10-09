@@ -62,10 +62,6 @@ try:
         input_url = st.text_input(
             "遊戯王DBの公開デッキのURLを入力してください。",
             key="deck_url_input",
-            help=(
-                "遊戯王DBのデッキを公開設定にし、"
-                "デッキページ上部のURLをコピーしてください。"
-            ),
         )
 
         # デッキ取得ボタンの押下状態（boolean）

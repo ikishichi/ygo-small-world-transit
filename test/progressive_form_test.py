@@ -21,7 +21,6 @@ def test_initial_page_shows_search_form_with_disabled_search(mocker, monkeypatch
     assert all(not selectbox.options for selectbox in app.selectbox)
     assert [button.label for button in app.button] == ["デッキ取得", "検索"]
     assert app.button[1].disabled
-    assert "公開設定" in app.text_input[0].help
     get.assert_not_called()
 
 
