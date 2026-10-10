@@ -37,6 +37,13 @@ def normalize_query_params(query_params):
     }
 
 
+def get_button(app, label):
+    """ラベルでボタンを選び、画面へのボタン追加でテストがずれないようにする。"""
+    matches = [button for button in app.button if button.label == label]
+    assert len(matches) == 1
+    return matches[0]
+
+
 @pytest.mark.parametrize("input_locale, expected_locale", [(None, "ja"), ("en", "en")])
 def test_switch_deck_updates_bookmark_locale(mocker, monkeypatch, input_locale, expected_locale):
     """古い言語を残さず、送信したURLの言語または既定値を保存する。"""
@@ -58,7 +65,7 @@ def test_switch_deck_updates_bookmark_locale(mocker, monkeypatch, input_locale, 
     if input_locale is not None:
         input_url += "&request_locale=" + input_locale
     app.text_input[0].set_value(input_url)
-    app.button[0].click().run()
+    get_button(app, "デッキ取得").click().run()
 
     assert not app.exception
     assert not app.error
@@ -99,7 +106,7 @@ def test_switch_decks_without_initial_bookmark(mocker, monkeypatch, input_scheme
             + f"?cgid={deck}&dno={count}&request_locale=ja"
         )
         app.text_input[0].set_value(input_url)
-        app.button[0].click().run()
+        get_button(app, "デッキ取得").click().run()
 
         assert not app.exception
         assert not app.error
@@ -169,7 +176,7 @@ def test_failed_deck_switch_preserves_state(mocker, monkeypatch, failure):
         + "?cgid=B&dno=2&request_locale=ja"
     )
     app.text_input[0].set_value(input_url)
-    app.button[0].click().run()
+    get_button(app, "デッキ取得").click().run()
 
     assert not app.exception
     assert app.error
@@ -195,7 +202,7 @@ def test_failed_deck_switch_preserves_state(mocker, monkeypatch, failure):
     response.status_code = 200
     response.raise_for_status.side_effect = None
     response.content = DECK_HTML.replace("テストモンスター", "モンスターB").encode("utf-8")
-    app.button[0].click().run()
+    get_button(app, "デッキ取得").click().run()
 
     assert not app.exception
     assert not app.error
@@ -227,7 +234,7 @@ def test_first_deck_parse_failure_does_not_offer_bookmark(mocker, monkeypatch, h
     app.text_input[0].set_value(
         "https://www.db.yugioh-card.com/yugiohdb/member_deck.action?cgid=A&dno=1"
     )
-    app.button[0].click().run()
+    get_button(app, "デッキ取得").click().run()
 
     assert not app.exception
     assert len(app.error) == 1
@@ -246,7 +253,7 @@ def test_successful_deck_display_order(mocker, monkeypatch):
     app.text_input[0].set_value(
         "https://www.db.yugioh-card.com/yugiohdb/member_deck.action?cgid=A&dno=1"
     )
-    app.button[0].click().run()
+    get_button(app, "デッキ取得").click().run()
 
     assert not app.exception
     assert not app.error
@@ -254,12 +261,98 @@ def test_successful_deck_display_order(mocker, monkeypatch):
     assert [kind for kind in elements if kind in {
         "text_input", "info", "markdown", "selectbox",
     }] == [
-        "markdown", "text_input", "info", "markdown", "markdown",
+        "text_input", "info", "markdown", "markdown",
         "selectbox", "selectbox", "markdown",
     ]
-    assert 'target="_top"' in app.markdown[0].value
-    assert "取得成功" in app.markdown[1].value
-    assert "デッキ：:blue-background[テストデッキ]" == app.markdown[2].value
+    assert "遊戯王スモール・ワールド乗り換え検索" in get_button(
+        app, "遊戯王スモール・ワールド乗り換え検索"
+    ).label
+    assert "取得成功" in app.markdown[0].value
+    assert "デッキ：:blue-background[テストデッキ]" == app.markdown[1].value
+
+
+def assert_home_state(app):
+    """タイトル押下後にトップページ相当の初期状態へ戻ったことを確認する。"""
+    assert not app.exception
+    assert not app.error
+    assert not app.query_params
+    assert app.text_input[0].value == ""
+    assert app.session_state["MONSTERS_DF"].empty
+    assert app.session_state["SEARCH_RESULTS"] is None
+    assert app.session_state["DECK_NAME"] is None
+    assert app.session_state["LOADED_DECK_URL"] is None
+    assert len(app.selectbox) == 2
+    assert all(selectbox.value is None for selectbox in app.selectbox)
+    assert get_button(app, "検索").disabled
+
+
+def test_title_button_keeps_initial_page_at_home(mocker, monkeypatch):
+    """初期状態でタイトルを押してもクエリやデッキ取得状態を作らない。"""
+    monkeypatch.syspath_prepend(str(PROJECT_ROOT / "src"))
+    get = mocker.patch("requests.get")
+    app = AppTest.from_file(str(PROJECT_ROOT / "src" / "ui.py")).run()
+
+    get_button(app, "遊戯王スモール・ワールド乗り換え検索").click().run()
+
+    assert_home_state(app)
+    get.assert_not_called()
+
+
+def test_title_button_resets_search_state_and_allows_another_deck(mocker, monkeypatch):
+    """検索結果を含む画面をリセットし、別デッキ取得後も再度リセットできる。"""
+    monkeypatch.syspath_prepend(str(PROJECT_ROOT / "src"))
+    responses = [
+        mocker.Mock(status_code=200, content=DECK_HTML.encode("utf-8")),
+        mocker.Mock(
+            status_code=200,
+            content=DECK_HTML.replace("テストデッキ", "デッキB")
+            .replace("テストモンスター", "モンスターB")
+            .encode("utf-8"),
+        ),
+    ]
+    get = mocker.patch("requests.get", side_effect=responses)
+    app = AppTest.from_file(str(PROJECT_ROOT / "src" / "ui.py"))
+    app.query_params.update({"cgid": "A", "dno": "1", "request_locale": "en"})
+    app.run()
+    assert not app.exception
+    assert get.call_count == 1
+
+    app.selectbox[0].select("テストモンスター")
+    app.session_state["SEARCH_RESULTS"] = pd.DataFrame({
+        "origin": ["テストモンスター"],
+        "transit": ["経由モンスター"],
+        "dest": ["サーチ先モンスター"],
+    })
+    app.run()
+    assert not app.exception
+    assert app.radio
+
+    get_button(app, "遊戯王スモール・ワールド乗り換え検索").click().run()
+
+    assert_home_state(app)
+    assert get.call_count == 1
+
+    deck_b_url = (
+        "https://www.db.yugioh-card.com/yugiohdb/member_deck.action"
+        "?cgid=B&dno=2"
+    )
+    app.text_input[0].set_value(deck_b_url)
+    get_button(app, "デッキ取得").click().run()
+    assert not app.exception
+    assert not app.error
+    assert get.call_count == 2
+    assert normalize_query_params(app.query_params) == {
+        "cgid": ["B"], "dno": ["2"], "request_locale": ["ja"]
+    }
+    assert app.session_state["MONSTERS_DF"]["name"].tolist() == ["モンスターB"]
+
+    get_button(app, "遊戯王スモール・ワールド乗り換え検索").click().run()
+
+    assert_home_state(app)
+    assert get.call_count == 2
+    get_button(app, "遊戯王スモール・ワールド乗り換え検索").click().run()
+    assert_home_state(app)
+    assert get.call_count == 2
 
 
 def test_loaded_deck_is_reused_until_explicit_refresh(mocker, monkeypatch):
@@ -287,7 +380,7 @@ def test_loaded_deck_is_reused_until_explicit_refresh(mocker, monkeypatch):
 
     app.selectbox[0].select("テストモンスター").run()
     assert get.call_count == 1
-    app.button[1].click().run()
+    get_button(app, "検索").click().run()
     assert not app.exception
     assert get.call_count == 1
     app.session_state["SEARCH_RESULTS"] = pd.DataFrame({
@@ -300,7 +393,7 @@ def test_loaded_deck_is_reused_until_explicit_refresh(mocker, monkeypatch):
     assert not app.exception
     assert get.call_count == 1
 
-    app.button[0].click().run()
+    get_button(app, "デッキ取得").click().run()
     assert not app.exception
     assert not app.error
     assert get.call_count == 2
@@ -369,7 +462,7 @@ def test_invalid_deck_path_preserves_bookmark_without_request(mocker, monkeypatc
         "https://www.db.yugioh-card.com/yugiohdb/member_deck.action"
         "/../../card_search.action?cgid=B&dno=2"
     )
-    app.button[0].click().run()
+    get_button(app, "デッキ取得").click().run()
 
     assert not app.exception
     assert app.error
@@ -391,7 +484,7 @@ def test_deck_url_missing_required_identity_is_rejected_before_request(
     app.text_input[0].set_value(
         "https://www.db.yugioh-card.com/yugiohdb/member_deck.action?" + query
     )
-    app.button[0].click().run()
+    get_button(app, "デッキ取得").click().run()
 
     assert not app.exception
     assert len(app.error) == 1
@@ -415,7 +508,7 @@ def test_network_failures_show_retry_guidance_without_blame_on_url(
     url = "https://www.db.yugioh-card.com/yugiohdb/member_deck.action?cgid=A&dno=1"
 
     app.text_input[0].set_value(url)
-    app.button[0].click().run()
+    get_button(app, "デッキ取得").click().run()
 
     assert not app.exception
     assert len(app.error) == 1
@@ -442,7 +535,7 @@ def test_no_monster_deck_shows_specific_guidance(mocker, monkeypatch):
     url = "https://www.db.yugioh-card.com/yugiohdb/member_deck.action?cgid=A&dno=1"
 
     app.text_input[0].set_value(url)
-    app.button[0].click().run()
+    get_button(app, "デッキ取得").click().run()
 
     assert not app.exception
     assert len(app.error) == 1
