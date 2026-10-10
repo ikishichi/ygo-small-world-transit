@@ -2,7 +2,7 @@
 
 from streamlit.testing.v1 import AppTest
 
-from test.ui_test import DECK_HTML, PROJECT_ROOT
+from test.ui_test import DECK_HTML, PROJECT_ROOT, get_button
 
 
 def make_app(mocker, monkeypatch, html=DECK_HTML):
@@ -13,14 +13,20 @@ def make_app(mocker, monkeypatch, html=DECK_HTML):
     return app, get
 
 
+def form_button_labels(app):
+    """画面タイトルを除いたフォームボタンの順序を返す。"""
+    title = get_button(app, "遊戯王スモール・ワールド乗り換え検索")
+    return [button.label for button in app.button if button is not title]
+
+
 def test_initial_page_shows_search_form_with_disabled_search(mocker, monkeypatch):
     app, get = make_app(mocker, monkeypatch)
 
     assert not app.exception
     assert len(app.selectbox) == 2
     assert all(not selectbox.options for selectbox in app.selectbox)
-    assert [button.label for button in app.button] == ["デッキ取得", "検索"]
-    assert app.button[1].disabled
+    assert form_button_labels(app) == ["デッキ取得", "検索"]
+    assert get_button(app, "検索").disabled
     get.assert_not_called()
 
 
@@ -29,14 +35,14 @@ def test_loading_deck_enables_search(mocker, monkeypatch):
     app.text_input[0].set_value(
         "https://www.db.yugioh-card.com/yugiohdb/member_deck.action?cgid=A&dno=1"
     )
-    app.button[0].click().run()
+    get_button(app, "デッキ取得").click().run()
 
     assert not app.exception
     assert not app.error
     assert len(app.selectbox) == 2
     assert app.selectbox[0].options == ["テストモンスター"]
-    assert [button.label for button in app.button] == ["デッキ取得", "検索"]
-    assert not app.button[1].disabled
+    assert form_button_labels(app) == ["デッキ取得", "検索"]
+    assert not get_button(app, "検索").disabled
 
 
 def test_bookmark_enables_search(mocker, monkeypatch):
@@ -47,7 +53,7 @@ def test_bookmark_enables_search(mocker, monkeypatch):
     assert not app.exception
     assert not app.error
     assert len(app.selectbox) == 2
-    assert not app.button[1].disabled
+    assert not get_button(app, "検索").disabled
 
 
 def test_failed_first_load_does_not_reveal_search_form(mocker, monkeypatch):
@@ -55,9 +61,9 @@ def test_failed_first_load_does_not_reveal_search_form(mocker, monkeypatch):
     app.text_input[0].set_value(
         "https://www.db.yugioh-card.com/yugiohdb/member_deck.action?cgid=A&dno=1"
     )
-    app.button[0].click().run()
+    get_button(app, "デッキ取得").click().run()
 
     assert not app.exception
     assert app.error
     assert not app.selectbox
-    assert [button.label for button in app.button] == ["デッキ取得"]
+    assert form_button_labels(app) == ["デッキ取得"]

@@ -65,6 +65,13 @@ def initialize_session_state():
     st.session_state["DECK_NAME"] = None
     st.session_state["LOADED_DECK_URL"] = None
 
+
+def reset_to_home():
+    """iframeの外へ遷移せず、URLと画面を初期状態へ戻す。"""
+    st.query_params.clear()
+    st.session_state.clear()
+
+
 st.set_page_config(page_title="遊戯王スモール・ワールド乗り換え検索")
 st.html(
     """
@@ -72,26 +79,30 @@ st.html(
         [data-testid="stMainBlockContainer"] {
             padding-top: 60px;
         }
-        .app-title {
+        .st-key-app_title {
             container-type: inline-size;
         }
-        .app-title h1 {
+        .st-key-app_title button {
+            justify-content: flex-start;
+            padding: 0;
+            min-height: 0;
+            color: inherit !important;
+        }
+        .st-key-app_title button p {
             font-size: 5.5cqi;
+            font-weight: 700;
             line-height: 1.3;
             white-space: nowrap;
-        }
-        h1 a[href="https://ygo-small-world-transit.streamlit.app/"] {
-            color: inherit !important;
-            text-decoration: none !important;
         }
     </style>
     """
 )
-st.markdown(
-    '<div class="app-title"><h1>'
-    '<a href="https://ygo-small-world-transit.streamlit.app/" target="_top">'
-    '遊戯王スモール・ワールド乗り換え検索</a></h1></div>',
-    unsafe_allow_html=True,
+st.button(
+    "遊戯王スモール・ワールド乗り換え検索",
+    key="app_title",
+    type="tertiary",
+    on_click=reset_to_home,
+    width="stretch",
 )
 st.caption("[遊戯王DB](https://www.db.yugioh-card.com/yugiohdb/)の公開デッキを読み込むことで、"
            "[<<スモール・ワールド>>](https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=2&cid=16555&request_locale=ja)のサーチ経路を検索できます。")

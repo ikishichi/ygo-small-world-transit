@@ -4,7 +4,7 @@ import pandas as pd
 import streamlit as st
 from streamlit.testing.v1 import AppTest
 
-from test.ui_test import DECK_HTML, PROJECT_ROOT
+from test.ui_test import DECK_HTML, PROJECT_ROOT, get_button
 
 
 def make_app(mocker, monkeypatch, loaded=True):
@@ -32,7 +32,7 @@ def test_missing_origin_does_not_search_and_clears_previous_results(mocker, monk
     app = make_app(mocker, monkeypatch)
     previous = pd.DataFrame({"origin": ["A"], "transit": ["B"], "dest": ["C"]})
     app.session_state["SEARCH_RESULTS"] = previous.copy()
-    app.button[1].click().run()
+    get_button(app, "検索").click().run()
 
     assert not app.exception
     assert [warning.value for warning in app.warning] == [
@@ -46,7 +46,7 @@ def test_missing_origin_does_not_search_and_clears_previous_results(mocker, monk
 def test_no_routes_explains_next_action(mocker, monkeypatch):
     app = make_app(mocker, monkeypatch)
     app.selectbox[0].select("テストモンスター")
-    app.button[1].click().run()
+    get_button(app, "検索").click().run()
 
     assert not app.exception
     assert not app.error
