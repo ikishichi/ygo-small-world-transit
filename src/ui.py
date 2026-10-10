@@ -69,6 +69,9 @@ st.set_page_config(page_title="遊戯王スモール・ワールド乗り換え�
 st.html(
     """
     <style>
+        [data-testid="stMainBlockContainer"] {
+            padding-top: 60px;
+        }
         .app-title {
             container-type: inline-size;
         }
