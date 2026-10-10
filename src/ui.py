@@ -66,7 +66,21 @@ def initialize_session_state():
     st.session_state["LOADED_DECK_URL"] = None
 
 st.set_page_config(page_title="遊戯王スモール・ワールド乗り換え検索")
-st.title("遊戯王スモール・ワールド乗り換え検索")
+st.html(
+    """
+    <style>
+        h1 a[href="https://ygo-small-world-transit.streamlit.app/"] {
+            color: inherit !important;
+            text-decoration: none !important;
+        }
+    </style>
+    """
+)
+st.title(
+    "[遊戯王スモール・ワールド乗り換え検索]"
+    "(https://ygo-small-world-transit.streamlit.app/)",
+    anchor=False,
+)
 st.caption("[遊戯王DB](https://www.db.yugioh-card.com/yugiohdb/)の公開デッキを読み込むことで、"
            "[<<スモール・ワールド>>](https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=2&cid=16555&request_locale=ja)のサーチ経路を検索できます。")
 
