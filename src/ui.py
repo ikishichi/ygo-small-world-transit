@@ -89,7 +89,7 @@ st.html(
 )
 st.markdown(
     '<div class="app-title"><h1>'
-    '<a href="https://ygo-small-world-transit.streamlit.app/" target="_self">'
+    '<a href="https://ygo-small-world-transit.streamlit.app/" target="_top">'
     '遊戯王スモール・ワールド乗り換え検索</a></h1></div>',
     unsafe_allow_html=True,
 )
