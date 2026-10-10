@@ -254,12 +254,11 @@ def test_successful_deck_display_order(mocker, monkeypatch):
     assert [kind for kind in elements if kind in {
         "text_input", "info", "markdown", "selectbox",
     }] == [
-        "markdown", "text_input", "info", "markdown", "markdown",
+        "text_input", "info", "markdown", "markdown",
         "selectbox", "selectbox", "markdown",
     ]
-    assert 'target="_top"' in app.markdown[0].value
-    assert "取得成功" in app.markdown[1].value
-    assert "デッキ：:blue-background[テストデッキ]" == app.markdown[2].value
+    assert "取得成功" in app.markdown[0].value
+    assert "デッキ：:blue-background[テストデッキ]" == app.markdown[1].value
 
 
 def test_loaded_deck_is_reused_until_explicit_refresh(mocker, monkeypatch):
