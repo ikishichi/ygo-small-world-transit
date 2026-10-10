@@ -69,6 +69,14 @@ st.set_page_config(page_title="遊戯王スモール・ワールド乗り換え�
 st.html(
     """
     <style>
+        .app-title {
+            container-type: inline-size;
+        }
+        .app-title h1 {
+            font-size: 5.5cqi;
+            line-height: 1.3;
+            white-space: nowrap;
+        }
         h1 a[href="https://ygo-small-world-transit.streamlit.app/"] {
             color: inherit !important;
             text-decoration: none !important;
@@ -76,10 +84,11 @@ st.html(
     </style>
     """
 )
-st.title(
-    "[遊戯王スモール・ワールド乗り換え検索]"
-    "(https://ygo-small-world-transit.streamlit.app/)",
-    anchor=False,
+st.markdown(
+    '<div class="app-title"><h1>'
+    '<a href="https://ygo-small-world-transit.streamlit.app/" target="_self">'
+    '遊戯王スモール・ワールド乗り換え検索</a></h1></div>',
+    unsafe_allow_html=True,
 )
 st.caption("[遊戯王DB](https://www.db.yugioh-card.com/yugiohdb/)の公開デッキを読み込むことで、"
            "[<<スモール・ワールド>>](https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=2&cid=16555&request_locale=ja)のサーチ経路を検索できます。")
