@@ -257,7 +257,7 @@ def test_successful_deck_display_order(mocker, monkeypatch):
         "markdown", "text_input", "info", "markdown", "markdown",
         "selectbox", "selectbox", "markdown",
     ]
-    assert 'target="_self"' in app.markdown[0].value
+    assert 'target="_top"' in app.markdown[0].value
     assert "取得成功" in app.markdown[1].value
     assert "デッキ：:blue-background[テストデッキ]" == app.markdown[2].value
 
