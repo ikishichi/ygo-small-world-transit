@@ -69,6 +69,16 @@ st.set_page_config(page_title="遊戯王スモール・ワールド乗り換え�
 st.html(
     """
     <style>
+        [data-testid="stHeadingWithActionElements"]:has(
+            h1 a[href="https://ygo-small-world-transit.streamlit.app/"]
+        ) {
+            container-type: inline-size;
+        }
+        h1:has(a[href="https://ygo-small-world-transit.streamlit.app/"]) {
+            font-size: 5.5cqi;
+            line-height: 1.3;
+            white-space: nowrap;
+        }
         h1 a[href="https://ygo-small-world-transit.streamlit.app/"] {
             color: inherit !important;
             text-decoration: none !important;
