@@ -1,0 +1,39 @@
+name: Keep Streamlit app awake
+
+on:
+  schedule:
+    # UTC。日本時間の03:17、09:17、15:17、21:17に実行する。
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: streamlit-keep-alive
+  cancel-in-progress: false
+
+jobs:
+  keep-alive:
+    if: github.repository == 'ikishichi/ygo-small-world-transit'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Install browser dependencies
+        run: |
+          python -m pip install playwright==1.63.0
+          python -m playwright install --with-deps chromium
+      - name: Visit app and verify it is ready
+        run: python scripts/keep_alive.py
+      - name: Upload failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: keep-alive-failure
+          path: tmp/keep-alive/
+          retention-days: 7
+          if-no-files-found: ignore

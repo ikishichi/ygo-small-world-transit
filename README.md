@@ -51,3 +51,28 @@ python -m pytest
 ```
 
 要件と設計は[設計書](docs/ygo-small-world-transit.md)を参照してください。
+
+## 公開アプリのスリープ対策
+
+[Keep Streamlit app awake](https://github.com/ikishichi/ygo-small-world-transit/actions/workflows/keep_alive.yml)が、6時間ごと（日本時間の03:17、09:17、15:17、21:17）にPlaywrightのChromiumで公開アプリを開きます。スリープ画面の場合は解除ボタンを押し、タイトル・編集可能なデッキURL入力欄・有効な「デッキ取得」ボタンが表示されるまで待ちます。デッキの取得や検索は行いません。
+
+ブラウザーの依存関係はGitHub Actions内にだけインストールし、アプリ本体の依存関係は変更しません。フォークしたリポジトリでは、この定期アクセスは実行しません。
+
+### 復帰確認と失敗時の対応
+
+復帰確認は最大120秒待ち、一度再試行します（各試行のページ遷移待ちは別途最大30秒）。確認できなければワークフローを失敗させます。失敗時のスクリーンショットと各iframeのHTMLは、実行画面のArtifactsに7日間保存します。ログと合わせて、通信障害・Streamlit側の障害・画面やボタン名の変更を確認してください。UIの表示だけを確認するため、デッキ取得・検索機能の正常性までは保証しません。
+
+[GitHubの定期実行](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#schedule)は遅延・欠落する場合があり、公開リポジトリに60日間活動がないと自動で無効になります。その場合はActions画面からワークフローを再び有効にしてください。[Streamlitのスリープ条件](https://docs.streamlit.io/deploy/streamlit-community-cloud/manage-your-app#app-hibernation)や画面が変わる可能性もあるため、常時稼働を保証するものではありません。
+
+### スリープ対策スクリプトのローカル検証
+
+必要に応じて仮想環境に検証用の依存関係を追加してください。`requirements.txt`への追加は不要です。
+
+```bash
+python -m pip install playwright==1.63.0
+python -m playwright install chromium
+python scripts/keep_alive.py
+python -m pytest test/keep_alive_test.py
+```
+
+スリープ対策のテストはChromiumを使用し、通信先はローカルで再現します。Playwright未導入時はスキップします。
