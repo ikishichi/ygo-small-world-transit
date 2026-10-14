@@ -2,8 +2,8 @@ name: Keep Streamlit app awake
 
 on:
   schedule:
-    # UTC。日本時間の03:17、09:17、15:17、21:17に実行する。
-    - cron: "17 */6 * * *"
+    # UTC。日本時間の00:17から3時間ごとに実行する。
+    - cron: "17 */3 * * *"
   workflow_dispatch:
 
 permissions:
