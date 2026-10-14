@@ -54,7 +54,7 @@ python -m pytest
 
 ## 公開アプリのスリープ対策
 
-[Keep Streamlit app awake](https://github.com/ikishichi/ygo-small-world-transit/actions/workflows/keep_alive.yml)が、6時間ごと（日本時間の03:17、09:17、15:17、21:17）にPlaywrightのChromiumで公開アプリを開きます。スリープ画面の場合は解除ボタンを押し、タイトル・編集可能なデッキURL入力欄・有効な「デッキ取得」ボタンが表示されるまで待ちます。デッキの取得や検索は行いません。
+[Keep Streamlit app awake](https://github.com/ikishichi/ygo-small-world-transit/actions/workflows/keep_alive.yml)が、3時間ごと（日本時間の00:17、03:17、06:17、09:17、12:17、15:17、18:17、21:17）にPlaywrightのChromiumで公開アプリを開きます。スリープ画面の場合は解除ボタンを押し、タイトル・編集可能なデッキURL入力欄・有効な「デッキ取得」ボタンが表示されるまで待ちます。デッキの取得や検索は行いません。
 
 ブラウザーの依存関係はGitHub Actions内にだけインストールし、アプリ本体の依存関係は変更しません。フォークしたリポジトリでは、この定期アクセスは実行しません。
 
