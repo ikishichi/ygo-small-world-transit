@@ -1,13 +1,13 @@
 """URL構築・選択ロジックモジュール"""
 
-from urllib.parse import parse_qs, urlsplit, urlunsplit
+from urllib.parse import parse_qs, parse_qsl, urlencode, urlsplit, urlunsplit
 
 VALID_PREFIX_HTTP = "http://www.db.yugioh-card.com/yugiohdb/member_deck.action"
 VALID_PREFIX_HTTPS = "https://www.db.yugioh-card.com/yugiohdb/member_deck.action"
 
 
 def normalize_deck_url(url):
-    """許可されたデッキURLを検査し、HTTPSの取得URLを返す。"""
+    """デッキURLを検査し、HTTPS化と言語の既定値補完を行う。"""
     parts = urlsplit(url)
     if (
         parts.scheme not in {"http", "https"}
@@ -22,7 +22,17 @@ def normalize_deck_url(url):
         raise ValueError(
             "デッキURLに必須情報（cgid、dno）がありません。公開デッキのURLを確認してください。"
         )
-    return urlunsplit(("https", parts.netloc, parts.path, parts.query, ""))
+    query = parts.query
+    if "request_locale" not in query_params:
+        # 空の言語指定も未指定として扱い、初回取得から日本語を指定する。
+        params = [
+            (key, value)
+            for key, value in parse_qsl(query, keep_blank_values=True)
+            if key != "request_locale"
+        ]
+        params.append(("request_locale", "ja"))
+        query = urlencode(params)
+    return urlunsplit(("https", parts.netloc, parts.path, query, ""))
 
 
 def has_query_params(query_params):

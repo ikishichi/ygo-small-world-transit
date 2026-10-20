@@ -35,11 +35,27 @@ def test_fetch_html_http_error(mocker):
     [
         (
             "http://www.db.yugioh-card.com/yugiohdb/member_deck.action?cgid=1&dno=2#deck",
-            "https://www.db.yugioh-card.com/yugiohdb/member_deck.action?cgid=1&dno=2",
+            "https://www.db.yugioh-card.com/yugiohdb/member_deck.action?cgid=1&dno=2&request_locale=ja",
         ),
         (
             "https://www.db.yugioh-card.com/yugiohdb/member_deck.action?cgid=1&dno=2",
-            "https://www.db.yugioh-card.com/yugiohdb/member_deck.action?cgid=1&dno=2",
+            "https://www.db.yugioh-card.com/yugiohdb/member_deck.action?cgid=1&dno=2&request_locale=ja",
+        ),
+        (
+            VALID_URL + "&request_locale=ja",
+            VALID_URL + "&request_locale=ja",
+        ),
+        (
+            VALID_URL + "&request_locale=en",
+            VALID_URL + "&request_locale=en",
+        ),
+        (
+            VALID_URL + "&request_locale=",
+            VALID_URL + "&request_locale=ja",
+        ),
+        (
+            VALID_URL + "&ope=1&wname=MemberDeck&ytkn=a%2Bb&extra=",
+            VALID_URL + "&ope=1&wname=MemberDeck&ytkn=a%2Bb&extra=&request_locale=ja",
         ),
     ],
 )
@@ -101,7 +117,9 @@ def test_fetch_html_rejects_redirect_without_following_it(mocker, status_code):
     with pytest.raises(ValueError, match="デッキ取得先から転送応答が返されました"):
         DeckInfo(VALID_URL).fetch_html()
 
-    get.assert_called_once_with(VALID_URL, allow_redirects=False, timeout=(5, 15))
+    get.assert_called_once_with(
+        VALID_URL + "&request_locale=ja", allow_redirects=False, timeout=(5, 15)
+    )
 
 
 @pytest.mark.parametrize("status_code", [400, 500])
@@ -126,7 +144,9 @@ def test_fetch_html_preserves_connection_error(mocker):
     with pytest.raises(requests.exceptions.ConnectionError, match="connection failed"):
         DeckInfo(VALID_URL).fetch_html()
 
-    get.assert_called_once_with(VALID_URL, allow_redirects=False, timeout=(5, 15))
+    get.assert_called_once_with(
+        VALID_URL + "&request_locale=ja", allow_redirects=False, timeout=(5, 15)
+    )
 
 
 if __name__ == "__main__":

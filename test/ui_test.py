@@ -1,5 +1,6 @@
 """デッキ切り替え時のブックマーク更新の回帰テスト。"""
 from pathlib import Path
+from urllib.parse import parse_qs, urlsplit
 
 import pandas as pd
 import pytest
@@ -104,13 +105,22 @@ def test_switching_deck_updates_page_title(mocker, monkeypatch):
     page_config.assert_called_with(page_title=f"デッキB | {APP_TITLE}")
 
 
-@pytest.mark.parametrize("input_locale, expected_locale", [(None, "ja"), ("en", "en")])
+@pytest.mark.parametrize(
+    "input_locale, expected_locale", [(None, "ja"), ("", "ja"), ("ja", "ja"), ("en", "en")]
+)
 def test_switch_deck_updates_bookmark_locale(mocker, monkeypatch, input_locale, expected_locale):
-    """古い言語を残さず、送信したURLの言語または既定値を保存する。"""
+    """初回取得のカード名とブックマークの言語を一致させる。"""
     monkeypatch.syspath_prepend(str(PROJECT_ROOT / "src"))
-    response = mocker.Mock(status_code=200)
-    response.content = DECK_HTML.encode("utf-8")
-    get = mocker.patch("requests.get", return_value=response)
+
+    def fetch_deck(url, **kwargs):
+        locale = parse_qs(urlsplit(url).query).get("request_locale", ["en"])[0]
+        name = "テストモンスター" if locale == "ja" else "Test Monster"
+        return mocker.Mock(
+            status_code=200,
+            content=DECK_HTML.replace("テストモンスター", name).encode("utf-8"),
+        )
+
+    get = mocker.patch("requests.get", side_effect=fetch_deck)
     app = AppTest.from_file(str(PROJECT_ROOT / "src" / "ui.py"))
     app.query_params.update({"cgid": "A", "dno": "1", "request_locale": "en"})
     app.run()
@@ -133,7 +143,14 @@ def test_switch_deck_updates_bookmark_locale(mocker, monkeypatch, input_locale, 
     assert query_params["cgid"] == ["B"]
     assert query_params["dno"] == ["2"]
     assert query_params["request_locale"] == [expected_locale]
-    get.assert_called_with(input_url, allow_redirects=False, timeout=(5, 15))
+    expected_url = (
+        "https://www.db.yugioh-card.com/yugiohdb/member_deck.action"
+        + "?cgid=B&dno=2&request_locale=" + expected_locale
+    )
+    get.assert_called_with(expected_url, allow_redirects=False, timeout=(5, 15))
+    expected_name = "テストモンスター" if expected_locale == "ja" else "Test Monster"
+    assert app.selectbox[0].options == [expected_name]
+    assert app.selectbox[1].options == [expected_name]
 
     app.run()
     assert not app.exception
@@ -494,7 +511,9 @@ def test_network_failures_show_retry_guidance_without_blame_on_url(
     assert "通信状態を確認し、時間を置いて再試行" in app.error[0].value
     assert "無効なURL" not in app.error[0].value
     assert not app.info
-    get.assert_called_once_with(url, allow_redirects=False, timeout=(5, 15))
+    get.assert_called_once_with(
+        url + "&request_locale=ja", allow_redirects=False, timeout=(5, 15)
+    )
 
 
 def test_no_monster_deck_shows_specific_guidance(mocker, monkeypatch):
@@ -521,4 +540,6 @@ def test_no_monster_deck_shows_specific_guidance(mocker, monkeypatch):
     assert "モンスターが見つかりませんでした" in app.error[0].value
     assert len(app.info) == 1
     assert "モンスターを含む公開デッキ" in app.info[0].value
-    get.assert_called_once_with(url, allow_redirects=False, timeout=(5, 15))
+    get.assert_called_once_with(
+        url + "&request_locale=ja", allow_redirects=False, timeout=(5, 15)
+    )
