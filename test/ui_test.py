@@ -4,10 +4,12 @@ from pathlib import Path
 import pandas as pd
 import pytest
 import requests
+import streamlit as st
 from streamlit.testing.v1 import AppTest
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
+APP_TITLE = "遊戯王スモール・ワールド乗り換え検索"
 DECK_HTML = """
 <html>
 <head><meta name="description" content="テストデッキ"></head>
@@ -35,6 +37,71 @@ def normalize_query_params(query_params):
         key: [value] if isinstance(value, str) else value
         for key, value in query_params.items()
     }
+
+
+@pytest.mark.parametrize("from_bookmark", [False, True])
+@pytest.mark.parametrize("deck_name", ["青眼デッキ", "", "<青眼> & 'デッキ'"])
+def test_page_title_reflects_loaded_deck(
+    mocker, monkeypatch, from_bookmark, deck_name
+):
+    """入力・ブックマーク経由の取得成功時にデッキ名をタイトルへ反映する。"""
+    monkeypatch.syspath_prepend(str(PROJECT_ROOT / "src"))
+    page_config = mocker.spy(st, "set_page_config")
+    response = mocker.Mock(
+        status_code=200,
+        content=DECK_HTML.replace("テストデッキ", deck_name).encode("utf-8"),
+    )
+    get = mocker.patch("requests.get", return_value=response)
+    app = AppTest.from_file(str(PROJECT_ROOT / "src" / "ui.py")).run()
+    assert not app.exception
+    page_config.assert_called_with(page_title=APP_TITLE)
+    get.assert_not_called()
+
+    if from_bookmark:
+        app.query_params.update({"cgid": "A", "dno": "1"})
+        app.run()
+    else:
+        app.text_input[0].set_value(
+            "https://www.db.yugioh-card.com/yugiohdb/member_deck.action?cgid=A&dno=1"
+        )
+        app.button[0].click().run()
+
+    assert not app.exception
+    assert not app.error
+    expected_title = f"{deck_name} | {APP_TITLE}" if deck_name else APP_TITLE
+    page_config.assert_called_with(page_title=expected_title)
+
+    # 読み込み後の再実行でもタイトルを維持し、HTTP取得を増やさない。
+    app.run()
+    assert not app.exception
+    page_config.assert_called_with(page_title=expected_title)
+    get.assert_called_once()
+
+
+def test_switching_deck_updates_page_title(mocker, monkeypatch):
+    """送信したデッキへ切り替えた同じ実行内でタイトルを更新する。"""
+    monkeypatch.syspath_prepend(str(PROJECT_ROOT / "src"))
+    page_config = mocker.spy(st, "set_page_config")
+    mocker.patch("requests.get", side_effect=[
+        mocker.Mock(
+            status_code=200,
+            content=DECK_HTML.replace("テストデッキ", name).encode("utf-8"),
+        )
+        for name in ("デッキA", "デッキB")
+    ])
+    app = AppTest.from_file(str(PROJECT_ROOT / "src" / "ui.py"))
+    app.query_params.update({"cgid": "A", "dno": "1"})
+    app.run()
+    page_config.assert_called_with(page_title=f"デッキA | {APP_TITLE}")
+
+    app.text_input[0].set_value(
+        "https://www.db.yugioh-card.com/yugiohdb/member_deck.action?cgid=B&dno=2"
+    )
+    app.button[0].click().run()
+
+    assert not app.exception
+    assert not app.error
+    page_config.assert_called_with(page_title=f"デッキB | {APP_TITLE}")
 
 
 @pytest.mark.parametrize("input_locale, expected_locale", [(None, "ja"), ("en", "en")])
@@ -125,6 +192,7 @@ def test_switch_decks_without_initial_bookmark(mocker, monkeypatch, input_scheme
 def test_failed_deck_switch_preserves_state(mocker, monkeypatch, failure):
     """取得失敗時は元の状態を保ち、再試行成功時にデッキを切り替える。"""
     monkeypatch.syspath_prepend(str(PROJECT_ROOT / "src"))
+    page_config = mocker.spy(st, "set_page_config")
     response = mocker.Mock(status_code=200, content=DECK_HTML.encode("utf-8"))
     get = mocker.patch("requests.get", return_value=response)
     app = AppTest.from_file(str(PROJECT_ROOT / "src" / "ui.py"))
@@ -133,6 +201,7 @@ def test_failed_deck_switch_preserves_state(mocker, monkeypatch, failure):
     assert not app.exception
     assert not app.error
     previous_params = normalize_query_params(app.query_params)
+    previous_title = page_config.call_args.kwargs["page_title"]
     previous_monsters = app.session_state["MONSTERS_DF"].copy()
     previous_results = pd.DataFrame(
         {"origin": ["元モンスター"], "transit": ["経由モンスター"], "dest": ["先モンスター"]}
@@ -173,6 +242,7 @@ def test_failed_deck_switch_preserves_state(mocker, monkeypatch, failure):
 
     assert not app.exception
     assert app.error
+    assert page_config.call_args.kwargs["page_title"] == previous_title
     if failure in {
         "missing_monsters", "missing_deck", "missing_deck_name", "changed_monster_list",
         "changed_monster_content",
@@ -264,6 +334,7 @@ def test_successful_deck_display_order(mocker, monkeypatch):
 def test_loaded_deck_is_reused_until_explicit_refresh(mocker, monkeypatch):
     """通常のStreamlit再実行では再取得せず、明示取得では同じURLも読み直す。"""
     monkeypatch.syspath_prepend(str(PROJECT_ROOT / "src"))
+    page_config = mocker.spy(st, "set_page_config")
     responses = [
         mocker.Mock(status_code=200, content=DECK_HTML.encode("utf-8")),
         mocker.Mock(
@@ -289,6 +360,7 @@ def test_loaded_deck_is_reused_until_explicit_refresh(mocker, monkeypatch):
     app.button[1].click().run()
     assert not app.exception
     assert get.call_count == 1
+    page_config.assert_called_with(page_title=f"テストデッキ | {APP_TITLE}")
     app.session_state["SEARCH_RESULTS"] = pd.DataFrame({
         "origin": ["テストモンスター"],
         "transit": ["経由モンスター"],
@@ -298,6 +370,7 @@ def test_loaded_deck_is_reused_until_explicit_refresh(mocker, monkeypatch):
     app.radio[0].set_value("経由でソート").run()
     assert not app.exception
     assert get.call_count == 1
+    page_config.assert_called_with(page_title=f"テストデッキ | {APP_TITLE}")
 
     app.button[0].click().run()
     assert not app.exception

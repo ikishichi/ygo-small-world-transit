@@ -65,7 +65,12 @@ def initialize_session_state():
     st.session_state["DECK_NAME"] = None
     st.session_state["LOADED_DECK_URL"] = None
 
-st.set_page_config(page_title="遊戯王スモール・ワールド乗り換え検索")
+APP_TITLE = "遊戯王スモール・ワールド乗り換え検索"
+
+deck_name = st.session_state.get("DECK_NAME")
+st.set_page_config(
+    page_title=f"{deck_name} | {APP_TITLE}" if deck_name else APP_TITLE
+)
 st.html(
     """
     <style>
@@ -164,6 +169,11 @@ try:
             st.session_state["DECK_NAME"] = deck.deck_name
             st.session_state["LOADED_DECK_URL"] = loaded_url
             st.session_state["SEARCH_RESULTS"] = None
+
+            st.set_page_config(
+                page_title=f"{deck.deck_name} | {APP_TITLE}"
+                if deck.deck_name else APP_TITLE
+            )
 
         deck_name = st.session_state["DECK_NAME"]
 
