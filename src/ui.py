@@ -193,6 +193,7 @@ try:
                 "モンスターを選択" if deck_is_loaded
                 else "デッキを読み込むと選択できます"
             ),
+            disabled=not deck_is_loaded,
         )
 
         # サーチ先指定（プルダウン）
@@ -205,6 +206,7 @@ try:
                 "すべてのサーチ先（指定なし）" if deck_is_loaded
                 else "デッキを読み込むと選択できます"
             ),
+            disabled=not deck_is_loaded,
         )
 
         # 検索実行ボタン
