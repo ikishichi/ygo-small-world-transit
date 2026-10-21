@@ -222,17 +222,18 @@ try:
             sort = st.radio("ソート順", ["経由でソート", "サーチ先でソート"], index=1, horizontal=True)
 
             if sort == "経由でソート":
+                group_by_destination = False
                 search_results = st.session_state["SEARCH_RESULTS"].sort_values(
                     "transit", kind="stable"
                 )
             else:
+                group_by_destination = True
                 search_results = st.session_state["SEARCH_RESULTS"].sort_values(
                     "dest", kind="stable"
                 )
 
             st.header("検索結果")
             monsters_df = st.session_state["MONSTERS_DF"]
-            group_by_destination = sort == "サーチ先でソート"
             group_label = "サーチ先" if group_by_destination else "経由"
             candidate_label = "経由" if group_by_destination else "サーチ先"
             group_field = "dest" if group_by_destination else "transit"
