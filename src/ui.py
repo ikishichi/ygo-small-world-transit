@@ -302,14 +302,11 @@ try:
                                 else:
                                     first_matches = []
                                 if first_matches:
-                                    label, value = first_matches[0]
-                                    st.caption(
-                                        f"↓ 1段目（手札→経由）："
-                                        f"{label}が一致：{value}"
-                                    )
+                                    _, value = first_matches[0]
+                                    st.caption(f"手札→経由：{value}")
                                 else:
                                     st.caption(
-                                        "↓ 1段目（手札→経由）："
+                                        "手札→経由："
                                         "一致項目を表示できません"
                                     )
                                 if pd.notna(route.transit) and pd.notna(route.dest):
@@ -319,14 +316,11 @@ try:
                                 else:
                                     second_matches = []
                                 if second_matches:
-                                    label, value = second_matches[0]
-                                    st.caption(
-                                        f"↓ 2段目（経由→サーチ先）："
-                                        f"{label}が一致：{value}"
-                                    )
+                                    _, value = second_matches[0]
+                                    st.caption(f"経由→サーチ先：{value}")
                                 else:
                                     st.caption(
-                                        "↓ 2段目（経由→サーチ先）："
+                                        "経由→サーチ先："
                                         "一致項目を表示できません"
                                     )
 

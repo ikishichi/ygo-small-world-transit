@@ -17,7 +17,9 @@ def route_output_events(app):
     """展開された経路詳細のカード名と一致理由を順番に返す。"""
     events = []
     for element in app.main:
-        if element.type == "caption" and element.value.startswith("↓"):
+        if element.type == "caption" and element.value.startswith(
+            ("手札→経由：", "経由→サーチ先：")
+        ):
             events.append((element.type, element.value))
         elif element.type == "markdown" and element.value.startswith("**経路 "):
             events.append((element.type, element.value))
@@ -28,8 +30,8 @@ def expected_route(number, origin, transit, dest, first_match, second_match):
     """1経路分の期待する詳細表示を作る。"""
     return [
         ("markdown", f"**経路 {number}：** {origin} → {transit} → {dest}"),
-        ("caption", f"↓ 1段目（手札→経由）：{first_match}"),
-        ("caption", f"↓ 2段目（経由→サーチ先）：{second_match}"),
+        ("caption", f"手札→経由：{first_match}"),
+        ("caption", f"経由→サーチ先：{second_match}"),
     ]
 
 
@@ -59,12 +61,12 @@ def test_search_results_display_complete_routes_and_matching_fields(monkeypatch)
     assert not app.exception
     assert route_output_events(app) == (
         expected_route(
-            1, "手札のカード", "経由Zulu", "サーチAardvark", "レベルが一致：1",
-            "種族が一致：ドラゴン",
+            1, "手札のカード", "経由Zulu", "サーチAardvark", "1",
+            "ドラゴン",
         )
         + expected_route(
-            2, "手札のカード", "経由Alpha", "サーチZebra", "属性が一致：光",
-            "種族が一致：魔法",
+            2, "手札のカード", "経由Alpha", "サーチZebra", "光",
+            "魔法",
         )
     )
 
@@ -73,12 +75,12 @@ def test_search_results_display_complete_routes_and_matching_fields(monkeypatch)
     assert not app.exception
     assert route_output_events(app) == (
         expected_route(
-            1, "手札のカード", "経由Alpha", "サーチZebra", "属性が一致：光",
-            "種族が一致：魔法",
+            1, "手札のカード", "経由Alpha", "サーチZebra", "光",
+            "魔法",
         )
         + expected_route(
-            2, "手札のカード", "経由Zulu", "サーチAardvark", "レベルが一致：1",
-            "種族が一致：ドラゴン",
+            2, "手札のカード", "経由Zulu", "サーチAardvark", "1",
+            "ドラゴン",
         )
     )
 
@@ -113,8 +115,8 @@ def test_parsed_species_match_is_displayed_without_brackets(monkeypatch):
     assert not app.exception
     assert not app.error
     assert route_output_events(app) == expected_route(
-        1, "手札", "経由", "サーチ先", "種族が一致：サイバース族",
-        "属性が一致：闇属性",
+        1, "手札", "経由", "サーチ先", "サイバース族",
+        "闇属性",
     )
 
 
@@ -169,9 +171,12 @@ def test_search_results_without_matching_monster_records_are_explained(monkeypat
     app.run()
 
     assert not app.exception
-    assert [element.value for element in app.caption if element.value.startswith("↓")] == [
-        "↓ 1段目（手札→経由）：一致項目を表示できません",
-        "↓ 2段目（経由→サーチ先）：一致項目を表示できません",
+    assert [
+        element.value for element in app.caption
+        if element.value.startswith(("手札→経由：", "経由→サーチ先："))
+    ] == [
+        "手札→経由：一致項目を表示できません",
+        "経由→サーチ先：一致項目を表示できません",
     ]
 
 
@@ -206,17 +211,17 @@ def test_compact_results_group_destinations_without_losing_routes(monkeypatch):
     assert "**経由：** カード名なし" in markdown_values
     assert route_output_events(app) == [
         ("markdown", "**経路 1：** 元A → 経由1 → 先X"),
-        ("caption", "↓ 1段目（手札→経由）：一致項目を表示できません"),
-        ("caption", "↓ 2段目（経由→サーチ先）：一致項目を表示できません"),
+        ("caption", "手札→経由：一致項目を表示できません"),
+        ("caption", "経由→サーチ先：一致項目を表示できません"),
         ("markdown", "**経路 2：** 元A → 経由2 → 先X"),
-        ("caption", "↓ 1段目（手札→経由）：一致項目を表示できません"),
-        ("caption", "↓ 2段目（経由→サーチ先）：一致項目を表示できません"),
+        ("caption", "手札→経由：一致項目を表示できません"),
+        ("caption", "経由→サーチ先：一致項目を表示できません"),
         ("markdown", "**経路 3：** 元A → 経由2 → 先X"),
-        ("caption", "↓ 1段目（手札→経由）：一致項目を表示できません"),
-        ("caption", "↓ 2段目（経由→サーチ先）：一致項目を表示できません"),
+        ("caption", "手札→経由：一致項目を表示できません"),
+        ("caption", "経由→サーチ先：一致項目を表示できません"),
         ("markdown", "**経路 4：** 元B → カード名なし → 先X"),
-        ("caption", "↓ 1段目（手札→経由）：一致項目を表示できません"),
-        ("caption", "↓ 2段目（経由→サーチ先）：一致項目を表示できません"),
+        ("caption", "手札→経由：一致項目を表示できません"),
+        ("caption", "経由→サーチ先：一致項目を表示できません"),
     ]
 
 
@@ -265,12 +270,12 @@ def test_grouping_follows_selected_sort_for_interleaved_candidates(monkeypatch):
     ]
     assert route_output_events(app) == [
         ("markdown", "**経路 1：** 手札 → Alpha → 先Z"),
-        ("caption", "↓ 1段目（手札→経由）：一致項目を表示できません"),
-        ("caption", "↓ 2段目（経由→サーチ先）：一致項目を表示できません"),
+        ("caption", "手札→経由：一致項目を表示できません"),
+        ("caption", "経由→サーチ先：一致項目を表示できません"),
         ("markdown", "**経路 2：** 手札 → Beta → 先Y"),
-        ("caption", "↓ 1段目（手札→経由）：一致項目を表示できません"),
-        ("caption", "↓ 2段目（経由→サーチ先）：一致項目を表示できません"),
+        ("caption", "手札→経由：一致項目を表示できません"),
+        ("caption", "経由→サーチ先：一致項目を表示できません"),
         ("markdown", "**経路 3：** 手札 → Gamma → 先Z"),
-        ("caption", "↓ 1段目（手札→経由）：一致項目を表示できません"),
-        ("caption", "↓ 2段目（経由→サーチ先）：一致項目を表示できません"),
+        ("caption", "手札→経由：一致項目を表示できません"),
+        ("caption", "経由→サーチ先：一致項目を表示できません"),
     ]
