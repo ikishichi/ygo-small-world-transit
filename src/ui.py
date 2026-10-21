@@ -183,16 +183,28 @@ try:
 
     with st.form(key='select_box'):
         # サーチ元指定（プルダウン。DataFrameの1列目が候補として表示される）
+        monsters_df = st.session_state["MONSTERS_DF"]
+        deck_is_loaded = not monsters_df.empty
         transit_start = st.selectbox(
             "手札から見せるモンスターを選択してください:red[（必須）]",
-            st.session_state["MONSTERS_DF"], index=None,
+            monsters_df,
+            index=None,
+            placeholder=(
+                "モンスターを選択" if deck_is_loaded
+                else "デッキを読み込むと選択できます"
+            ),
         )
 
         # サーチ先指定（プルダウン）
         # 検索結果の中から候補を選ぶ「絞り込み検索」
         transit_goal = st.selectbox(
             "サーチ先とするモンスターを選択してください（任意）",
-            st.session_state["MONSTERS_DF"], index=None,
+            monsters_df,
+            index=None,
+            placeholder=(
+                "すべてのサーチ先（指定なし）" if deck_is_loaded
+                else "デッキを読み込むと選択できます"
+            ),
         )
 
         # 検索実行ボタン
@@ -219,9 +231,14 @@ try:
         else:
             st.caption(f"検索結果：{len(st.session_state['SEARCH_RESULTS'])}経路")
             # ソート選択ラジオボタン
-            sort = st.radio("ソート順", ["経由でソート", "サーチ先でソート"], index=1, horizontal=True)
+            sort = st.radio(
+                "並べ替え",
+                ["経由カード順", "サーチ先順"],
+                index=1,
+                horizontal=True,
+            )
 
-            if sort == "経由でソート":
+            if sort == "経由カード順":
                 search_results = st.session_state["SEARCH_RESULTS"].sort_values(
                     "transit", kind="stable"
                 )

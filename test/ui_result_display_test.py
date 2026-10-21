@@ -61,7 +61,7 @@ def test_search_results_display_complete_routes_and_matching_fields(monkeypatch)
     ])
 
     app.run()
-    assert app.radio[0].value == "サーチ先でソート"
+    assert app.radio[0].value == "サーチ先順"
     assert not app.exception
     assert route_output_events(app) == (
         expected_route(
@@ -74,7 +74,7 @@ def test_search_results_display_complete_routes_and_matching_fields(monkeypatch)
         )
     )
 
-    app.radio[0].set_value("経由でソート").run()
+    app.radio[0].set_value("経由カード順").run()
 
     assert not app.exception
     assert route_output_events(app) == (
@@ -125,8 +125,8 @@ def test_parsed_species_match_is_displayed_without_brackets(monkeypatch):
 
 
 @pytest.mark.parametrize("sort_label, sort_field, other_field", [
-    ("経由でソート", "transit", "dest"),
-    ("サーチ先でソート", "dest", "transit"),
+    ("経由カード順", "transit", "dest"),
+    ("サーチ先順", "dest", "transit"),
 ])
 def test_search_results_keep_input_order_for_equal_sort_keys(
     monkeypatch, sort_label, sort_field, other_field
