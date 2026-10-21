@@ -64,6 +64,7 @@ def initialize_session_state():
     # 取得済みデッキの情報。再実行時はこの値を再利用する。
     st.session_state["DECK_NAME"] = None
     st.session_state["LOADED_DECK_URL"] = None
+    st.session_state["IS_SAMPLE_DECK"] = False
 
 APP_TITLE = "遊戯王スモール・ワールド乗り換え検索"
 
@@ -105,6 +106,7 @@ else:
     # 既存セッションにも新しいキャッシュ状態を追加する。
     st.session_state.setdefault("DECK_NAME", None)
     st.session_state.setdefault("LOADED_DECK_URL", None)
+    st.session_state.setdefault("IS_SAMPLE_DECK", False)
 
 # クエリパラメータ取得
 query_params = st.query_params
@@ -123,12 +125,28 @@ try:
             "遊戯王DBの公開デッキのURLを入力してください。",
             key="deck_url_input",
         )
+        st.caption(
+            "遊戯王DBで公開デッキを開き、ページ上部のURLをコピーして貼り付けてください。"
+        )
 
         # デッキ取得ボタンの押下状態（boolean）
         submit_btn = st.form_submit_button("デッキ取得")
 
+    st.markdown(
+        "[遊戯王DBで公開デッキを探す]("
+        "https://www.db.yugioh-card.com/yugiohdb/deck_search.action?request_locale=ja)"
+    )
+
+    if submit_btn and not input_url.strip():
+        st.warning(
+            "遊戯王DBの公開デッキURLを入力してください。"
+            "入力欄の下の案内から公開デッキを探せます。"
+        )
+
     # 取得ボタン押下、またはクエリパラメータの指定がある場合
-    if submit_btn or has_query_params(query_params):
+    if (submit_btn and input_url.strip()) or (
+        not submit_btn and has_query_params(query_params)
+    ):
         # Issue #32: submit 時は必ずユーザー入力を採用し、クエリパラメータで上書きしない
         url = select_url(input_url, query_params_url, submit_btn)
 
@@ -168,6 +186,7 @@ try:
             st.session_state["MONSTERS_DF"] = deck.monsters_df
             st.session_state["DECK_NAME"] = deck.deck_name
             st.session_state["LOADED_DECK_URL"] = loaded_url
+            st.session_state["IS_SAMPLE_DECK"] = False
             st.session_state["SEARCH_RESULTS"] = None
 
             st.set_page_config(
@@ -175,11 +194,43 @@ try:
                 if deck.deck_name else APP_TITLE
             )
 
-        deck_name = st.session_state["DECK_NAME"]
+    if (
+        not has_query_params(query_params)
+        and st.session_state["MONSTERS_DF"].empty
+        and st.session_state["LOADED_DECK_URL"] is None
+    ):
+        sample_btn = st.button("サンプルで試す", key="load_sample_deck")
+        if sample_btn:
+            st.session_state["MONSTERS_DF"] = pd.DataFrame(
+                [
+                    ["青眼の白龍", "光", "ドラゴン族", 8, 3000, 2500],
+                    ["青眼の亜白龍", "光", "ドラゴン族", 8, 3000, 2500],
+                    ["白き霊龍", "光", "ドラゴン族", 8, 2500, 2000],
+                    ["青き眼の賢士", "光", "魔法使い族", 1, 0, 1500],
+                ],
+                columns=["name", "attribute", "type", "level", "attack", "defence"],
+            )
+            st.session_state["DECK_NAME"] = "サンプルデッキ（青眼）"
+            st.session_state["LOADED_DECK_URL"] = None
+            st.session_state["IS_SAMPLE_DECK"] = True
+            st.session_state["SEARCH_RESULTS"] = None
+            st.rerun()
 
+    if not st.session_state["MONSTERS_DF"].empty:
         container = st.container(border=True)
-        container.badge("取得成功", icon=":material/check:", color="green")
-        container.write(f"デッキ：:blue-background[{deck_name}]")
+        if st.session_state["IS_SAMPLE_DECK"]:
+            container.badge("サンプル", color="blue")
+            container.write(
+                f"デッキ：:blue-background[{st.session_state['DECK_NAME']}]"
+            )
+            container.caption(
+                "サンプルカードで検索を試しています。"
+                "実際のデッキ情報は取得・保存されません。"
+            )
+        elif st.session_state["LOADED_DECK_URL"] is not None:
+            container.badge("取得成功", icon=":material/check:", color="green")
+            deck_name = st.session_state["DECK_NAME"] or "名称未設定"
+            container.write(f"デッキ：:blue-background[{deck_name}]")
 
     with st.form(key='select_box'):
         # サーチ元指定（プルダウン。DataFrameの1列目が候補として表示される）

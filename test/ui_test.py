@@ -40,6 +40,59 @@ def normalize_query_params(query_params):
     }
 
 
+def test_empty_url_shows_guidance_without_fetching(mocker, monkeypatch):
+    """空欄送信時は入力案内を表示し、HTTP取得を行わない。"""
+    monkeypatch.syspath_prepend(str(PROJECT_ROOT / "src"))
+    get = mocker.patch("requests.get")
+    app = AppTest.from_file(str(PROJECT_ROOT / "src" / "ui.py")).run()
+
+    app.button[0].click().run()
+
+    assert not app.exception
+    assert any(
+        "deck_search.action?request_locale=ja" in element.value
+        for element in app.markdown
+    )
+    assert any(
+        "公開デッキURLを入力してください" in warning.value
+        for warning in app.warning
+    )
+    get.assert_not_called()
+
+
+def test_sample_deck_can_be_searched_without_fetch_or_bookmark(mocker, monkeypatch):
+    """内蔵サンプルは外部取得や共有URLの更新をせず検索可能にする。"""
+    monkeypatch.syspath_prepend(str(PROJECT_ROOT / "src"))
+    get = mocker.patch("requests.get")
+    app = AppTest.from_file(str(PROJECT_ROOT / "src" / "ui.py")).run()
+
+    app.button[1].click().run()
+
+    assert not app.exception
+    assert any(
+        "サンプルデッキ（青眼）" in element.value for element in app.markdown
+    )
+    assert any(
+        "サンプルカードで検索を試しています" in element.value
+        for element in app.caption
+    )
+    assert any(
+        "deck_search.action?request_locale=ja" in element.value
+        for element in app.markdown
+    )
+    assert app.selectbox[0].options
+    app.selectbox[0].select("青眼の白龍")
+    app.button[-1].click().run()
+    assert not app.exception
+    assert any(
+        "検索結果：" in element.value and "0経路" not in element.value
+        for element in app.caption
+    )
+    assert "cgid" not in app.query_params
+    assert "dno" not in app.query_params
+    get.assert_not_called()
+
+
 @pytest.mark.parametrize("from_bookmark", [False, True])
 @pytest.mark.parametrize("deck_name", ["青眼デッキ", "", "<青眼> & 'デッキ'"])
 def test_page_title_reflects_loaded_deck(
@@ -69,8 +122,14 @@ def test_page_title_reflects_loaded_deck(
 
     assert not app.exception
     assert not app.error
+    assert any(
+        "deck_search.action?request_locale=ja" in element.value
+        for element in app.markdown
+    )
     expected_title = f"{deck_name} | {APP_TITLE}" if deck_name else APP_TITLE
     page_config.assert_called_with(page_title=expected_title)
+    if not deck_name:
+        assert any("名称未設定" in element.value for element in app.markdown)
 
     # 読み込み後の再実行でもタイトルを維持し、HTTP取得を増やさない。
     app.run()
@@ -341,11 +400,14 @@ def test_successful_deck_display_order(mocker, monkeypatch):
     assert [kind for kind in elements if kind in {
         "text_input", "info", "markdown", "selectbox",
     }] == [
-        "text_input", "info", "markdown", "markdown",
+        "text_input", "markdown", "info", "markdown", "markdown",
         "selectbox", "selectbox", "markdown",
     ]
-    assert "取得成功" in app.markdown[0].value
-    assert "デッキ：:blue-background[テストデッキ]" == app.markdown[1].value
+    assert any("取得成功" in item.value for item in app.markdown)
+    assert any(
+        "デッキ：:blue-background[テストデッキ]" == item.value
+        for item in app.markdown
+    )
 
 
 def test_loaded_deck_is_reused_until_explicit_refresh(mocker, monkeypatch):

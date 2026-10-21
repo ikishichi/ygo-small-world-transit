@@ -19,8 +19,9 @@ def test_initial_page_shows_search_form_with_disabled_search(mocker, monkeypatch
     assert not app.exception
     assert len(app.selectbox) == 2
     assert all(not selectbox.options for selectbox in app.selectbox)
-    assert [button.label for button in app.button] == ["デッキ取得", "検索"]
-    assert app.button[1].disabled
+    assert [button.label for button in app.button] == ["デッキ取得", "サンプルで試す", "検索"]
+    assert not app.button[1].disabled
+    assert app.button[-1].disabled
     get.assert_not_called()
 
 
