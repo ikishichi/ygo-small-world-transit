@@ -133,7 +133,7 @@ def test_search_results_keep_input_order_for_equal_sort_keys(
     routes = []
     for index in range(20):
         routes.append({
-            "origin": f"手札{index:02d}",
+            "origin": "手札",
             sort_field: "共通Zulu" if index % 2 == 0 else "共通Alpha",
             other_field: f"カード{19 - index:02d}",
         })
@@ -155,6 +155,12 @@ def test_search_results_keep_input_order_for_equal_sort_keys(
     assert not app.exception
     assert not app.error
     assert route_output_events(app) == expected_events
+    assert [expander.label for expander in app.expander] == [
+        "一致理由を表示（10経路）", "一致理由を表示（10経路）",
+    ]
+    assert [element.value for element in app.markdown].count(
+        "**手札から見せるカード：** 手札"
+    ) == 1
     pd.testing.assert_frame_equal(
         app.session_state["SEARCH_RESULTS"], original_results
     )
@@ -181,7 +187,7 @@ def test_search_results_without_matching_monster_records_are_explained(monkeypat
 
 
 def test_compact_results_group_destinations_without_losing_routes(monkeypatch):
-    """複数元・重複経路・欠損カード名を保ったまま候補を集約する。"""
+    """単一のサーチ元で重複経路・欠損カード名を保って候補を集約する。"""
     monkeypatch.syspath_prepend(str(PROJECT_ROOT / "src"))
     app = AppTest.from_file(str(PROJECT_ROOT / "src" / "ui.py")).run()
     app.session_state["MONSTERS_DF"] = pd.DataFrame(
@@ -191,7 +197,7 @@ def test_compact_results_group_destinations_without_losing_routes(monkeypatch):
         {"origin": "元A", "transit": "経由1", "dest": "先X"},
         {"origin": "元A", "transit": "経由2", "dest": "先X"},
         {"origin": "元A", "transit": "経由2", "dest": "先X"},
-        {"origin": "元B", "transit": None, "dest": "先X"},
+        {"origin": "元A", "transit": None, "dest": "先X"},
     ])
 
     app.run()
@@ -199,16 +205,13 @@ def test_compact_results_group_destinations_without_losing_routes(monkeypatch):
     assert not app.exception
     assert any(caption.value == "検索結果：4経路" for caption in app.caption)
     assert [expander.label for expander in app.expander] == [
-        "一致理由を表示（3経路）",
-        "一致理由を表示（1経路）",
+        "一致理由を表示（4経路）",
     ]
     markdown_values = [
         element.value for element in app.main if element.type == "markdown"
     ]
     assert markdown_values.count("**手札から見せるカード：** 元A") == 1
-    assert markdown_values.count("**手札から見せるカード：** 元B") == 1
-    assert "**経由：** 経由1 / 経由2" in markdown_values
-    assert "**経由：** カード名なし" in markdown_values
+    assert "**経由：** 経由1 / 経由2 / カード名なし" in markdown_values
     assert route_output_events(app) == [
         ("markdown", "**経路 1：** 元A → 経由1 → 先X"),
         ("caption", "手札→経由：一致項目を表示できません"),
@@ -219,7 +222,7 @@ def test_compact_results_group_destinations_without_losing_routes(monkeypatch):
         ("markdown", "**経路 3：** 元A → 経由2 → 先X"),
         ("caption", "手札→経由：一致項目を表示できません"),
         ("caption", "経由→サーチ先：一致項目を表示できません"),
-        ("markdown", "**経路 4：** 元B → カード名なし → 先X"),
+        ("markdown", "**経路 4：** 元A → カード名なし → 先X"),
         ("caption", "手札→経由：一致項目を表示できません"),
         ("caption", "経由→サーチ先：一致項目を表示できません"),
     ]

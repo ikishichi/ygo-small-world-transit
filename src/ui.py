@@ -239,25 +239,15 @@ try:
             group_field = "dest" if group_by_destination else "transit"
             candidate_field = "transit" if group_by_destination else "dest"
 
-            origin_groups = {}
+            route_groups = {}
             for route in search_results.itertuples(index=False):
-                origin_key = (
-                    (True, None)
-                    if pd.isna(route.origin)
-                    else (False, route.origin)
-                )
-                origin_group = origin_groups.setdefault(
-                    origin_key,
-                    {"name": route.origin, "groups": {}},
-                )
-
                 group_name = getattr(route, group_field)
                 group_key = (
                     (True, None)
                     if pd.isna(group_name)
                     else (False, group_name)
                 )
-                route_group = origin_group["groups"].setdefault(
+                route_group = route_groups.setdefault(
                     group_key,
                     {"name": group_name, "routes": []},
                 )
@@ -266,63 +256,62 @@ try:
             def display_card_name(name):
                 return "カード名なし" if pd.isna(name) else str(name)
 
+            origin_name = display_card_name(search_results.iloc[0]["origin"])
+            st.markdown(f"**手札から見せるカード：** {origin_name}")
             displayed_route_number = 0
-            for origin_group in origin_groups.values():
-                origin_name = display_card_name(origin_group["name"])
-                st.markdown(f"**手札から見せるカード：** {origin_name}")
-                for route_group in origin_group["groups"].values():
-                    routes = route_group["routes"]
-                    candidate_names = list(dict.fromkeys(
-                        display_card_name(getattr(route, candidate_field))
-                        for route in routes
-                    ))
-                    with st.container(border=True):
-                        st.markdown(
-                            f"**{group_label}：** "
-                            f"{display_card_name(route_group['name'])}"
-                        )
-                        st.markdown(
-                            f"**{candidate_label}：** {' / '.join(candidate_names)}"
-                        )
-                        st.caption(f"{len(routes)}経路")
-                        with st.expander(f"一致理由を表示（{len(routes)}経路）"):
-                            for route in routes:
-                                displayed_route_number += 1
-                                transit_name = display_card_name(route.transit)
-                                destination_name = display_card_name(route.dest)
-                                st.markdown(
-                                    f"**経路 {displayed_route_number}：** "
-                                    f"{origin_name} → {transit_name} → "
-                                    f"{destination_name}"
+            for route_group in route_groups.values():
+                routes = route_group["routes"]
+                candidate_names = list(dict.fromkeys(
+                    display_card_name(getattr(route, candidate_field))
+                    for route in routes
+                ))
+                with st.container(border=True):
+                    st.markdown(
+                        f"**{group_label}：** "
+                        f"{display_card_name(route_group['name'])}"
+                    )
+                    st.markdown(
+                        f"**{candidate_label}：** {' / '.join(candidate_names)}"
+                    )
+                    st.caption(f"{len(routes)}経路")
+                    with st.expander(f"一致理由を表示（{len(routes)}経路）"):
+                        for route in routes:
+                            displayed_route_number += 1
+                            transit_name = display_card_name(route.transit)
+                            destination_name = display_card_name(route.dest)
+                            st.markdown(
+                                f"**経路 {displayed_route_number}：** "
+                                f"{origin_name} → {transit_name} → "
+                                f"{destination_name}"
+                            )
+                            if pd.notna(route.origin) and pd.notna(route.transit):
+                                first_matches = get_matching_attributes(
+                                    monsters_df, route.origin, route.transit
                                 )
-                                if pd.notna(route.origin) and pd.notna(route.transit):
-                                    first_matches = get_matching_attributes(
-                                        monsters_df, route.origin, route.transit
-                                    )
-                                else:
-                                    first_matches = []
-                                if first_matches:
-                                    label, value = first_matches[0]
-                                    st.caption(f"手札→経由：{label}が一致（{value}）")
-                                else:
-                                    st.caption(
-                                        "手札→経由："
-                                        "一致項目を表示できません"
-                                    )
-                                if pd.notna(route.transit) and pd.notna(route.dest):
-                                    second_matches = get_matching_attributes(
-                                        monsters_df, route.transit, route.dest
-                                    )
-                                else:
-                                    second_matches = []
-                                if second_matches:
-                                    label, value = second_matches[0]
-                                    st.caption(f"経由→サーチ先：{label}が一致（{value}）")
-                                else:
-                                    st.caption(
-                                        "経由→サーチ先："
-                                        "一致項目を表示できません"
-                                    )
+                            else:
+                                first_matches = []
+                            if first_matches:
+                                label, value = first_matches[0]
+                                st.caption(f"手札→経由：{label}が一致（{value}）")
+                            else:
+                                st.caption(
+                                    "手札→経由："
+                                    "一致項目を表示できません"
+                                )
+                            if pd.notna(route.transit) and pd.notna(route.dest):
+                                second_matches = get_matching_attributes(
+                                    monsters_df, route.transit, route.dest
+                                )
+                            else:
+                                second_matches = []
+                            if second_matches:
+                                label, value = second_matches[0]
+                                st.caption(f"経由→サーチ先：{label}が一致（{value}）")
+                            else:
+                                st.caption(
+                                    "経由→サーチ先："
+                                    "一致項目を表示できません"
+                                )
 
 except NoMonsterError as error:
     st.error(error)
