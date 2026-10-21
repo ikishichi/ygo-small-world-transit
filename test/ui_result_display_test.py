@@ -353,3 +353,59 @@ def test_grouping_follows_selected_sort_for_interleaved_candidates(app):
             FLAME_MATCH, FLAME_MATCH,
         )
     )
+
+
+def test_search_results_recover_after_empty_search(app, monsters_df):
+    """結果あり→0件→復帰の再検索で、古い集約結果が残らない。"""
+    app.session_state["MONSTERS_DF"] = monsters_df[
+        monsters_df["name"].isin([
+            "灰流うらら", "R－ACEエアホイスター", "増殖するG",
+        ])
+    ]
+    app.run()
+    expected_results = pd.DataFrame([
+        ("灰流うらら", "R－ACEエアホイスター", "灰流うらら"),
+    ], columns=["origin", "transit", "dest"], dtype=object)
+    expected_events = expected_route(
+        1, "灰流うらら", "R－ACEエアホイスター", "灰流うらら",
+        FLAME_MATCH, FLAME_MATCH,
+    )
+
+    for origin, count in [("灰流うらら", 1), ("増殖するG", 0), ("灰流うらら", 1)]:
+        app.selectbox[0].select(origin)
+        next(button for button in app.button if button.label == "検索").click().run()
+
+        assert not app.exception
+        assert not app.error
+        assert not app.warning
+        actual_results = app.session_state["SEARCH_RESULTS"]
+        assert len(actual_results) == count
+        if count:
+            pd.testing.assert_frame_equal(
+                actual_results.reset_index(drop=True), expected_results
+            )
+            assert route_output_events(app) == expected_events
+            assert any(caption.value == "検索結果：1経路" for caption in app.caption)
+            assert [expander.label for expander in app.expander] == [
+                "一致理由を表示（1経路）",
+            ]
+            assert len(app.radio) == 1
+            assert [header.value for header in app.header] == ["検索結果"]
+            assert [element.value for element in app.markdown].count(
+                "**手札から見せるカード：** 灰流うらら"
+            ) == 1
+            assert not app.info
+        else:
+            assert route_output_events(app) == []
+            assert not app.expander
+            assert not app.radio
+            assert not app.header
+            assert not any(
+                caption.value.startswith("検索結果：") for caption in app.caption
+            )
+            assert not any(
+                element.value.startswith("**手札から見せるカード：**")
+                for element in app.markdown
+            )
+            assert len(app.info) == 1
+            assert "該当する経路はありません" in app.info[0].value
