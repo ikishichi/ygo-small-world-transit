@@ -194,7 +194,7 @@ try:
 
         deck_name = st.session_state["DECK_NAME"] or "名前なしのデッキ"
         summary, change = st.columns([4, 1.5], vertical_alignment="center")
-        summary.markdown(f":green[✓ 読み込み済み]　**{deck_name}**")
+        summary.markdown(f":green[✓ 読み込み済]　**{deck_name}**")
         change.button(
             "デッキを変更", key="change_deck", on_click=show_deck_form
         )

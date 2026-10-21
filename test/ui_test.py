@@ -362,7 +362,7 @@ def test_successful_deck_display_order(mocker, monkeypatch):
     assert not app.error
     assert not app.text_input
     assert not app.info
-    assert ":green[✓ 読み込み済み]　**テストデッキ**" == app.markdown[0].value
+    assert ":green[✓ 読み込み済]　**テストデッキ**" == app.markdown[0].value
     assert [button.label for button in app.button] == ["デッキを変更", "経路を検索"]
     assert app.button[1].proto.type == "primary"
     assert len(app.selectbox) == 2
@@ -457,7 +457,7 @@ def test_bookmark_deck_change_fetches_and_clears_previous_results(mocker, monkey
     assert app.session_state["MONSTERS_DF"]["name"].tolist() == ["モンスターB"]
     assert app.session_state["DECK_NAME"] == "デッキB"
     assert app.session_state["SEARCH_RESULTS"] is None
-    assert ":green[✓ 読み込み済み]　**デッキB**" in [
+    assert ":green[✓ 読み込み済]　**デッキB**" in [
         element.value for element in app.markdown
     ]
     open_deck_form(app)
