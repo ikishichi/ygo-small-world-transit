@@ -302,8 +302,8 @@ try:
                                 else:
                                     first_matches = []
                                 if first_matches:
-                                    _, value = first_matches[0]
-                                    st.caption(f"手札→経由：{value}")
+                                    label, value = first_matches[0]
+                                    st.caption(f"手札→経由：{label}が一致（{value}）")
                                 else:
                                     st.caption(
                                         "手札→経由："
@@ -316,8 +316,8 @@ try:
                                 else:
                                     second_matches = []
                                 if second_matches:
-                                    _, value = second_matches[0]
-                                    st.caption(f"経由→サーチ先：{value}")
+                                    label, value = second_matches[0]
+                                    st.caption(f"経由→サーチ先：{label}が一致（{value}）")
                                 else:
                                     st.caption(
                                         "経由→サーチ先："

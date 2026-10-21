@@ -61,12 +61,12 @@ def test_search_results_display_complete_routes_and_matching_fields(monkeypatch)
     assert not app.exception
     assert route_output_events(app) == (
         expected_route(
-            1, "手札のカード", "経由Zulu", "サーチAardvark", "1",
-            "ドラゴン",
+            1, "手札のカード", "経由Zulu", "サーチAardvark", "レベルが一致（1）",
+            "種族が一致（ドラゴン）",
         )
         + expected_route(
-            2, "手札のカード", "経由Alpha", "サーチZebra", "光",
-            "魔法",
+            2, "手札のカード", "経由Alpha", "サーチZebra", "属性が一致（光）",
+            "種族が一致（魔法）",
         )
     )
 
@@ -75,12 +75,12 @@ def test_search_results_display_complete_routes_and_matching_fields(monkeypatch)
     assert not app.exception
     assert route_output_events(app) == (
         expected_route(
-            1, "手札のカード", "経由Alpha", "サーチZebra", "光",
-            "魔法",
+            1, "手札のカード", "経由Alpha", "サーチZebra", "属性が一致（光）",
+            "種族が一致（魔法）",
         )
         + expected_route(
-            2, "手札のカード", "経由Zulu", "サーチAardvark", "1",
-            "ドラゴン",
+            2, "手札のカード", "経由Zulu", "サーチAardvark", "レベルが一致（1）",
+            "種族が一致（ドラゴン）",
         )
     )
 
@@ -115,8 +115,8 @@ def test_parsed_species_match_is_displayed_without_brackets(monkeypatch):
     assert not app.exception
     assert not app.error
     assert route_output_events(app) == expected_route(
-        1, "手札", "経由", "サーチ先", "サイバース族",
-        "闇属性",
+        1, "手札", "経由", "サーチ先", "種族が一致（サイバース族）",
+        "属性が一致（闇属性）",
     )
 
 
