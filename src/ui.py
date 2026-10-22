@@ -139,7 +139,9 @@ try:
                 "遊戯王DBの公開デッキのURLを入力してください。",
                 key="deck_url_input",
             )
-            submit_btn = st.form_submit_button("デッキ取得")
+            submit_btn = st.form_submit_button(
+                "デッキ取得", type="primary", width="stretch",
+            )
 
         if submit_btn:
             # 入力欄を閉じた後も、変更時には直前の入力を復元する。
