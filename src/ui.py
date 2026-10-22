@@ -64,6 +64,16 @@ def initialize_session_state():
     # 取得済みデッキの情報。再実行時はこの値を再利用する。
     st.session_state["DECK_NAME"] = None
     st.session_state["LOADED_DECK_URL"] = None
+    st.session_state["SHOW_DECK_FORM"] = True
+
+
+def show_deck_form():
+    """読み込み済みデッキの変更・再読み込みフォームを開く。"""
+    st.session_state["deck_url_input"] = st.session_state.get(
+        "DECK_INPUT_URL", st.session_state["LOADED_DECK_URL"] or ""
+    )
+    st.session_state["SHOW_DECK_FORM"] = True
+
 
 APP_TITLE = "遊戯王スモール・ワールド乗り換え検索"
 
@@ -105,6 +115,9 @@ else:
     # 既存セッションにも新しいキャッシュ状態を追加する。
     st.session_state.setdefault("DECK_NAME", None)
     st.session_state.setdefault("LOADED_DECK_URL", None)
+    st.session_state.setdefault(
+        "SHOW_DECK_FORM", st.session_state["LOADED_DECK_URL"] is None
+    )
 
 # クエリパラメータ取得
 query_params = st.query_params
@@ -113,19 +126,24 @@ try:
     # クエリパラメータから遊戯王DBのURLを構築（必須パラメータが欠ければ空文字）
     query_params_url = build_url_from_query_params(query_params)
 
-    # 初期値は一度だけ設定し、送信後も同じ入力欄でユーザー入力を保持する。
-    if "deck_url_input" not in st.session_state:
-        st.session_state["deck_url_input"] = query_params_url
+    submit_btn = False
+    input_url = ""
+    if st.session_state["SHOW_DECK_FORM"]:
+        # 再表示時は保存した入力を復元する。閉じている間はwidget状態を作らない。
+        if "deck_url_input" not in st.session_state:
+            st.session_state["deck_url_input"] = st.session_state.get(
+                "DECK_INPUT_URL", query_params_url
+            )
+        with st.form(key="deck_url"):
+            input_url = st.text_input(
+                "遊戯王DBの公開デッキのURLを入力してください。",
+                key="deck_url_input",
+            )
+            submit_btn = st.form_submit_button("デッキ取得")
 
-    with st.form(key="deck_url"):
-        # URL入力欄の入力値。ブックマーク経由アクセス時は構築済みURLを初期値として表示。
-        input_url = st.text_input(
-            "遊戯王DBの公開デッキのURLを入力してください。",
-            key="deck_url_input",
-        )
-
-        # デッキ取得ボタンの押下状態（boolean）
-        submit_btn = st.form_submit_button("デッキ取得")
+        if submit_btn:
+            # 入力欄を閉じた後も、変更時には直前の入力を復元する。
+            st.session_state["DECK_INPUT_URL"] = input_url
 
     # 取得ボタン押下、またはクエリパラメータの指定がある場合
     if submit_btn or has_query_params(query_params):
@@ -158,11 +176,11 @@ try:
                 st.query_params["request_locale"] = db_query_params.get(
                     "request_locale", ["ja"]
                 )[0]
-                st.info("現在のページをブックマークしておくと、次回からURLの入力を省略できます。")
                 # 入力URLに言語指定がなくても、ブックマーク側の既定値と一致させる。
                 loaded_url = build_url_from_query_params(st.query_params)
             else:
                 loaded_url = url
+                st.session_state["DECK_INPUT_URL"] = url
 
             # 解析成功後にまとめて状態を更新し、失敗時は前のデッキを保つ。
             st.session_state["MONSTERS_DF"] = deck.monsters_df
@@ -170,16 +188,23 @@ try:
             st.session_state["LOADED_DECK_URL"] = loaded_url
             st.session_state["SEARCH_RESULTS"] = None
 
-            st.set_page_config(
-                page_title=f"{deck.deck_name} | {APP_TITLE}"
-                if deck.deck_name else APP_TITLE
+            # 取得が完了したら入力欄を閉じ、検索フォームへ進む。
+            st.session_state["SHOW_DECK_FORM"] = False
+            # フォームを閉じる再実行をまたいで、手動取得成功時の案内を一度だけ表示する。
+            st.session_state["SHOW_BOOKMARK_HINT"] = submit_btn
+            st.rerun()
+
+        deck_name = st.session_state["DECK_NAME"] or "名前なしのデッキ"
+        summary, change = st.columns([4, 1.5], vertical_alignment="center")
+        summary.markdown(f":green[✓ 読み込み済]　**{deck_name}**")
+        if not st.session_state["SHOW_DECK_FORM"]:
+            change.button(
+                "デッキを変更", key="change_deck", on_click=show_deck_form
             )
-
-        deck_name = st.session_state["DECK_NAME"]
-
-        container = st.container(border=True)
-        container.badge("取得成功", icon=":material/check:", color="green")
-        container.write(f"デッキ：:blue-background[{deck_name}]")
+        if st.session_state.pop("SHOW_BOOKMARK_HINT", False):
+            st.info(
+                "このページをブックマークすると、次回のURL入力を省略できます。"
+            )
 
     with st.form(key='select_box'):
         # サーチ元指定（プルダウン。DataFrameの1列目が候補として表示される）
@@ -205,7 +230,8 @@ try:
 
         # 検索実行ボタン
         search_btn = st.form_submit_button(
-            "検索", disabled=st.session_state["MONSTERS_DF"].empty
+            "経路を検索", disabled=st.session_state["MONSTERS_DF"].empty,
+            type="primary", width="stretch",
         )
 
     if search_btn:
@@ -235,38 +261,96 @@ try:
             )
 
             if sort == "経由でソート":
+                group_by_destination = False
                 search_results = st.session_state["SEARCH_RESULTS"].sort_values(
                     "transit", kind="stable"
                 )
             else:
+                group_by_destination = True
                 search_results = st.session_state["SEARCH_RESULTS"].sort_values(
                     "dest", kind="stable"
                 )
 
             st.header("検索結果")
             monsters_df = st.session_state["MONSTERS_DF"]
-            for i, route in enumerate(search_results.itertuples(index=False), 1):
+            group_label = "サーチ先" if group_by_destination else "経由"
+            candidate_label = "経由" if group_by_destination else "サーチ先"
+            group_field = "dest" if group_by_destination else "transit"
+            candidate_field = "transit" if group_by_destination else "dest"
+
+            route_groups = {}
+            for route in search_results.itertuples(index=False):
+                group_name = getattr(route, group_field)
+                group_key = (
+                    (True, None)
+                    if pd.isna(group_name)
+                    else (False, group_name)
+                )
+                route_group = route_groups.setdefault(
+                    group_key,
+                    {"name": group_name, "routes": []},
+                )
+                route_group["routes"].append(route)
+
+            def display_card_name(name):
+                return "カード名なし" if pd.isna(name) else str(name)
+
+            origin_name = display_card_name(search_results.iloc[0]["origin"])
+            st.markdown(f"**手札から見せるカード：** {origin_name}")
+            displayed_route_number = 0
+            for route_group in route_groups.values():
+                routes = route_group["routes"]
+                candidate_names = list(dict.fromkeys(
+                    display_card_name(getattr(route, candidate_field))
+                    for route in routes
+                ))
                 with st.container(border=True):
-                    st.markdown(f"**経路 {i}**")
-                    st.markdown(f"**手札から見せるカード：** {route.origin}")
-                    first_matches = get_matching_attributes(
-                        monsters_df, route.origin, route.transit
+                    st.markdown(
+                        f"**{group_label}：** "
+                        f"{display_card_name(route_group['name'])}"
                     )
-                    if first_matches:
-                        label, value = first_matches[0]
-                        st.caption(f"↓ {label}が一致：{value}")
-                    else:
-                        st.caption("↓ 一致項目を表示できません")
-                    st.markdown(f"**経由するカード：** {route.transit}")
-                    second_matches = get_matching_attributes(
-                        monsters_df, route.transit, route.dest
+                    st.markdown(
+                        f"**{candidate_label}：** {' / '.join(candidate_names)}"
                     )
-                    if second_matches:
-                        label, value = second_matches[0]
-                        st.caption(f"↓ {label}が一致：{value}")
-                    else:
-                        st.caption("↓ 一致項目を表示できません")
-                    st.markdown(f"**サーチするカード：** {route.dest}")
+                    st.caption(f"{len(routes)}経路")
+                    with st.expander(f"一致理由を表示（{len(routes)}経路）"):
+                        for route in routes:
+                            displayed_route_number += 1
+                            transit_name = display_card_name(route.transit)
+                            destination_name = display_card_name(route.dest)
+                            st.markdown(
+                                f"**経路 {displayed_route_number}：** "
+                                f"{origin_name} → {transit_name} → "
+                                f"{destination_name}"
+                            )
+                            if pd.notna(route.origin) and pd.notna(route.transit):
+                                first_matches = get_matching_attributes(
+                                    monsters_df, route.origin, route.transit
+                                )
+                            else:
+                                first_matches = []
+                            if first_matches:
+                                label, value = first_matches[0]
+                                st.caption(f"手札→経由：{label}が一致（{value}）")
+                            else:
+                                st.caption(
+                                    "手札→経由："
+                                    "一致項目を表示できません"
+                                )
+                            if pd.notna(route.transit) and pd.notna(route.dest):
+                                second_matches = get_matching_attributes(
+                                    monsters_df, route.transit, route.dest
+                                )
+                            else:
+                                second_matches = []
+                            if second_matches:
+                                label, value = second_matches[0]
+                                st.caption(f"経由→サーチ先：{label}が一致（{value}）")
+                            else:
+                                st.caption(
+                                    "経由→サーチ先："
+                                    "一致項目を表示できません"
+                                )
 
 except NoMonsterError as error:
     st.error(error)
