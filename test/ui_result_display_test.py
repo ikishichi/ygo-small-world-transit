@@ -373,7 +373,7 @@ def test_search_results_recover_after_empty_search(app, monsters_df):
 
     for origin, count in [("灰流うらら", 1), ("増殖するG", 0), ("灰流うらら", 1)]:
         app.selectbox[0].select(origin)
-        next(button for button in app.button if button.label == "検索").click().run()
+        next(button for button in app.button if button.label == "経路を検索").click().run()
 
         assert not app.exception
         assert not app.error
