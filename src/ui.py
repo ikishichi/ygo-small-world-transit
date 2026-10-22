@@ -202,22 +202,30 @@ try:
                 "デッキを変更", key="change_deck", on_click=show_deck_form
             )
         if st.session_state.pop("SHOW_BOOKMARK_HINT", False):
-            st.info(
-                "このページをブックマークすると、次回のURL入力を省略できます。"
+            st.caption(
+                "このページをブックマークすると、次回のデッキ入力を省略できます。"
             )
 
     with st.form(key='select_box'):
         # サーチ元指定（プルダウン。DataFrameの1列目が候補として表示される）
+        monsters_df = st.session_state["MONSTERS_DF"]
+        deck_is_loaded = not monsters_df.empty
         transit_start = st.selectbox(
             "手札から見せるモンスターを選択してください:red[（必須）]",
-            st.session_state["MONSTERS_DF"], index=None,
+            monsters_df,
+            index=None,
+            placeholder="モンスターを選択",
+            disabled=not deck_is_loaded,
         )
 
         # サーチ先指定（プルダウン）
         # 検索結果の中から候補を選ぶ「絞り込み検索」
         transit_goal = st.selectbox(
             "サーチ先とするモンスターを選択してください（任意）",
-            st.session_state["MONSTERS_DF"], index=None,
+            monsters_df,
+            index=None,
+            placeholder="モンスターを選択",
+            disabled=not deck_is_loaded,
         )
 
         # 検索実行ボタン
@@ -243,9 +251,21 @@ try:
                 "サーチ先の指定を外してお試しください。"
             )
         else:
-            st.caption(f"検索結果：{len(st.session_state['SEARCH_RESULTS'])}経路")
+            with st.container(horizontal=True, vertical_alignment="bottom"):
+                st.header("検索結果", width="content")
+                st.caption(
+                    f"{len(st.session_state['SEARCH_RESULTS'])}経路",
+                    width="content",
+                )
+
             # ソート選択ラジオボタン
-            sort = st.radio("ソート順", ["経由でソート", "サーチ先でソート"], index=1, horizontal=True)
+            sort = st.radio(
+                "並べ替え",
+                ["経由でソート", "サーチ先でソート"],
+                index=1,
+                horizontal=True,
+                label_visibility="collapsed",
+            )
 
             if sort == "経由でソート":
                 group_by_destination = False
@@ -258,7 +278,6 @@ try:
                     "dest", kind="stable"
                 )
 
-            st.header("検索結果")
             monsters_df = st.session_state["MONSTERS_DF"]
             group_label = "サーチ先" if group_by_destination else "経由"
             candidate_label = "経由" if group_by_destination else "サーチ先"

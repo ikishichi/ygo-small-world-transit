@@ -66,8 +66,19 @@ def test_nonempty_routes_have_count_and_sorting(mocker, monkeypatch):
 
     assert not app.exception
     assert not app.info
-    assert any(caption.value == "検索結果：2経路" for caption in app.caption)
+    assert any(caption.value == "2経路" for caption in app.caption)
     assert len(app.radio) == 1
+    result_elements = [
+        (element.type, element.value)
+        for element in app.main
+        if element.type in ("header", "caption", "radio")
+    ]
+    header_index = result_elements.index(("header", "検索結果"))
+    assert result_elements[header_index:header_index + 3] == [
+        ("header", "検索結果"),
+        ("caption", "2経路"),
+        ("radio", "サーチ先でソート"),
+    ]
 
 
 def test_deck_load_shows_loading_message(mocker, monkeypatch):
