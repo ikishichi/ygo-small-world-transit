@@ -202,8 +202,8 @@ try:
                 "デッキを変更", key="change_deck", on_click=show_deck_form
             )
         if st.session_state.pop("SHOW_BOOKMARK_HINT", False):
-            st.info(
-                "このページをブックマークすると、次回のURL入力を省略できます。"
+            st.caption(
+                "このページをブックマークすると、次回のデッキ入力を省略できます。"
             )
 
     with st.form(key='select_box'):
