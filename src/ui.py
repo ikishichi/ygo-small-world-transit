@@ -190,17 +190,19 @@ try:
 
             # 取得が完了したら入力欄を閉じ、検索フォームへ進む。
             st.session_state["SHOW_DECK_FORM"] = False
+            # フォームを閉じる再実行をまたいで、手動取得成功時の案内を一度だけ表示する。
+            st.session_state["SHOW_BOOKMARK_HINT"] = submit_btn
             st.rerun()
 
         deck_name = st.session_state["DECK_NAME"] or "名前なしのデッキ"
         summary, change = st.columns([4, 1.5], vertical_alignment="center")
         summary.markdown(f":green[✓ 読み込み済]　**{deck_name}**")
-        change.button(
-            "デッキを変更", key="change_deck", on_click=show_deck_form
-        )
-        if st.session_state["SHOW_DECK_FORM"]:
-            st.caption(
-                "同じURLで取得すると、デッキ情報を再読み込みできます。"
+        if not st.session_state["SHOW_DECK_FORM"]:
+            change.button(
+                "デッキを変更", key="change_deck", on_click=show_deck_form
+            )
+        if st.session_state.pop("SHOW_BOOKMARK_HINT", False):
+            st.info(
                 "このページをブックマークすると、次回のURL入力を省略できます。"
             )
 

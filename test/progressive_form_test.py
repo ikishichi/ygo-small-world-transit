@@ -48,6 +48,12 @@ def test_bookmark_enables_search(mocker, monkeypatch):
     assert not app.error
     assert len(app.selectbox) == 2
     assert not app.button[1].disabled
+    assert all("ブックマーク" not in info.value for info in app.info)
+
+    app.button(key="change_deck").click().run()
+    assert not app.exception
+    assert [button.label for button in app.button] == ["デッキ取得", "経路を検索"]
+    assert all("ブックマーク" not in info.value for info in app.info)
 
 
 def test_failed_first_load_does_not_reveal_search_form(mocker, monkeypatch):
@@ -61,3 +67,4 @@ def test_failed_first_load_does_not_reveal_search_form(mocker, monkeypatch):
     assert app.error
     assert not app.selectbox
     assert [button.label for button in app.button] == ["デッキ取得"]
+    assert all("ブックマーク" not in info.value for info in app.info)

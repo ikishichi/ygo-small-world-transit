@@ -313,7 +313,8 @@ def test_failed_deck_switch_preserves_state(mocker, monkeypatch, failure):
     }
     assert app.session_state["MONSTERS_DF"]["name"].tolist() == ["モンスターB"]
     assert app.session_state["SEARCH_RESULTS"] is None
-    assert not app.info
+    assert len(app.info) == 1
+    assert "ブックマーク" in app.info[0].value
 
 
 @pytest.mark.parametrize("html", [
@@ -361,7 +362,8 @@ def test_successful_deck_display_order(mocker, monkeypatch):
     assert not app.exception
     assert not app.error
     assert not app.text_input
-    assert not app.info
+    assert len(app.info) == 1
+    assert "ブックマーク" in app.info[0].value
     assert ":green[✓ 読み込み済]　**テストデッキ**" == app.markdown[0].value
     assert [button.label for button in app.button] == ["デッキを変更", "経路を検索"]
     assert app.button[1].proto.type == "primary"
@@ -589,18 +591,31 @@ def test_deck_form_closes_after_refresh_and_restores_input(mocker, monkeypatch):
 
     assert not app.exception
     assert not app.text_input
+    assert [button.label for button in app.button] == ["デッキを変更", "経路を検索"]
+    assert any("ブックマーク" in info.value for info in app.info)
+    assert all("再読み込みできます" not in caption.value for caption in app.caption)
     get.assert_called_once()
 
     # ブラウザーから古い空のwidget状態が届いても、変更操作で復元する。
     app.session_state["deck_url_input"] = ""
     open_deck_form(app)
     assert app.text_input[0].value == url
-    assert any("ブックマーク" in caption.value for caption in app.caption)
+    assert [button.label for button in app.button] == ["デッキ取得", "経路を検索"]
+    assert all("ブックマーク" not in info.value for info in app.info)
     assert get.call_count == 1
     submit_deck(app)
 
     assert not app.exception
     assert not app.error
     assert not app.text_input
+    assert [button.label for button in app.button] == ["デッキを変更", "経路を検索"]
+    assert any("ブックマーク" in info.value for info in app.info)
     assert get.call_count == 2
     assert app.button[1].proto.type == "primary"
+
+    # 取得成功時の案内は、その後の検索操作では表示しない。
+    app.button[1].click().run()
+    assert not app.exception
+    assert app.warning
+    assert all("ブックマーク" not in info.value for info in app.info)
+    assert get.call_count == 2
