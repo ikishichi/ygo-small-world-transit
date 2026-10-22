@@ -64,6 +64,16 @@ def initialize_session_state():
     # 取得済みデッキの情報。再実行時はこの値を再利用する。
     st.session_state["DECK_NAME"] = None
     st.session_state["LOADED_DECK_URL"] = None
+    st.session_state["SHOW_DECK_FORM"] = True
+
+
+def show_deck_form():
+    """読み込み済みデッキの変更・再読み込みフォームを開く。"""
+    st.session_state["deck_url_input"] = st.session_state.get(
+        "DECK_INPUT_URL", st.session_state["LOADED_DECK_URL"] or ""
+    )
+    st.session_state["SHOW_DECK_FORM"] = True
+
 
 APP_TITLE = "遊戯王スモール・ワールド乗り換え検索"
 
@@ -105,6 +115,9 @@ else:
     # 既存セッションにも新しいキャッシュ状態を追加する。
     st.session_state.setdefault("DECK_NAME", None)
     st.session_state.setdefault("LOADED_DECK_URL", None)
+    st.session_state.setdefault(
+        "SHOW_DECK_FORM", st.session_state["LOADED_DECK_URL"] is None
+    )
 
 # クエリパラメータ取得
 query_params = st.query_params
@@ -113,19 +126,24 @@ try:
     # クエリパラメータから遊戯王DBのURLを構築（必須パラメータが欠ければ空文字）
     query_params_url = build_url_from_query_params(query_params)
 
-    # 初期値は一度だけ設定し、送信後も同じ入力欄でユーザー入力を保持する。
-    if "deck_url_input" not in st.session_state:
-        st.session_state["deck_url_input"] = query_params_url
+    submit_btn = False
+    input_url = ""
+    if st.session_state["SHOW_DECK_FORM"]:
+        # 再表示時は保存した入力を復元する。閉じている間はwidget状態を作らない。
+        if "deck_url_input" not in st.session_state:
+            st.session_state["deck_url_input"] = st.session_state.get(
+                "DECK_INPUT_URL", query_params_url
+            )
+        with st.form(key="deck_url"):
+            input_url = st.text_input(
+                "遊戯王DBの公開デッキのURLを入力してください。",
+                key="deck_url_input",
+            )
+            submit_btn = st.form_submit_button("デッキ取得")
 
-    with st.form(key="deck_url"):
-        # URL入力欄の入力値。ブックマーク経由アクセス時は構築済みURLを初期値として表示。
-        input_url = st.text_input(
-            "遊戯王DBの公開デッキのURLを入力してください。",
-            key="deck_url_input",
-        )
-
-        # デッキ取得ボタンの押下状態（boolean）
-        submit_btn = st.form_submit_button("デッキ取得")
+        if submit_btn:
+            # 入力欄を閉じた後も、変更時には直前の入力を復元する。
+            st.session_state["DECK_INPUT_URL"] = input_url
 
     # 取得ボタン押下、またはクエリパラメータの指定がある場合
     if submit_btn or has_query_params(query_params):
@@ -158,11 +176,11 @@ try:
                 st.query_params["request_locale"] = db_query_params.get(
                     "request_locale", ["ja"]
                 )[0]
-                st.info("現在のページをブックマークしておくと、次回からURLの入力を省略できます。")
                 # 入力URLに言語指定がなくても、ブックマーク側の既定値と一致させる。
                 loaded_url = build_url_from_query_params(st.query_params)
             else:
                 loaded_url = url
+                st.session_state["DECK_INPUT_URL"] = url
 
             # 解析成功後にまとめて状態を更新し、失敗時は前のデッキを保つ。
             st.session_state["MONSTERS_DF"] = deck.monsters_df
@@ -170,16 +188,21 @@ try:
             st.session_state["LOADED_DECK_URL"] = loaded_url
             st.session_state["SEARCH_RESULTS"] = None
 
-            st.set_page_config(
-                page_title=f"{deck.deck_name} | {APP_TITLE}"
-                if deck.deck_name else APP_TITLE
+            # 取得が完了したら入力欄を閉じ、検索フォームへ進む。
+            st.session_state["SHOW_DECK_FORM"] = False
+            st.rerun()
+
+        deck_name = st.session_state["DECK_NAME"] or "名前なしのデッキ"
+        summary, change = st.columns([4, 1.5], vertical_alignment="center")
+        summary.markdown(f":green[✓ 読み込み済]　**{deck_name}**")
+        change.button(
+            "デッキを変更", key="change_deck", on_click=show_deck_form
+        )
+        if st.session_state["SHOW_DECK_FORM"]:
+            st.caption(
+                "同じURLで取得すると、デッキ情報を再読み込みできます。"
+                "このページをブックマークすると、次回のURL入力を省略できます。"
             )
-
-        deck_name = st.session_state["DECK_NAME"]
-
-        container = st.container(border=True)
-        container.badge("取得成功", icon=":material/check:", color="green")
-        container.write(f"デッキ：:blue-background[{deck_name}]")
 
     with st.form(key='select_box'):
         # サーチ元指定（プルダウン。DataFrameの1列目が候補として表示される）
@@ -197,7 +220,8 @@ try:
 
         # 検索実行ボタン
         search_btn = st.form_submit_button(
-            "検索", disabled=st.session_state["MONSTERS_DF"].empty
+            "経路を検索", disabled=st.session_state["MONSTERS_DF"].empty,
+            type="primary", width="stretch",
         )
 
     if search_btn:

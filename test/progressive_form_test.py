@@ -19,7 +19,7 @@ def test_initial_page_shows_search_form_with_disabled_search(mocker, monkeypatch
     assert not app.exception
     assert len(app.selectbox) == 2
     assert all(not selectbox.options for selectbox in app.selectbox)
-    assert [button.label for button in app.button] == ["デッキ取得", "検索"]
+    assert [button.label for button in app.button] == ["デッキ取得", "経路を検索"]
     assert app.button[1].disabled
     get.assert_not_called()
 
@@ -35,7 +35,7 @@ def test_loading_deck_enables_search(mocker, monkeypatch):
     assert not app.error
     assert len(app.selectbox) == 2
     assert app.selectbox[0].options == ["テストモンスター"]
-    assert [button.label for button in app.button] == ["デッキ取得", "検索"]
+    assert [button.label for button in app.button] == ["デッキを変更", "経路を検索"]
     assert not app.button[1].disabled
 
 

@@ -32,6 +32,18 @@ DECK_HTML = """
 """
 
 
+def open_deck_form(app):
+    """閉じたURLフォームを、利用者と同じ操作で開く。"""
+    if not app.text_input:
+        app.button(key="change_deck").click().run()
+
+
+def submit_deck(app):
+    """デッキの取得・再読み込みを実行する。"""
+    open_deck_form(app)
+    next(button for button in app.button if button.label == "デッキ取得").click().run()
+
+
 def normalize_query_params(query_params):
     """AppTestのバージョンによる単一クエリ値の形式差を吸収する。"""
     return {
@@ -62,10 +74,11 @@ def test_page_title_reflects_loaded_deck(
         app.query_params.update({"cgid": "A", "dno": "1"})
         app.run()
     else:
+        open_deck_form(app)
         app.text_input[0].set_value(
             "https://www.db.yugioh-card.com/yugiohdb/member_deck.action?cgid=A&dno=1"
         )
-        app.button[0].click().run()
+        submit_deck(app)
 
     assert not app.exception
     assert not app.error
@@ -95,10 +108,11 @@ def test_switching_deck_updates_page_title(mocker, monkeypatch):
     app.run()
     page_config.assert_called_with(page_title=f"デッキA | {APP_TITLE}")
 
+    open_deck_form(app)
     app.text_input[0].set_value(
         "https://www.db.yugioh-card.com/yugiohdb/member_deck.action?cgid=B&dno=2"
     )
-    app.button[0].click().run()
+    submit_deck(app)
 
     assert not app.exception
     assert not app.error
@@ -126,6 +140,7 @@ def test_switch_deck_updates_bookmark_locale(mocker, monkeypatch, input_locale, 
     app.run()
     assert not app.exception
     assert not app.error
+    open_deck_form(app)
     assert app.text_input[0].value == (
         "https://www.db.yugioh-card.com/yugiohdb/member_deck.action"
         + "?cgid=A&dno=1&request_locale=en"
@@ -134,8 +149,9 @@ def test_switch_deck_updates_bookmark_locale(mocker, monkeypatch, input_locale, 
     input_url = "https://www.db.yugioh-card.com/yugiohdb/member_deck.action?cgid=B&dno=2"
     if input_locale is not None:
         input_url += "&request_locale=" + input_locale
+    open_deck_form(app)
     app.text_input[0].set_value(input_url)
-    app.button[0].click().run()
+    submit_deck(app)
 
     assert not app.exception
     assert not app.error
@@ -174,6 +190,7 @@ def test_switch_decks_without_initial_bookmark(mocker, monkeypatch, input_scheme
     app.run()
     assert not app.exception
     assert not app.error
+    open_deck_form(app)
     assert app.text_input[0].value == ""
     get.assert_not_called()
 
@@ -182,8 +199,9 @@ def test_switch_decks_without_initial_bookmark(mocker, monkeypatch, input_scheme
             f"{input_scheme}://www.db.yugioh-card.com/yugiohdb/member_deck.action"
             + f"?cgid={deck}&dno={count}&request_locale=ja"
         )
+        open_deck_form(app)
         app.text_input[0].set_value(input_url)
-        app.button[0].click().run()
+        submit_deck(app)
 
         assert not app.exception
         assert not app.error
@@ -192,6 +210,7 @@ def test_switch_decks_without_initial_bookmark(mocker, monkeypatch, input_scheme
             input_url.replace("http://", "https://", 1), allow_redirects=False,
             timeout=(5, 15),
         )
+        open_deck_form(app)
         assert app.text_input[0].value == input_url
         query_params = normalize_query_params(app.query_params)
         assert query_params["cgid"] == [deck]
@@ -254,8 +273,9 @@ def test_failed_deck_switch_preserves_state(mocker, monkeypatch, failure):
         "https://www.db.yugioh-card.com/yugiohdb/member_deck.action"
         + "?cgid=B&dno=2&request_locale=ja"
     )
+    open_deck_form(app)
     app.text_input[0].set_value(input_url)
-    app.button[0].click().run()
+    submit_deck(app)
 
     assert not app.exception
     assert app.error
@@ -271,6 +291,7 @@ def test_failed_deck_switch_preserves_state(mocker, monkeypatch, failure):
     assert normalize_query_params(app.query_params) == previous_params
     pd.testing.assert_frame_equal(app.session_state["MONSTERS_DF"], previous_monsters)
     pd.testing.assert_frame_equal(app.session_state["SEARCH_RESULTS"], previous_results)
+    open_deck_form(app)
     assert app.text_input[0].value == input_url
 
     if failure in {"changed_monster_list", "changed_monster_content"}:
@@ -282,7 +303,7 @@ def test_failed_deck_switch_preserves_state(mocker, monkeypatch, failure):
     response.status_code = 200
     response.raise_for_status.side_effect = None
     response.content = DECK_HTML.replace("テストモンスター", "モンスターB").encode("utf-8")
-    app.button[0].click().run()
+    submit_deck(app)
 
     assert not app.exception
     assert not app.error
@@ -292,7 +313,7 @@ def test_failed_deck_switch_preserves_state(mocker, monkeypatch, failure):
     }
     assert app.session_state["MONSTERS_DF"]["name"].tolist() == ["モンスターB"]
     assert app.session_state["SEARCH_RESULTS"] is None
-    assert len(app.info) == 1
+    assert not app.info
 
 
 @pytest.mark.parametrize("html", [
@@ -311,10 +332,11 @@ def test_first_deck_parse_failure_does_not_offer_bookmark(mocker, monkeypatch, h
     app.run()
     previous_monsters = app.session_state["MONSTERS_DF"].copy()
 
+    open_deck_form(app)
     app.text_input[0].set_value(
         "https://www.db.yugioh-card.com/yugiohdb/member_deck.action?cgid=A&dno=1"
     )
-    app.button[0].click().run()
+    submit_deck(app)
 
     assert not app.exception
     assert len(app.error) == 1
@@ -325,27 +347,26 @@ def test_first_deck_parse_failure_does_not_offer_bookmark(mocker, monkeypatch, h
 
 
 def test_successful_deck_display_order(mocker, monkeypatch):
-    """取得成功時の入力欄・案内・取得結果・検索欄の表示順を維持する。"""
+    """取得後は入力欄を閉じ、要約と主操作の検索を表示する。"""
     monkeypatch.syspath_prepend(str(PROJECT_ROOT / "src"))
     response = mocker.Mock(status_code=200, content=DECK_HTML.encode("utf-8"))
     mocker.patch("requests.get", return_value=response)
     app = AppTest.from_file(str(PROJECT_ROOT / "src" / "ui.py")).run()
+    open_deck_form(app)
     app.text_input[0].set_value(
         "https://www.db.yugioh-card.com/yugiohdb/member_deck.action?cgid=A&dno=1"
     )
-    app.button[0].click().run()
+    submit_deck(app)
 
     assert not app.exception
     assert not app.error
-    elements = [element.type for element in app.main]
-    assert [kind for kind in elements if kind in {
-        "text_input", "info", "markdown", "selectbox",
-    }] == [
-        "text_input", "info", "markdown", "markdown",
-        "selectbox", "selectbox", "markdown",
-    ]
-    assert "取得成功" in app.markdown[0].value
-    assert "デッキ：:blue-background[テストデッキ]" == app.markdown[1].value
+    assert not app.text_input
+    assert not app.info
+    assert ":green[✓ 読み込み済]　**テストデッキ**" == app.markdown[0].value
+    assert [button.label for button in app.button] == ["デッキを変更", "経路を検索"]
+    assert app.button[1].proto.type == "primary"
+    assert len(app.selectbox) == 2
+    assert not app.button[1].disabled
 
 
 def test_loaded_deck_is_reused_until_explicit_refresh(mocker, monkeypatch):
@@ -389,7 +410,7 @@ def test_loaded_deck_is_reused_until_explicit_refresh(mocker, monkeypatch):
     assert get.call_count == 1
     page_config.assert_called_with(page_title=f"テストデッキ | {APP_TITLE}")
 
-    app.button[0].click().run()
+    submit_deck(app)
     assert not app.exception
     assert not app.error
     assert get.call_count == 2
@@ -436,9 +457,15 @@ def test_bookmark_deck_change_fetches_and_clears_previous_results(mocker, monkey
     assert app.session_state["MONSTERS_DF"]["name"].tolist() == ["モンスターB"]
     assert app.session_state["DECK_NAME"] == "デッキB"
     assert app.session_state["SEARCH_RESULTS"] is None
-    assert "デッキ：:blue-background[デッキB]" in [
+    assert ":green[✓ 読み込み済]　**デッキB**" in [
         element.value for element in app.markdown
     ]
+    open_deck_form(app)
+    assert app.text_input[0].value == (
+        "https://www.db.yugioh-card.com/yugiohdb/member_deck.action"
+        "?cgid=B&dno=1&request_locale=ja"
+    )
+    assert get.call_count == 2
 
 
 def test_invalid_deck_path_preserves_bookmark_without_request(mocker, monkeypatch):
@@ -454,11 +481,12 @@ def test_invalid_deck_path_preserves_bookmark_without_request(mocker, monkeypatc
     previous_monsters = app.session_state["MONSTERS_DF"].copy()
     get.reset_mock()
 
+    open_deck_form(app)
     app.text_input[0].set_value(
         "https://www.db.yugioh-card.com/yugiohdb/member_deck.action"
         "/../../card_search.action?cgid=B&dno=2"
     )
-    app.button[0].click().run()
+    submit_deck(app)
 
     assert not app.exception
     assert app.error
@@ -477,10 +505,11 @@ def test_deck_url_missing_required_identity_is_rejected_before_request(
     get = mocker.patch("requests.get")
     app = AppTest.from_file(str(PROJECT_ROOT / "src" / "ui.py")).run()
 
+    open_deck_form(app)
     app.text_input[0].set_value(
         "https://www.db.yugioh-card.com/yugiohdb/member_deck.action?" + query
     )
-    app.button[0].click().run()
+    submit_deck(app)
 
     assert not app.exception
     assert len(app.error) == 1
@@ -503,8 +532,9 @@ def test_network_failures_show_retry_guidance_without_blame_on_url(
     app = AppTest.from_file(str(PROJECT_ROOT / "src" / "ui.py")).run()
     url = "https://www.db.yugioh-card.com/yugiohdb/member_deck.action?cgid=A&dno=1"
 
+    open_deck_form(app)
     app.text_input[0].set_value(url)
-    app.button[0].click().run()
+    submit_deck(app)
 
     assert not app.exception
     assert len(app.error) == 1
@@ -532,8 +562,9 @@ def test_no_monster_deck_shows_specific_guidance(mocker, monkeypatch):
     app = AppTest.from_file(str(PROJECT_ROOT / "src" / "ui.py")).run()
     url = "https://www.db.yugioh-card.com/yugiohdb/member_deck.action?cgid=A&dno=1"
 
+    open_deck_form(app)
     app.text_input[0].set_value(url)
-    app.button[0].click().run()
+    submit_deck(app)
 
     assert not app.exception
     assert len(app.error) == 1
@@ -543,3 +574,33 @@ def test_no_monster_deck_shows_specific_guidance(mocker, monkeypatch):
     get.assert_called_once_with(
         url + "&request_locale=ja", allow_redirects=False, timeout=(5, 15)
     )
+
+
+def test_deck_form_closes_after_refresh_and_restores_input(mocker, monkeypatch):
+    """取得・変更・同URL再取得で入力を復元し、成功後は再び閉じる。"""
+    monkeypatch.syspath_prepend(str(PROJECT_ROOT / "src"))
+    get = mocker.patch("requests.get", return_value=mocker.Mock(
+        status_code=200, content=DECK_HTML.encode("utf-8")
+    ))
+    app = AppTest.from_file(str(PROJECT_ROOT / "src" / "ui.py")).run()
+    url = "https://www.db.yugioh-card.com/yugiohdb/member_deck.action?cgid=A&dno=1"
+    app.text_input[0].set_value(url)
+    submit_deck(app)
+
+    assert not app.exception
+    assert not app.text_input
+    get.assert_called_once()
+
+    # ブラウザーから古い空のwidget状態が届いても、変更操作で復元する。
+    app.session_state["deck_url_input"] = ""
+    open_deck_form(app)
+    assert app.text_input[0].value == url
+    assert any("ブックマーク" in caption.value for caption in app.caption)
+    assert get.call_count == 1
+    submit_deck(app)
+
+    assert not app.exception
+    assert not app.error
+    assert not app.text_input
+    assert get.call_count == 2
+    assert app.button[1].proto.type == "primary"
