@@ -274,7 +274,7 @@ def test_compact_results_group_destinations_without_losing_routes(app):
 
     assert not app.exception
     assert not app.error
-    assert any(caption.value == "検索結果：4経路" for caption in app.caption)
+    assert any(caption.value == "4経路" for caption in app.caption)
     assert [expander.label for expander in app.expander] == [
         "一致理由を表示（4経路）",
     ]
@@ -385,7 +385,7 @@ def test_search_results_recover_after_empty_search(app, monsters_df):
                 actual_results.reset_index(drop=True), expected_results
             )
             assert route_output_events(app) == expected_events
-            assert any(caption.value == "検索結果：1経路" for caption in app.caption)
+            assert any(caption.value == "1経路" for caption in app.caption)
             assert [expander.label for expander in app.expander] == [
                 "一致理由を表示（1経路）",
             ]
@@ -401,7 +401,7 @@ def test_search_results_recover_after_empty_search(app, monsters_df):
             assert not app.radio
             assert not app.header
             assert not any(
-                caption.value.startswith("検索結果：") for caption in app.caption
+                caption.value.endswith("経路") for caption in app.caption
             )
             assert not any(
                 element.value.startswith("**手札から見せるカード：**")

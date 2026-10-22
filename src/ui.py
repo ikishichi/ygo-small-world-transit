@@ -251,13 +251,20 @@ try:
                 "サーチ先の指定を外してお試しください。"
             )
         else:
-            st.caption(f"検索結果：{len(st.session_state['SEARCH_RESULTS'])}経路")
+            with st.container(horizontal=True, vertical_alignment="bottom"):
+                st.header("検索結果", width="content")
+                st.caption(
+                    f"{len(st.session_state['SEARCH_RESULTS'])}経路",
+                    width="content",
+                )
+
             # ソート選択ラジオボタン
             sort = st.radio(
                 "並べ替え",
                 ["経由でソート", "サーチ先でソート"],
                 index=1,
                 horizontal=True,
+                label_visibility="collapsed",
             )
 
             if sort == "経由でソート":
@@ -271,7 +278,6 @@ try:
                     "dest", kind="stable"
                 )
 
-            st.header("検索結果")
             monsters_df = st.session_state["MONSTERS_DF"]
             group_label = "サーチ先" if group_by_destination else "経由"
             candidate_label = "経由" if group_by_destination else "サーチ先"
