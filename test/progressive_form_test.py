@@ -21,8 +21,8 @@ def test_initial_page_shows_search_form_with_disabled_search(mocker, monkeypatch
     assert all(not selectbox.options for selectbox in app.selectbox)
     assert all(selectbox.proto.disabled for selectbox in app.selectbox)
     assert [selectbox.proto.placeholder for selectbox in app.selectbox] == [
-        "デッキを読み込むと選択できます",
-        "デッキを読み込むと選択できます",
+        "モンスターを選択",
+        "モンスターを選択",
     ]
     assert [button.label for button in app.button] == ["デッキ取得", "検索"]
     assert app.button[1].disabled
@@ -42,7 +42,7 @@ def test_loading_deck_enables_search(mocker, monkeypatch):
     assert app.selectbox[0].options == ["テストモンスター"]
     assert [selectbox.proto.placeholder for selectbox in app.selectbox] == [
         "モンスターを選択",
-        "すべてのサーチ先（指定なし）",
+        "モンスターを選択",
     ]
     assert all(not selectbox.proto.disabled for selectbox in app.selectbox)
     assert [button.label for button in app.button] == ["デッキ取得", "検索"]

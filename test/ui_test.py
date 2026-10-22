@@ -384,7 +384,7 @@ def test_loaded_deck_is_reused_until_explicit_refresh(mocker, monkeypatch):
         "dest": ["サーチ先モンスター"],
     })
     app.run()
-    app.radio[0].set_value("経由カード順").run()
+    app.radio[0].set_value("経由でソート").run()
     assert not app.exception
     assert get.call_count == 1
     page_config.assert_called_with(page_title=f"テストデッキ | {APP_TITLE}")

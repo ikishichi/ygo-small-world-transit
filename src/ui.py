@@ -189,10 +189,7 @@ try:
             "手札から見せるモンスターを選択してください:red[（必須）]",
             monsters_df,
             index=None,
-            placeholder=(
-                "モンスターを選択" if deck_is_loaded
-                else "デッキを読み込むと選択できます"
-            ),
+            placeholder="モンスターを選択",
             disabled=not deck_is_loaded,
         )
 
@@ -202,10 +199,7 @@ try:
             "サーチ先とするモンスターを選択してください（任意）",
             monsters_df,
             index=None,
-            placeholder=(
-                "すべてのサーチ先（指定なし）" if deck_is_loaded
-                else "デッキを読み込むと選択できます"
-            ),
+            placeholder="モンスターを選択",
             disabled=not deck_is_loaded,
         )
 
@@ -235,12 +229,12 @@ try:
             # ソート選択ラジオボタン
             sort = st.radio(
                 "並べ替え",
-                ["経由カード順", "サーチ先順"],
+                ["経由でソート", "サーチ先でソート"],
                 index=1,
                 horizontal=True,
             )
 
-            if sort == "経由カード順":
+            if sort == "経由でソート":
                 search_results = st.session_state["SEARCH_RESULTS"].sort_values(
                     "transit", kind="stable"
                 )
