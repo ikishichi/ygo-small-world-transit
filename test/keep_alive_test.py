@@ -8,6 +8,7 @@ import pytest
 pytest.importorskip("playwright.async_api")
 
 from playwright.async_api import Browser, async_playwright
+from streamlit.testing.v1 import AppTest
 
 from scripts.keep_alive import (
     APP_TITLE,
@@ -23,6 +24,16 @@ READY_HTML = (
     "<button>デッキ取得</button>"
 )
 TEST_URL = "https://keep-alive.test/"
+
+
+def test_deck_url_label_matches_actual_ui(monkeypatch):
+    """起動確認に使うラベルが実際のUIと一致することを確認する。"""
+    project_root = Path(__file__).resolve().parents[1]
+    monkeypatch.syspath_prepend(str(project_root / "src"))
+    app = AppTest.from_file(str(project_root / "src" / "ui.py")).run(timeout=10)
+
+    assert not app.exception
+    assert app.text_input[0].label == DECK_URL_LABEL
 
 
 def test_waits_for_iframe_after_wake():

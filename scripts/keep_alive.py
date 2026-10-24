@@ -9,7 +9,7 @@ from playwright.async_api import Error, Page, async_playwright
 
 APP_URL = "https://ygo-small-world-transit.streamlit.app/"
 APP_TITLE = "遊戯王スモール・ワールド乗り換え検索"
-DECK_URL_LABEL = "遊戯王ニューロンの公開デッキのURLを入力してください。"
+DECK_URL_LABEL = "遊戯王ニューロンの公開デッキURLを入力してください。"
 WAKE_BUTTON = "Yes, get this app back up!"
 logger = logging.getLogger(__name__)
 
