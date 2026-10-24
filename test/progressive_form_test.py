@@ -2,7 +2,7 @@
 
 from streamlit.testing.v1 import AppTest
 
-from test.ui_test import DECK_HTML, PROJECT_ROOT
+from test.ui_test import DECK_HTML, PROJECT_ROOT, normalize_query_params
 
 
 def make_app(mocker, monkeypatch, html=DECK_HTML):
@@ -24,8 +24,8 @@ def test_initial_page_shows_search_form_with_disabled_search(mocker, monkeypatch
         "モンスターを選択",
         "モンスターを選択",
     ]
-    assert [button.label for button in app.button] == ["デッキ取得", "経路を検索"]
-    assert app.button[1].disabled
+    assert [button.label for button in app.button] == ["デッキ取得", "サンプルで試す", "経路を検索"]
+    assert app.button[2].disabled
     get.assert_not_called()
 
 
@@ -80,7 +80,26 @@ def test_failed_first_load_does_not_reveal_search_form(mocker, monkeypatch):
     assert not app.exception
     assert app.error
     assert not app.selectbox
-    assert [button.label for button in app.button] == ["デッキ取得"]
+    assert [button.label for button in app.button] == ["デッキ取得", "サンプルで試す"]
     assert all(
         "ブックマーク" not in caption.value for caption in app.caption
     )
+
+
+def test_sample_loads_specified_deck_and_hides_button(mocker, monkeypatch):
+    app, get = make_app(mocker, monkeypatch)
+    sample = next(button for button in app.button if button.label == "サンプルで試す")
+    assert sample.proto.type == "secondary"
+    app.text_input[0].set_value("invalid input")
+    sample.click().run()
+
+    assert not app.exception
+    assert not app.error
+    assert get.call_args.args[0] == (
+        "https://www.db.yugioh-card.com/yugiohdb/member_deck.action"
+        "?cgid=c8525f77e0268f9b1ba9110a8a05bc35&dno=193&request_locale=ja"
+    )
+    assert app.selectbox[0].options == ["テストモンスター"]
+    assert normalize_query_params(app.query_params)["dno"] == ["193"]
+    app.button(key="change_deck").click().run()
+    assert "サンプルで試す" not in [button.label for button in app.button]
