@@ -136,8 +136,9 @@ try:
             )
         with st.form(key="deck_url"):
             input_url = st.text_input(
-                "遊戯王ニューロンの公開デッキのURLを入力してください。",
+                "遊戯王ニューロンの公開デッキURLを入力してください。",
                 key="deck_url_input",
+                placeholder="URLを入力",
             )
             submit_btn = st.form_submit_button(
                 "デッキ取得", type="primary", width="stretch",
