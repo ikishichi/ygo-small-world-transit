@@ -4,7 +4,7 @@ This file provides guidance to AI when working with code in this repository.
 
 ## プロジェクト概要
 
-遊戯王の《スモール・ワールド》のサーチ経路を、遊戯王DBの公開デッキURLから検索するStreamlitアプリ。本番は [ygo-small-world-transit.streamlit.app](https://ygo-small-world-transit.streamlit.app) にデプロイされている。
+遊戯王の《スモール・ワールド》のサーチ経路を、遊戯王ニューロンの公開デッキURLから検索するStreamlitアプリ。本番は [ygo-small-world-transit.streamlit.app](https://ygo-small-world-transit.streamlit.app) にデプロイされている。
 
 ## よく使うコマンド
 
@@ -36,7 +36,7 @@ pytest test/html_parser_test.py::TestHtmlParser::test_get_deck_name_normal
 ```
 ui.py (Streamlit)
   ├─ url_resolver                       → クエリパラメータからURLを構築し、取得URLを選択
-  ├─ DeckInfo(url).fetch_html()          → 遊戯王DBからHTML取得 (requests)
+  ├─ DeckInfo(url).fetch_html()          → 遊戯王ニューロンからHTML取得 (requests)
   ├─ Deck(html).parse_html()             → HtmlParser でモンスター情報を抽出し DataFrame 化
   │    └─ HtmlParser                     → BeautifulSoup(lxml) で detailtext_main を解析
   └─ SearchResult(df, origin, dest).get() → pandas ベースでサーチ経路を算出
@@ -45,11 +45,11 @@ ui.py (Streamlit)
 - [src/ui.py](src/ui.py): Streamlit UI、クエリパラメータによるブックマーク対応、例外→画面エラー表示の責務。`session_state` に `MONSTERS_DF` と `SEARCH_RESULTS` を保持する。
 - [src/deck_info.py](src/deck_info.py): HTTP 取得のみ。`raise_for_status()` で失敗を例外化。
 - [src/deck.py](src/deck.py): HtmlParser の結果を pandas.DataFrame 化する薄いラッパー。
-- [src/html_parser.py](src/html_parser.py): 遊戯王DB の HTML 構造（`detailtext_main` → `t_body mlist_m` → `t_row c_normal`、`card_name` / `box_card_attribute` / `box_card_level_rank level` / `card_info_species_and_other_item` / `atk_power` / `def_power`）に強く依存している。**遊戯王DBの HTML 構造変更がこのプロジェクトの最大の破壊要因**。`generate_monsters()` で発生した `AttributeError` は `AttributeError("デッキの読み込みに失敗しました")` に変換される。`get_deck_name()` で必要な meta タグや content 属性が見つからない場合は、デッキ名取得に失敗した旨の `AttributeError` をそのまま送出する。
+- [src/html_parser.py](src/html_parser.py): 遊戯王ニューロンの HTML 構造（`detailtext_main` → `t_body mlist_m` → `t_row c_normal`、`card_name` / `box_card_attribute` / `box_card_level_rank level` / `card_info_species_and_other_item` / `atk_power` / `def_power`）に強く依存している。**遊戯王ニューロンの HTML 構造変更がこのプロジェクトの最大の破壊要因**。`generate_monsters()` で発生した `AttributeError` は `AttributeError("デッキの読み込みに失敗しました")` に変換される。`get_deck_name()` で必要な meta タグや content 属性が見つからない場合は、デッキ名取得に失敗した旨の `AttributeError` をそのまま送出する。
 - [src/search_result.py](src/search_result.py): 《スモール・ワールド》のロジックの本体。モンスター属性 6 項目（name, attribute, type, level, attack, defence）のうち**ちょうど 1 項目だけが一致する**組を「経由可能」と判定する二重ループ。origin → transit → dest の 2 ホップで全経路を列挙し DataFrame で返す。
-- [src/url_resolver.py](src/url_resolver.py): デッキ識別用クエリパラメータの有無を判定し、遊戯王DBのURLを構築する。デッキ取得ボタン押下時は入力URL、それ以外はクエリパラメータから構築したURLを選択する。
+- [src/url_resolver.py](src/url_resolver.py): デッキ識別用クエリパラメータの有無を判定し、遊戯王ニューロンのURLを構築する。デッキ取得ボタン押下時は入力URL、それ以外はクエリパラメータから構築したURLを選択する。
 
-## 遊戯王DB の URL 仕様
+## 遊戯王ニューロンの URL 仕様
 
 - 有効な URL プレフィックスは `http://www.db.yugioh-card.com/yugiohdb/member_deck.action` / `https://...` の 2 種のみ。[ui.py](src/ui.py) の `VALID_PREFIX_HTTP` / `VALID_PREFIX_HTTPS` で検査している。
 - クエリパラメータ `cgid` と `dno` でデッキを一意特定。`request_locale` 未指定時は `ja` にフォールバック。UI はこのクエリパラメータを自身の URL にコピーして「ブックマーク共有」を実現している。
@@ -57,7 +57,7 @@ ui.py (Streamlit)
 ## テストの方針
 
 - 外部 HTTP は `pytest-mock` の `mocker.patch("requests.get", ...)` でモック。
-- HtmlParser のテストはインラインの HTML 文字列をパラメタライズして渡す（実際の遊戯王DB のフィクスチャは持たない）。新しい構造変更に追従する際はこのデータを更新する。
+- HtmlParser のテストはインラインの HTML 文字列をパラメタライズして渡す（実際の遊戯王ニューロンのフィクスチャは持たない）。新しい構造変更に追従する際はこのデータを更新する。
 
 ## コーディング規約
 

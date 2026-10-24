@@ -50,7 +50,7 @@ class TestHtmlParser:
             "html": """<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
                     <meta name="TEST" content="テストデッキ/ ">
                 </head></html>""",
-            "err_msg": "デッキ名を読み取れませんでした。遊戯王DBのHTML構造が変更された可能性があります。"
+            "err_msg": "デッキ名を読み取れませんでした。遊戯王ニューロンのHTML構造が変更された可能性があります。"
         }
     ]
 
@@ -577,7 +577,7 @@ class TestHtmlParser:
 	</div>
 </head>
 </html>""",
-            "err_msg": "モンスター情報を読み取れませんでした。遊戯王DBのHTML構造が変更された可能性があります。"
+            "err_msg": "モンスター情報を読み取れませんでした。遊戯王ニューロンのHTML構造が変更された可能性があります。"
         }
     ]
 

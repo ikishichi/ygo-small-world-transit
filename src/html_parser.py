@@ -3,7 +3,7 @@ from bs4 import BeautifulSoup
 
 
 class DeckStructureError(AttributeError):
-    """遊戯王DBのデッキHTMLから必要な構造を取得できない場合の例外。"""
+    """遊戯王ニューロンのデッキHTMLから必要な構造を取得できない場合の例外。"""
 
 
 class NoMonsterError(ValueError):
@@ -34,7 +34,7 @@ class HtmlParser:
         meta_tag = self.soup.find("meta", attrs={"name": "description"})
         if not meta_tag or "content" not in meta_tag.attrs:
             raise DeckStructureError(
-                "デッキ名を読み取れませんでした。遊戯王DBのHTML構造が変更された可能性があります。"
+                "デッキ名を読み取れませんでした。遊戯王ニューロンのHTML構造が変更された可能性があります。"
             )
 
         return meta_tag["content"].strip(" /")  # 末尾の不要なスラッシュと空白を削除
@@ -53,14 +53,14 @@ class HtmlParser:
         main_deck_soup = self.soup.find(id="detailtext_main")
         if main_deck_soup is None:
             raise DeckStructureError(
-                "デッキ情報を読み取れませんでした。遊戯王DBのHTML構造が変更された可能性があります。"
+                "デッキ情報を読み取れませんでした。遊戯王ニューロンのHTML構造が変更された可能性があります。"
             )
 
         # 領域の欠落だけではモンスター0体と断定できないため、構造変更とする。
         main_monsters_soup = main_deck_soup.select_one(".t_body.mlist_m")
         if main_monsters_soup is None:
             raise DeckStructureError(
-                "モンスター情報を読み取れませんでした。遊戯王DBのHTML構造が変更された可能性があります。"
+                "モンスター情報を読み取れませんでした。遊戯王ニューロンのHTML構造が変更された可能性があります。"
             )
 
         monster_soups = main_monsters_soup.select(".t_row.c_normal")
@@ -70,7 +70,7 @@ class HtmlParser:
                 or main_monsters_soup.get_text(strip=True)
             ):
                 raise DeckStructureError(
-                    "モンスター情報を読み取れませんでした。遊戯王DBのHTML構造が変更された可能性があります。"
+                    "モンスター情報を読み取れませんでした。遊戯王ニューロンのHTML構造が変更された可能性があります。"
                 )
             raise NoMonsterError("メインデッキにモンスターが見つかりませんでした。")
 
@@ -87,7 +87,7 @@ class HtmlParser:
             tags = [name_tag, attribute_tag, level_tag, type_tag, attack_tag, defence_tag]
             if any(tag is None for tag in tags):
                 raise DeckStructureError(
-                    "モンスター情報を読み取れませんでした。遊戯王DBのHTML構造が変更された可能性があります。"
+                    "モンスター情報を読み取れませんでした。遊戯王ニューロンのHTML構造が変更された可能性があります。"
                 )
 
             name = name_tag.get_text()
