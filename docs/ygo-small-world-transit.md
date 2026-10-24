@@ -18,7 +18,7 @@ user --> uc2
 ```
 
 1. スモールワールドのサーチ先が検索できる
-1. 遊戯王DBからデッキレシピを読み込める
+1. 遊戯王ニューロンからデッキレシピを読み込める
 1. PC/スマートフォンでの表示に対応
 1. 読み込んだデッキを再取得するためのURLをブックマークできる
 
@@ -29,7 +29,7 @@ user --> uc2
 ```plantuml
 @startuml
 actor User as user
-database 遊戯王DB as db
+database 遊戯王ニューロン as db
 node "スモワ乗り換え検索" as sw
 
 user --> db : デッキ登録
@@ -50,7 +50,7 @@ sw --> user : デッキ再取得用URL（ブックマーク用）
 @startuml
 actor "User" as user
 participant "スモールワールド乗り換え検索" as sw
-database "遊戯王DB" as db
+database "遊戯王ニューロン" as db
     user --> sw : デッキURL入力・デッキ取得、またはブックマーク経由のアクセス
     alt デッキ取得ボタン押下、または未取得・取得済みURLと異なる
         sw --> db : デッキ取得（接続5秒・読み取り15秒、転送追従なし）
@@ -94,7 +94,7 @@ participant "DeckInfo" as di
 participant "Deck" as dc
 participant "HtmlParser" as hp
 participant "SearchResult" as sr
-database "遊戯王DB" as db
+database "遊戯王ニューロン" as db
     user --> ui : デッキ取得またはStreamlit再実行
     ui --> ui : 初回のsession_state初期化・既存セッションのキャッシュキー補完
     ui --> ur : build_url_from_query_params(query_params)

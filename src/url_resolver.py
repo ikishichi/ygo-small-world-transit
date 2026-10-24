@@ -15,7 +15,7 @@ def normalize_deck_url(url):
         or parts.path != "/yugiohdb/member_deck.action"
     ):
         raise ValueError(
-            "無効なURLです。遊戯王DBの公開デッキレシピのURLを入力してください。"
+            "無効なURLです。遊戯王ニューロンの公開デッキレシピのURLを入力してください。"
         )
     query_params = parse_qs(parts.query)
     if not all(query_params.get(key, [""])[0] for key in ("cgid", "dno")):
@@ -48,13 +48,13 @@ def has_query_params(query_params):
 
 
 def build_url_from_query_params(query_params):
-    """クエリパラメータから遊戯王DB公開デッキURLを構築する
+    """クエリパラメータから遊戯王ニューロン公開デッキURLを構築する
 
     Args:
         query_params: dict-like object (cgid, dno 必須、request_locale は任意)
 
     Returns:
-        (str): 構築した遊戯王DB公開デッキURL。必須パラメータが欠けていれば空文字を返す。
+        (str): 構築した遊戯王ニューロン公開デッキURL。必須パラメータが欠けていれば空文字を返す。
                request_locale が欠けている場合は "ja" を補完する。
     """
     if not has_query_params(query_params):

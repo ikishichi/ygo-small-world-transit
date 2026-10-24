@@ -106,7 +106,7 @@ st.title(
     "(https://ygo-small-world-transit.streamlit.app/)",
     anchor=False,
 )
-st.caption("[遊戯王DB](https://www.db.yugioh-card.com/yugiohdb/)の公開デッキを読み込むことで、"
+st.caption("[遊戯王ニューロン](https://www.db.yugioh-card.com/yugiohdb/)の公開デッキを読み込むことで、"
            "[<<スモール・ワールド>>](https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=2&cid=16555&request_locale=ja)のサーチ経路を検索できます。")
 
 if 'MONSTERS_DF' not in st.session_state:
@@ -123,7 +123,7 @@ else:
 query_params = st.query_params
 
 try:
-    # クエリパラメータから遊戯王DBのURLを構築（必須パラメータが欠ければ空文字）
+    # クエリパラメータから遊戯王ニューロンのURLを構築（必須パラメータが欠ければ空文字）
     query_params_url = build_url_from_query_params(query_params)
 
     submit_btn = False
@@ -136,7 +136,7 @@ try:
             )
         with st.form(key="deck_url"):
             input_url = st.text_input(
-                "遊戯王DBの公開デッキのURLを入力してください。",
+                "遊戯王ニューロンの公開デッキのURLを入力してください。",
                 key="deck_url_input",
             )
             submit_btn = st.form_submit_button(
@@ -156,7 +156,7 @@ try:
         if submit_btn:
             if not url.startswith(VALID_PREFIX_HTTP) and not url.startswith(VALID_PREFIX_HTTPS):
                 logger.warning(f"無効なURL: {url}")
-                raise ValueError("無効なURLです。遊戯王DBの公開デッキレシピのURLを入力してください。")
+                raise ValueError("無効なURLです。遊戯王ニューロンの公開デッキレシピのURLを入力してください。")
 
         # ソートや検索による再実行では取得済みデッキを再利用する。
         # 明示的な取得操作は、同じURLでも最新状態を読み直す。
@@ -171,7 +171,7 @@ try:
                 deck.parse_html()
 
             if submit_btn:
-                # 遊戯王DBのURLからクエリパラメータを取得し、乗り換え検索のクエリパラメータに反映する
+                # 遊戯王ニューロンのURLからクエリパラメータを取得し、乗り換え検索のクエリパラメータに反映する
                 db_query_params = urllib.parse.parse_qs(str(urllib.parse.urlparse(url).query))
                 st.query_params["cgid"] = db_query_params["cgid"][0]
                 st.query_params["dno"] = db_query_params["dno"][0]
@@ -364,11 +364,11 @@ except NoMonsterError as error:
     st.error(error)
     st.info("モンスターを含む公開デッキのURLを指定してください。")
 except DeckStructureError:
-    logger.exception("遊戯王DBのデッキHTMLを解析できませんでした")
+    logger.exception("遊戯王ニューロンのデッキHTMLを解析できませんでした")
     st.error("デッキ情報を解析できませんでした。時間を置いて再試行してください。")
     st.info("デッキレシピが「公開」になっているか確認してください。")
 except requests.exceptions.RequestException:
-    logger.exception("遊戯王DBからデッキ情報を取得できませんでした")
+    logger.exception("遊戯王ニューロンからデッキ情報を取得できませんでした")
     st.error("デッキ情報を取得できませんでした。通信状態を確認し、時間を置いて再試行してください。")
 except ValueError as ve:
     st.error(ve)
