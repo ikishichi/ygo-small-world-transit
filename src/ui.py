@@ -233,7 +233,7 @@ try:
         monsters_df = st.session_state["MONSTERS_DF"]
         deck_is_loaded = not monsters_df.empty
         transit_start = st.selectbox(
-            "手札から見せるモンスターを選択してください（必須）",
+            "手札から見せるモンスターを選択してください:red[（必須）]",
             monsters_df,
             index=None,
             placeholder="モンスターを選択",
