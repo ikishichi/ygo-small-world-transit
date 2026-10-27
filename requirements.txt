@@ -1,8 +1,19 @@
-beautifulsoup4>=4.12.2
-lxml>=4.9.3
-numpy>=1.26.0
-pandas>=2.1.1
-pytest>=7.4.2
-pytest-mock>=3.11.1
-requests>=2.32.4
-streamlit>=1.54.0
+# -*- coding: utf-8 -*-
+
+beautifulsoup4>=4.15.0,<5.0.0
+lxml>=6.1.3,<7.0.0
+numpy>=2.5.4,<3.0.0
+pandas>=3.0.6,<4.0.0
+pytest>=9.1.1,<10.0.0
+pytest-mock>=3.17.0,<4.0.0
+requests>=2.34.2,<3.0.0
+streamlit>=1.66.1,<2.0.0
+
+# 脆弱性対応（間接依存を修正版に固定）
+# Pillow: FPX画像の処理による任意コード実行、PDF解析によるサービス停止など
+# https://github.com/advisories/GHSA-5x8w-8jj5-q52h
+# https://github.com/advisories/GHSA-p4wg-p73j-c528
+pillow==13.0.0
+# certifi: 侵害された中間CA鍵に関する証明書ストアの更新
+# https://osv.dev/vulnerability/PYSEC-2026-4320
+certifi==2026.10.19
