@@ -54,6 +54,18 @@ python -m pytest
 
 要件と設計は[設計書](docs/ygo-small-world-transit.md)を参照してください。
 
+### アクセシビリティの対応と制約
+
+- 本文のランドマークには、Streamlit 1.66.0で追加された`main`要素を使用します。このため、Streamlitの最低バージョンを1.66.0にしています（[上流の対応PR](https://github.com/streamlit/streamlit/pull/17418)）。
+- 選択欄のラベルは読み上げ名にも使用されるため、必須表示を含めて通常の文字列にしています。色指定などのMarkdown構文は含めません。
+- ページ全体の言語指定は、Streamlit 1.66.0では`<html lang="en">`に固定され、`st.set_page_config`にも言語指定APIがありません。日本語指定には[上流Issue #15726](https://github.com/streamlit/streamlit/issues/15726)の対応が必要です。JavaScriptによるルートDOMの書き換えは、初期HTMLに反映されないため採用していません。
+
+Streamlitの更新時は、初期画面・デッキ取得後・検索結果表示後に、ブラウザーの開発者ツールで次を確認してください。
+
+1. `document.documentElement.lang`の値。上流対応前は`en`であることを制約として扱います。
+2. `document.querySelectorAll('main, [role="main"]').length`が1で、本文と検索フォームを含むこと。
+3. サーチ元選択欄の`aria-label`とアクセシビリティツリー上の名前が「手札から見せるモンスターを選択してください（必須）」で、装飾構文が含まれないこと。
+
 ## 公開アプリのスリープ対策
 
 [Keep Streamlit app awake](https://github.com/ikishichi/ygo-small-world-transit/actions/workflows/keep_alive.yml)が、3時間ごとにPlaywrightのChromiumで公開アプリを開きます。スリープ画面の場合は解除ボタンを押し、タイトル・編集可能なデッキURL入力欄・有効な「デッキ取得」ボタンが表示されるまで待ちます。デッキの取得や検索は行いません。
