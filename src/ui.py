@@ -126,6 +126,7 @@ try:
     # クエリパラメータから遊戯王ニューロンのURLを構築（必須パラメータが欠ければ空文字）
     query_params_url = build_url_from_query_params(query_params)
 
+    sample_btn = False
     submit_btn = False
     input_url = ""
     if st.session_state["SHOW_DECK_FORM"]:
@@ -140,9 +141,27 @@ try:
                 key="deck_url_input",
                 placeholder="URLを入力",
             )
-            submit_btn = st.form_submit_button(
-                "デッキ取得", type="primary", width="stretch",
+            show_sample = not query_params and st.session_state["LOADED_DECK_URL"] is None
+            if show_sample:
+                fetch_column, sample_column = st.columns(2)
+            else:
+                fetch_column = st.container()
+            with fetch_column:
+                submit_btn = st.form_submit_button(
+                    "デッキ取得", type="primary", width="stretch",
+                )
+            if show_sample:
+                with sample_column:
+                    sample_btn = st.form_submit_button(
+                        "サンプルで試す", type="secondary", width="stretch",
+                    )
+
+        if sample_btn:
+            input_url = (
+                "https://www.db.yugioh-card.com/yugiohdb/member_deck.action"
+                "?cgid=c8525f77e0268f9b1ba9110a8a05bc35&dno=193&request_locale=ja"
             )
+            submit_btn = True
 
         if submit_btn:
             # 入力欄を閉じた後も、変更時には直前の入力を復元する。
