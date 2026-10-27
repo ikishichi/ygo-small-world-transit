@@ -2,7 +2,7 @@
 
 ## About
 
-[遊戯王スモール・ワールド乗り換え検索](https://ygo-small-world-transit.streamlit.app)では、[遊戯王ニューロン](https://www.db.yugioh-card.com/yugiohdb/)（以下、遊戯王ニューロン）の公開デッキURLを読み込むことで、<<スモール・ワールド>>のサーチ経路を検索できます。
+[遊戯王スモール・ワールド乗り換え検索](https://ygo-small-world-transit.streamlit.app)では、[遊戯王ニューロン](https://www.db.yugioh-card.com/yugiohdb/)の公開デッキURLを読み込むことで、<<スモール・ワールド>>のサーチ経路を検索できます。
 
 ## ライセンス
 
@@ -24,7 +24,7 @@ YouTubeで[使い方動画](https://www.youtube.com/watch?v=VVvS8u706BM&t=6s)を
 
 ## ローカルでの起動方法
 
-事前にPython 3.12のインストールが必要です（CIでも3.12を使用）。
+事前にPython 3.12以上のインストールが必要です。
 
 1. このリポジトリをcloneし、プロジェクト直下に移動します。
 2. 必要なパッケージをインストールします。
@@ -60,7 +60,7 @@ python -m pytest
 
 [Keep Streamlit app awake](https://github.com/ikishichi/ygo-small-world-transit/actions/workflows/keep_alive.yml)が、3時間ごとにPlaywrightのChromiumで公開アプリを開きます。スリープ画面の場合は解除ボタンを押し、タイトル・編集可能なデッキURL入力欄・有効な「デッキ取得」ボタンが表示されるまで待ちます。デッキの取得や検索は行いません。
 
-ブラウザーの依存関係はGitHub Actions内にだけインストールし、アプリ本体の依存関係は変更しません。フォークしたリポジトリでは、この定期アクセスは実行しません。
+フォークしたリポジトリでは、この定期アクセスは実行しません。
 
 ### 復帰確認と失敗時の対応
 
@@ -70,7 +70,7 @@ python -m pytest
 
 ### スリープ対策スクリプトのローカル検証
 
-必要に応じて仮想環境に検証用の依存関係を追加してください。`requirements.txt`への追加は不要です。
+必要に応じて仮想環境に検証用の依存関係を追加してください。
 
 ```bash
 python -m pip install playwright==1.63.0
