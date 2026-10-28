@@ -80,13 +80,13 @@ CIでは再生成による差分がないことを確認してから、固定し
 
 ### 依存関係の脆弱性スキャン
 
-[Dependency security](https://github.com/ikishichi/ygo-small-world-transit/actions/workflows/dependency-security.yml) は、main向けPRの作成・追加コミット・再オープン時に `requirements.txt` の固定パッケージを間接依存までTrivyで検査します。Actions画面から手動実行もできます。依存関係はインストールせず、固定ファイルを直接検査します。
+[Dependency security](https://github.com/ikishichi/ygo-small-world-transit/actions/workflows/dependency-security.yml) は、main向けPRの作成・追加コミット・再オープン時に `requirements.txt` をTrivyで検査します。Actions画面から手動実行もできます。
 
-除外設定を適用した後にHigh・Criticalが残っていると `dependency-security` チェックを失敗させます。修正版が未公開の脆弱性も対象です。Low・Medium・重要度不明（UNKNOWN）は報告しますが、それだけでは失敗にしません。DB取得失敗、レポートの欠落・破損、固定パッケージの解析漏れ、除外設定の不正も検査エラーとして失敗させます。
+除外設定を適用した後にHigh・Criticalが残っていると `dependency-security` チェックを失敗させます。修正版が未公開の脆弱性も対象です。DB取得失敗、レポートの欠落・破損、固定パッケージの解析漏れ、除外設定の不正も検査エラーとして失敗させます。
 
 PRのチェック欄から実行結果を開くと、Summaryで検出・一時除外・判定対象の件数、判定対象のHigh・Critical一覧、一時除外した指摘の理由と期限を確認できます。詳細はログとArtifactsの `dependency-security-report` を確認してください。Artifactsには除外前と除外後のJSONレポート、検査した固定ファイル、使用した除外設定を14日間保存します。検査エラーでJSONが生成されない場合は、ログとSummaryに原因を表示します。
 
-特定の脆弱性を一時的に除外する場合は、リポジトリ直下の `.trivyignore` に実際に検出されたIDを記載し、PRで変更してください。理由と追跡Issueを直前のコメントに記載し、`exp:YYYY-MM-DD` で期限を指定できます。例えば次の形式です（ID・理由・期限は実際の内容に置き換えてください）。
+特定の脆弱性を一時的に除外する場合は、リポジトリ直下の `.trivyignore` に除外する脆弱性IDを記載してください。
 
 ```text
 # 修正版未公開のため、影響を確認して一時的にリスクを受容
