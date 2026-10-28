@@ -1,0 +1,4 @@
+[pip]
+universal = true
+python-version = "3.12"
+custom-compile-command = "python -m uv pip compile requirements.in --output-file requirements.txt"
