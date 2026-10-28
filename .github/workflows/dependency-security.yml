@@ -64,6 +64,8 @@ jobs:
           SCAN_OUTCOME: ${{ steps.scan.outcome }}
           FILTER_OUTCOME: ${{ steps.filter.outcome }}
         run: |
+          mkdir -p "$SCAN_REPORT_DIR"
+          summary_status=0
           python scripts/dependency_security_report.py \
             --report "$SCAN_REPORT_DIR/trivy.json" \
             --filtered-report "$SCAN_REPORT_DIR/trivy-filtered.json" \
@@ -71,7 +73,9 @@ jobs:
             --requirements requirements.txt \
             --scan-outcome "$SCAN_OUTCOME" \
             --filter-outcome "$FILTER_OUTCOME" \
-            --summary "$GITHUB_STEP_SUMMARY"
+            --summary "$SCAN_REPORT_DIR/summary.md" || summary_status=$?
+          cat "$SCAN_REPORT_DIR/summary.md" >> "$GITHUB_STEP_SUMMARY"
+          exit "$summary_status"
       - name: Block High and Critical vulnerabilities
         working-directory: ${{ runner.temp }}
         run: |
@@ -83,6 +87,10 @@ jobs:
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: dependency-security-report
-          path: ${{ env.SCAN_REPORT_DIR }}
+          path: |
+            ${{ env.SCAN_REPORT_DIR }}/trivy.json
+            ${{ env.SCAN_REPORT_DIR }}/trivyignore.txt
+            ${{ env.SCAN_REPORT_DIR }}/summary.md
+            ${{ env.SCAN_REPORT_DIR }}/requirements.txt
           if-no-files-found: warn
           retention-days: 14
