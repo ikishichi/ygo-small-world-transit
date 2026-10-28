@@ -1,0 +1,75 @@
+name: Dependency security
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dependency-security-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  dependency-security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
+        with:
+          python-version: "3.12"
+      - name: Configure scan paths
+        run: |
+          echo "SCAN_INPUT=$RUNNER_TEMP/dependency-security/input" >> "$GITHUB_ENV"
+          echo "SCAN_REPORT_DIR=$RUNNER_TEMP/dependency-security/report" >> "$GITHUB_ENV"
+          echo "TRIVY_CACHE_DIR=$RUNNER_TEMP/trivy-cache" >> "$GITHUB_ENV"
+      - name: Prepare scan input
+        run: |
+          test -s requirements.txt
+          mkdir -p "$SCAN_INPUT" "$SCAN_REPORT_DIR"
+          cp requirements.txt "$SCAN_INPUT/requirements.txt"
+          cp requirements.txt "$SCAN_REPORT_DIR/requirements.txt"
+      - name: Install Trivy
+        uses: aquasecurity/setup-trivy@81e514348e19b6112ce2a7e3ecbafe19c1e1f567 # v0.3.1
+        with:
+          version: v0.76.1
+          cache: false
+      - name: Scan locked dependencies
+        id: scan
+        working-directory: ${{ runner.temp }}
+        run: |
+          trivy fs --scanners vuln --pkg-types library \
+            --severity UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL \
+            --ignore-unfixed=false --ignorefile /dev/null \
+            --list-all-pkgs --format json --exit-code 0 \
+            --output "$SCAN_REPORT_DIR/trivy.json" "$SCAN_INPUT"
+      - name: Validate report and write summary
+        if: ${{ always() && !cancelled() }}
+        env:
+          SCAN_OUTCOME: ${{ steps.scan.outcome }}
+        run: |
+          python scripts/dependency_security_report.py \
+            --report "$SCAN_REPORT_DIR/trivy.json" \
+            --requirements requirements.txt \
+            --scan-outcome "$SCAN_OUTCOME" \
+            --summary "$GITHUB_STEP_SUMMARY"
+      - name: Block High and Critical vulnerabilities
+        working-directory: ${{ runner.temp }}
+        run: |
+          trivy convert --scanners vuln --format table \
+            --severity HIGH,CRITICAL --ignorefile /dev/null \
+            --exit-code 1 "$SCAN_REPORT_DIR/trivy.json"
+      - name: Upload scan report
+        if: ${{ always() && !cancelled() }}
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: dependency-security-report
+          path: ${{ env.SCAN_REPORT_DIR }}
+          if-no-files-found: warn
+          retention-days: 14

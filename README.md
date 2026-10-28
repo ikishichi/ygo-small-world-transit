@@ -78,6 +78,18 @@ python -m uv pip compile requirements.in --output-file requirements.txt --upgrad
 
 CIでは再生成による差分がないことを確認してから、固定した依存関係でテストします。
 
+### 依存関係の脆弱性スキャン
+
+[Dependency security](https://github.com/ikishichi/ygo-small-world-transit/actions/workflows/dependency-security.yml) は、main向けPRの作成・追加コミット・再オープン時に `requirements.txt` の固定パッケージを間接依存までTrivyで検査します。Actions画面から手動実行もできます。依存関係はインストールせず、固定ファイルを直接検査します。
+
+High・Criticalが検出されると `dependency-security` チェックを失敗させます。修正版が未公開の脆弱性も対象です。Low・Medium・重要度不明（UNKNOWN）は報告しますが、それだけでは失敗にしません。DB取得失敗、レポートの欠落・破損、固定パッケージの解析漏れも検査エラーとして失敗させます。
+
+PRのチェック欄から実行結果を開くと、Summaryで重大度別の件数とHigh・Criticalの一覧を確認できます。詳細はログとArtifactsの `dependency-security-report` を確認してください。Artifactsには全重大度を含むJSONレポートと検査した固定ファイルを14日間保存します。検査エラーでJSONが生成されない場合は、ログとSummaryに原因を表示します。
+
+マージをブロックするには、mainのルールセットの必須チェックに、GitHub Actionsの `dependency-security` を追加してください。初回のPRでチェックを実行した後に登録します。管理者にも強制する場合は、管理者のバイパス設定も解除してください。
+
+本番へのデプロイに使用する依存関係を検査するもので、稼働中の本番環境の実測ではありません。また、`requirements.txt` に含まれないCIツールやOSパッケージは検査対象に含みません。
+
 ## 公開アプリのスリープ対策
 
 [Keep Streamlit app awake](https://github.com/ikishichi/ygo-small-world-transit/actions/workflows/keep_alive.yml)が、3時間ごとにPlaywrightのChromiumで公開アプリを開きます。スリープ画面の場合は解除ボタンを押し、タイトル・編集可能なデッキURL入力欄・有効な「デッキ取得」ボタンが表示されるまで待ちます。デッキの取得や検索は行いません。
