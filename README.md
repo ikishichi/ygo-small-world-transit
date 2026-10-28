@@ -24,7 +24,7 @@ YouTubeで[使い方動画](https://www.youtube.com/watch?v=VVvS8u706BM&t=6s)を
 
 ## ローカルでの起動方法
 
-事前にPython 3.12以上のインストールが必要です。
+起動にはPython 3.12以上が必要です。
 
 1. このリポジトリをcloneし、プロジェクト直下に移動します。
 2. 必要なパッケージをインストールします。
@@ -58,35 +58,25 @@ python -m pytest
 
 ### 依存関係の管理
 
-依存関係のバージョン範囲と脆弱性対応の固定値は `requirements.in` で管理します。`requirements.txt` は間接依存までバージョンを固定した生成ファイルです。両方をGitに登録し、インストールには `requirements.txt` を使います。
+依存関係のバージョンは `requirements.in` で管理します。`requirements.txt` は間接依存までバージョンを固定した生成ファイルです。両方をGitに登録し、インストールには `requirements.txt` を使います。
 
-生成には、`requirements-tools.txt` にバージョンを固定した [uv](https://docs.astral.sh/uv/pip/compile/) を使用します。Python 3.12の仮想環境で次を実行してください。
+生成には、`requirements-tools.txt` にバージョンを固定した [uv](https://docs.astral.sh/uv/pip/compile/) を使用します。
 
 ```bash
 python -m pip install -r requirements-tools.txt
 python -m uv pip compile requirements.in --output-file requirements.txt
 ```
 
-`uv.toml` でPython 3.12以上を対象とする `universal` 解決を設定しており、Windows限定の依存などは条件付きで記録します。通常の再生成では既存の固定バージョンを優先します。依存関係を追加・変更するときは `requirements.in` を編集して再生成し、両ファイルを同じPRに含めてください。`requirements.txt` は直接編集しません。
+依存関係を追加・変更するときは `requirements.in` を編集して再生成し、両ファイルを同じPRに含めてください。`requirements.txt` は直接編集しません。
 
-特定のパッケージを更新する場合は `--upgrade-package`、全体を更新する場合は `--upgrade` を追加します。
+`requirements.in` の指定範囲内で新しいバージョンに更新するには、生成コマンドの末尾に更新用のオプションを付けます。特定のパッケージだけを更新する場合は `--upgrade-package パッケージ名` 、すべてのパッケージを更新する場合は `--upgrade` を指定します。
 
 ```bash
 python -m uv pip compile requirements.in --output-file requirements.txt --upgrade-package streamlit
 python -m uv pip compile requirements.in --output-file requirements.txt --upgrade
 ```
 
-`requirements.in` で `==` に固定した脆弱性対応のバージョンは、これらの更新操作でも変わりません。修正版を変更するときは、脆弱性情報を確認して `requirements.in` の固定値とコメントを更新してください。
-
-更新後は、新しい仮想環境にインストールして整合性確認とテストを実行します。スリープ対策のテストも実行する場合は、後述のPlaywrightとChromiumもインストールしてください。
-
-```bash
-python -m pip install -r requirements.txt
-python -m pip check
-python -m pytest
-```
-
-CIでは再生成による差分がないことを確認してから、固定した依存関係でテストします。本番も同じコミットの `requirements.txt` を使い、PythonのバージョンをCIと揃えてください。既に稼働中の本番環境に反映するには再デプロイが必要です。
+CIでは再生成による差分がないことを確認してから、固定した依存関係でテストします。
 
 ## 公開アプリのスリープ対策
 
