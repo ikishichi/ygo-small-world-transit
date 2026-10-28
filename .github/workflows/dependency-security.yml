@@ -32,9 +32,11 @@ jobs:
       - name: Prepare scan input
         run: |
           test -s requirements.txt
+          test -f .trivyignore
           mkdir -p "$SCAN_INPUT" "$SCAN_REPORT_DIR"
           cp requirements.txt "$SCAN_INPUT/requirements.txt"
           cp requirements.txt "$SCAN_REPORT_DIR/requirements.txt"
+          cp .trivyignore "$SCAN_REPORT_DIR/trivyignore.txt"
       - name: Install Trivy
         uses: aquasecurity/setup-trivy@81e514348e19b6112ce2a7e3ecbafe19c1e1f567 # v0.3.1
         with:
@@ -49,22 +51,33 @@ jobs:
             --ignore-unfixed=false --ignorefile /dev/null \
             --list-all-pkgs --format json --exit-code 0 \
             --output "$SCAN_REPORT_DIR/trivy.json" "$SCAN_INPUT"
+      - name: Apply vulnerability exceptions
+        id: filter
+        working-directory: ${{ runner.temp }}
+        run: |
+          trivy convert --scanners vuln --format json --list-all-pkgs \
+            --ignorefile "$SCAN_REPORT_DIR/trivyignore.txt" --exit-code 0 \
+            --output "$SCAN_REPORT_DIR/trivy-filtered.json" "$SCAN_REPORT_DIR/trivy.json"
       - name: Validate report and write summary
         if: ${{ always() && !cancelled() }}
         env:
           SCAN_OUTCOME: ${{ steps.scan.outcome }}
+          FILTER_OUTCOME: ${{ steps.filter.outcome }}
         run: |
           python scripts/dependency_security_report.py \
             --report "$SCAN_REPORT_DIR/trivy.json" \
+            --filtered-report "$SCAN_REPORT_DIR/trivy-filtered.json" \
+            --ignorefile "$SCAN_REPORT_DIR/trivyignore.txt" \
             --requirements requirements.txt \
             --scan-outcome "$SCAN_OUTCOME" \
+            --filter-outcome "$FILTER_OUTCOME" \
             --summary "$GITHUB_STEP_SUMMARY"
       - name: Block High and Critical vulnerabilities
         working-directory: ${{ runner.temp }}
         run: |
           trivy convert --scanners vuln --format table \
             --severity HIGH,CRITICAL --ignorefile /dev/null \
-            --exit-code 1 "$SCAN_REPORT_DIR/trivy.json"
+            --exit-code 1 "$SCAN_REPORT_DIR/trivy-filtered.json"
       - name: Upload scan report
         if: ${{ always() && !cancelled() }}
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
