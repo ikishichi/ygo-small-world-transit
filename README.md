@@ -24,7 +24,7 @@ YouTubeで[使い方動画](https://www.youtube.com/watch?v=VVvS8u706BM&t=6s)を
 
 ## ローカルでの起動方法
 
-事前にPython 3.12以上のインストールが必要です。
+起動にはPython 3.12以上が必要です。
 
 1. このリポジトリをcloneし、プロジェクト直下に移動します。
 2. 必要なパッケージをインストールします。
@@ -55,6 +55,28 @@ python -m pytest
 ```
 
 要件と設計は[設計書](docs/ygo-small-world-transit.md)を参照してください。
+
+### 依存関係の管理
+
+依存関係のバージョンは `requirements.in` で管理します。`requirements.txt` は間接依存までバージョンを固定した生成ファイルです。両方をGitに登録し、インストールには `requirements.txt` を使います。
+
+生成には、`requirements-tools.txt` にバージョンを固定した [uv](https://docs.astral.sh/uv/pip/compile/) を使用します。
+
+```bash
+python -m pip install -r requirements-tools.txt
+python -m uv pip compile requirements.in --output-file requirements.txt
+```
+
+依存関係を追加・変更するときは `requirements.in` を編集して再生成し、両ファイルを同じPRに含めてください。`requirements.txt` は直接編集しません。
+
+`requirements.in` の指定範囲内で新しいバージョンに更新するには、生成コマンドの末尾に更新用のオプションを付けます。特定のパッケージだけを更新する場合は `--upgrade-package パッケージ名` 、すべてのパッケージを更新する場合は `--upgrade` を指定します。
+
+```bash
+python -m uv pip compile requirements.in --output-file requirements.txt --upgrade-package streamlit
+python -m uv pip compile requirements.in --output-file requirements.txt --upgrade
+```
+
+CIでは再生成による差分がないことを確認してから、固定した依存関係でテストします。
 
 ## 公開アプリのスリープ対策
 

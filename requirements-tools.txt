@@ -1,0 +1,2 @@
+# Tool used to generate requirements.txt (not an application dependency).
+uv==0.13.6
