@@ -85,8 +85,6 @@ CIでは再生成による差分がないことを確認してから、固定し
 
 [Dependency security](https://github.com/ikishichi/ygo-small-world-transit/actions/workflows/dependency-security.yml) は、毎週土曜日と、main向けPRの作成・追加コミット・再オープン時に `requirements.txt` をTrivyで検査します。Actions画面から手動実行もできます。
 
-定期実行はmainの最新コミットを対象とし、ワークフロー変更がmainにマージされると有効になります。GitHub Actionsの定期実行は遅延・欠落する場合があり、公開リポジトリに60日間活動がないと自動で無効になります。その場合はActions画面から再び有効にしてください。
-
 除外設定を適用した後にHigh・Criticalが残っていると `dependency-security` チェックを失敗させます。修正版が未公開の脆弱性も対象です。DB取得失敗、レポートの欠落・破損、固定パッケージの解析漏れ、除外設定の不正も検査エラーとして失敗させます。
 
 PRのチェック欄から実行結果を開くと、Summaryで検出・一時除外・判定対象の件数、判定対象のHigh・Critical一覧、一時除外した指摘の理由と期限を確認できます。詳細はログとArtifactsの `dependency-security-report` を確認してください。Artifactsには除外前・除外適用後のJSONレポート、Summary、検査した固定ファイル、使用した除外設定を14日間保存します。
