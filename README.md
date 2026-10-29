@@ -6,7 +6,7 @@
 
 ## ライセンス
 
-ライセンスについては[LICENSE.txt](LICENSE.txt)を参照してください。
+本プロジェクトのコードはMITライセンスで公開しています。詳細は[LICENSE.txt](LICENSE.txt)を参照してください。
 
 ## 使い方
 
