@@ -83,7 +83,7 @@ CIでは再生成による差分がないことを確認してから、固定し
 
 ### 依存関係の脆弱性スキャン
 
-[Dependency security](https://github.com/ikishichi/ygo-small-world-transit/actions/workflows/dependency-security.yml) は、毎週土曜04:17（日本時間）と、main向けPRの作成・追加コミット・再オープン時に `requirements.txt` をTrivyで検査します。Actions画面から手動実行もできます。
+[Dependency security](https://github.com/ikishichi/ygo-small-world-transit/actions/workflows/dependency-security.yml) は、毎週土曜日と、main向けPRの作成・追加コミット・再オープン時に `requirements.txt` をTrivyで検査します。Actions画面から手動実行もできます。
 
 定期実行はmainの最新コミットを対象とし、ワークフロー変更がmainにマージされると有効になります。GitHub Actionsの定期実行は遅延・欠落する場合があり、公開リポジトリに60日間活動がないと自動で無効になります。その場合はActions画面から再び有効にしてください。
 
