@@ -1,6 +1,8 @@
 name: Dependency security
 
 on:
+  schedule:
+    - cron: '17 19 * * 5' # 土曜04:17 JST（金曜19:17 UTC）
   pull_request:
     branches: [main]
     types: [opened, synchronize, reopened]
@@ -89,6 +91,7 @@ jobs:
           name: dependency-security-report
           path: |
             ${{ env.SCAN_REPORT_DIR }}/trivy.json
+            ${{ env.SCAN_REPORT_DIR }}/trivy-filtered.json
             ${{ env.SCAN_REPORT_DIR }}/trivyignore.txt
             ${{ env.SCAN_REPORT_DIR }}/summary.md
             ${{ env.SCAN_REPORT_DIR }}/requirements.txt
