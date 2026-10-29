@@ -24,6 +24,13 @@ user --> uc2
 
 ブックマーク用URLには `cgid`、`dno`、`request_locale` を保存する。サーチ元・サーチ先の選択と検索結果はURLには保存しない。
 
+### 画面の動作
+
+- 初回はデッキURL入力フォームと検索フォームを表示する。デッキ未取得時はモンスターの選択欄と「経路を検索」を無効にする。クエリパラメータがない未取得状態では「サンプルで試す」も表示し、押下時は所定の公開デッキを取得する。
+- デッキ取得成功後はURL入力フォームを閉じ、読み込み済みのデッキ名と検索フォームを表示する。「デッキを変更」で直前のURLを復元して入力フォームを再表示でき、同じURLの再取得もできる。ブラウザーのページタイトルにも読み込んだデッキ名を反映する。
+- 手札から見せるサーチ元は必須、サーチ先は任意。サーチ元未選択で検索すると以前の結果をクリアして選択を促す。経路が0件なら、サーチ元の変更やサーチ先の指定解除を案内する。
+- 検索結果は経路数と候補をグループ表示する。既定はサーチ先ごとの経由候補で、「経由でソート」に切り替えると経由ごとのサーチ先候補を表示する。各グループの「一致理由を表示」を開くと、手札→経由→サーチ先の各経路と、属性・種族・レベル・攻撃力・守備力の一致項目を確認できる。
+
 ## データフロー図
 
 ```plantuml
@@ -51,17 +58,17 @@ sw --> user : デッキ再取得用URL（ブックマーク用）
 actor "User" as user
 participant "スモールワールド乗り換え検索" as sw
 database "遊戯王ニューロン" as db
-    user --> sw : デッキURL入力・デッキ取得、またはブックマーク経由のアクセス
-    alt デッキ取得ボタン押下、または未取得・取得済みURLと異なる
+    user --> sw : デッキ取得・サンプル選択、またはブックマーク経由のアクセス
+    alt 明示的な取得操作、またはブックマークのURLが未取得・取得済みURLと異なる
         sw --> db : デッキ取得（接続5秒・読み取り15秒、転送追従なし）
         db --> sw : デッキ情報HTML、または通信エラー
         alt HTTP取得・HTML解析成功
             sw --> sw : HTMLからモンスター情報とデッキ名を取得
-            opt デッキ取得ボタン押下時
+            opt 明示的な取得操作時（デッキ取得またはサンプル）
                 sw --> sw : ブックマーク用クエリパラメータ更新
-                sw --> user : ブックマークの案内
             end
             sw --> sw : 取得済みデッキを更新・検索結果をクリア
+            sw --> sw : URL入力フォームを閉じて再実行
         else 取得・解析失敗
             sw --> user : エラー表示（元のデッキ・検索結果・ブックマークを保持）
         end
@@ -69,21 +76,35 @@ database "遊戯王ニューロン" as db
         sw --> sw : セッション内のデッキを再利用（通信・解析なし）
     end
     opt 取得成功またはキャッシュ再利用時
-        sw --> user : 取得済みデッキ名・モンスター選択候補を表示
+        sw --> user : 取得済みデッキ名・有効な検索フォームを表示
+        opt 明示的な取得操作の成功直後
+            sw --> user : ブックマークの案内を一度だけ表示
+        end
         user --> sw : サーチ元・サーチ先（任意）を選択して検索
         sw --> sw : セッション内のDataFrameからサーチ経路を算出
-        sw --> user : 経由・サーチ先を選択したソート順で表示
+        sw --> user : 経路数と候補をサーチ先または経由ごとに表示
+        user --> sw : 「一致理由を表示」を開く
+        sw --> user : 各経路と2段階の一致項目を表示
     end
 @enduml
 ```
 
 ### ソフトウェア詳細版
 
-以下はデッキ取得・解析・検索の正常系を示す。**デッキ取得ボタン押下時は同じURLでも再取得する。それ以外は、`cgid` と `dno` があり、構築したURLが `LOADED_DECK_URL` と異なる場合だけ取得・解析する。** 初回は `LOADED_DECK_URL` が `None` のため取得する。検索・並べ替えなど、同じ取得済みURLでの再実行はセッション内のデッキを再利用する。
+以下はデッキ取得・解析・検索の正常系を示す。**デッキ取得ボタン押下時は同じURLでも再取得する。「サンプルで試す」も明示的な取得操作として扱う。それ以外は、`cgid` と `dno` があり、構築したURLが `LOADED_DECK_URL` と異なる場合だけ取得・解析する。** 初回は `LOADED_DECK_URL` が `None` のため、ブックマークの指定があれば取得する。検索・並べ替えなど、同じ取得済みURLでの再実行はセッション内のデッキを再利用する。
 
-HTTP取得には接続5秒・読み取り15秒のタイムアウトを設定し、転送応答には追従しない。取得・解析時の例外は UI で捕捉し、エラーを表示する。**失敗時は元のデッキ情報・検索結果・ブックマークを保持する。**
+取得前に `normalize_deck_url()` でスキーム（HTTP/HTTPS）・ホスト（`www.db.yugioh-card.com`）・パス（`/yugiohdb/member_deck.action`）と、空でない `cgid`・`dno` を検証する。取得URLはHTTPSに統一し、`request_locale` が未指定・空文字なら `ja` を補完する。HTTP取得には接続5秒・読み取り15秒のタイムアウトを設定し、転送応答には追従しない。
 
-解析成功後、`MONSTERS_DF`・`DECK_NAME`・`LOADED_DECK_URL` を更新し、`SEARCH_RESULTS` をクリアする。ブックマークの更新と案内はデッキ取得ボタン押下時だけ行う。このとき保存する取得済みURLは更新後のクエリパラメータから構築し、`request_locale` 未指定時の既定値 `ja` と一致させる。キャッシュはセッション単位で、新しいセッションでは再取得する。
+取得・解析時の例外はUIで捕捉し、次のように案内を分ける。**失敗時は元のデッキ情報・検索結果・ブックマークを保持するが、その実行では検索フォーム・結果の表示まで進まない。**
+
+| 例外 | 発生条件 | UIの案内 |
+| --- | --- | --- |
+| `NoMonsterError`（`ValueError` の派生） | メインデッキのモンスター領域が存在して空 | モンスターを含む公開デッキの指定 |
+| `DeckStructureError`（`AttributeError` の派生） | HTML構造・必須項目・デッキ名のmeta情報の欠落、未知のモンスター領域の内容 | 再試行とデッキの公開設定の確認 |
+| `requests.exceptions.RequestException` | 通信失敗・タイムアウト・HTTPの4xx/5xx | 通信状態の確認と再試行 |
+| `ValueError` | 無効なURL・必須パラメータ不足・3xxの転送応答 | 例外メッセージの表示 |
+
+解析成功後、`MONSTERS_DF`・`DECK_NAME`・`LOADED_DECK_URL` を更新し、`SEARCH_RESULTS` をクリアする。明示的な取得操作時だけブックマークを更新し、更新後のクエリパラメータから取得済みURLを構築する。`SHOW_DECK_FORM` を `False` にして `st.rerun()` し、再実行後にデッキ名と検索フォームを表示する。明示取得時は `SHOW_BOOKMARK_HINT` によりブックマーク案内を一度だけ表示する。キャッシュはセッション単位で、新しいセッションでは再取得する。
 
 ```plantuml
 @startuml
@@ -99,19 +120,24 @@ database "遊戯王ニューロン" as db
     ui --> ui : 初回のsession_state初期化・既存セッションのキャッシュキー補完
     ui --> ur : build_url_from_query_params(query_params)
     ur --> ui : クエリパラメータ由来のURL（言語未指定はja）
-    ui --> ui : URL入力フォームを表示
+    opt SHOW_DECK_FORMがTrue
+        ui --> user : URL入力フォームを表示
+        opt クエリパラメータなし・デッキ未取得
+            ui --> user : 「サンプルで試す」を表示
+        end
+    end
     ui --> ur : has_query_params(query_params)
     ur --> ui : cgidとdnoの有無
-    opt デッキ取得ボタン押下またはcgid・dnoあり
+    opt 明示的な取得操作またはcgid・dnoあり
         ui --> ur : select_url(input_url, query_params_url, submit_btn)
         ur --> ui : 使用するURL
-        opt デッキ取得ボタン押下時
+        opt 明示的な取得操作時
             ui --> ui : URLプレフィックス検査
         end
         alt submit_btnまたはLOADED_DECK_URLとURLが異なる
             ui --> di : DeckInfo(url)・fetch_html()
             di --> ur : normalize_deck_url(url)
-            ur --> di : 検査済みHTTPS URL
+            ur --> di : 検査済みHTTPS URL（言語未指定・空文字はja）
             di --> db : requests.get(url, allow_redirects=False, timeout=(5, 15))
             db --> di : デッキ情報HTML
             di --> di : 転送応答の拒否・raise_for_status()・html_content保存
@@ -123,27 +149,44 @@ database "遊戯王ニューロン" as db
             dc --> hp : get_deck_name()
             hp --> dc : デッキ名
             dc --> ui : 解析完了（monsters_df・deck_name）
-            opt デッキ取得ボタン押下時
+            opt 明示的な取得操作時
                 ui --> ui : ブックマーク用クエリパラメータ更新
-                ui --> user : ブックマークの案内
                 ui --> ur : build_url_from_query_params(st.query_params)
                 ur --> ui : 保存する取得済みURL
             end
             ui --> ui : MONSTERS_DF・DECK_NAME・LOADED_DECK_URL更新、SEARCH_RESULTSクリア
+            ui --> ui : SHOW_DECK_FORM=False・SHOW_BOOKMARK_HINT=submit_btn
+            ui --> ui : st.rerun()で再実行し、取得済みデッキを再利用
         else 同じ取得済みURLで再実行
             ui --> ui : セッション内のデッキを再利用（通信・解析なし）
         end
         ui --> user : 取得済みデッキ名を表示
+        opt URL入力フォームが閉じている
+            ui --> user : 「デッキを変更」を表示
+        end
+        opt SHOW_BOOKMARK_HINTがTrue
+            ui --> user : ブックマークの案内を一度だけ表示
+        end
     end
-    ui --> user : サーチ元・サーチ先の選択フォーム
+    ui --> user : サーチ元・サーチ先の選択フォーム（未取得時は検索ボタンとともに無効）
     opt 検索ボタン押下時
-        ui --> sr : SearchResult(MONSTERS_DF, origin, destination)・get()
-        sr --> ui : 検索結果DataFrameまたはNone
-        ui --> ui : SEARCH_RESULTSに保存
+        alt サーチ元未選択
+            ui --> ui : SEARCH_RESULTSをクリア
+            ui --> user : サーチ元の選択を促す警告
+        else サーチ元選択済み
+            ui --> sr : SearchResult(MONSTERS_DF, origin, destination)・get()
+            sr --> ui : 検索結果DataFrameまたはNone
+            ui --> ui : SEARCH_RESULTSに保存
+        end
     end
     opt SEARCH_RESULTSがNoneではない
-        ui --> ui : 経由またはサーチ先でソート
-        ui --> user : 経路ごとに手札・経由・サーチ先と一致理由を表示
+        alt 検索結果が0件
+            ui --> user : サーチ元の変更・サーチ先の指定解除を案内
+        else 検索結果あり
+            ui --> ui : 経由またはサーチ先でソート・グループ化
+            ui --> user : 経路数・手札から見せるカード・グループごとの候補を表示
+            ui --> user : 展開欄内に各経路と一致理由を表示
+        end
     end
 @enduml
 ```
@@ -194,6 +237,7 @@ beautiful soup
 を使用
 endnote
 class url_resolver <<module>> {
+    + normalize_deck_url(url)
     + has_query_params(query_params)
     + build_url_from_query_params(query_params)
     + select_url(input_url, query_params_url, submit_btn)
@@ -202,11 +246,12 @@ ui ..> DeckInfo : 取得
 ui ..> SearchResult : 検索
 ui ..> Deck : 解析
 ui ..> url_resolver : URL構築・選択
+DeckInfo ..> url_resolver : 取得URL検証・HTTPS化
 Deck ..> HtmlParser : HTMLから情報抽出
 @enduml
 ```
 
-`Deck.monsters_df` は `name`、`attribute`、`type`、`level`、`attack`、`defence` の6列を持つ DataFrame。`SearchResult.get()` は `origin`、`transit`、`dest` の3列を持つ DataFrame を返し、サーチ元が見つからない場合は `None` を返す。
+`Deck.monsters_df` は `name`、`attribute`、`type`、`level`、`attack`、`defence` の6列を持つ DataFrame。`SearchResult` はこの6列を比較し、ちょうど1項目だけ一致する組を2段階つないで経路を列挙する。`get()` は `origin`、`transit`、`dest` の3列を持つ DataFrame（経路がなければ空）を返し、サーチ元が見つからない場合は `None` を返す。
 
 ## フローチャート
 
@@ -214,10 +259,13 @@ Deck ..> HtmlParser : HTMLから情報抽出
 @startuml
 start
 :session_state初期化またはキャッシュキー補完;
-:クエリパラメータからURLを構築・入力フォーム表示;
-if (デッキ取得ボタン押下 または cgid・dnoあり?) then (はい)
+:クエリパラメータからURLを構築;
+if (SHOW_DECK_FORMがTrue?) then (はい)
+    :URL入力フォーム表示\nクエリなし・未取得ならサンプルボタンも表示;
+endif
+if (明示的な取得操作 または cgid・dnoあり?) then (はい)
     :入力URLまたはクエリパラメータ由来のURLを選択;
-    if (デッキ取得ボタン押下?) then (はい)
+    if (明示的な取得操作?) then (はい)
         if (許可プレフィックス?) then (はい)
         else (いいえ)
             :無効なURLのエラー表示;
@@ -230,12 +278,15 @@ if (デッキ取得ボタン押下 または cgid・dnoあり?) then (はい)
         if (HTTP取得成功?) then (はい)
             :HTML解析;
             if (解析成功?) then (はい)
-                if (デッキ取得ボタン押下?) then (はい)
-                    :ブックマーク更新・案内表示\n更新後のクエリから取得済みURLを構築;
+                if (明示的な取得操作?) then (はい)
+                    :ブックマーク更新\n更新後のクエリから取得済みURLを構築;
                 else (いいえ)
                     :使用したURLを取得済みURLとする;
                 endif
                 :MONSTERS_DF・DECK_NAME・LOADED_DECK_URL更新\nSEARCH_RESULTSをクリア;
+                :SHOW_DECK_FORM=False\nSHOW_BOOKMARK_HINTに明示取得の有無を保存;
+                :st.rerunで先頭から再実行;
+                stop
             else (いいえ)
                 :エラー表示\n元のデッキ・検索結果・ブックマークを保持;
                 :GitHub・問い合わせリンク表示;
@@ -250,13 +301,28 @@ if (デッキ取得ボタン押下 または cgid・dnoあり?) then (はい)
         :セッション内のデッキを再利用\n通信・解析なし;
     endif
     :取得済みデッキ名を表示;
+    if (URL入力フォームが閉じている?) then (はい)
+        :「デッキを変更」を表示\n押下時はURLを復元してフォームを開く;
+    endif
+    if (SHOW_BOOKMARK_HINTがTrue?) then (はい)
+        :ブックマークの案内を一度だけ表示;
+    endif
 endif
-:サーチ元・サーチ先の選択フォーム表示;
+:サーチ元・サーチ先の選択フォーム表示\n未取得時は選択欄・検索ボタンを無効化;
 if (検索ボタン押下?) then (はい)
-    :SearchResult.getの結果をSEARCH_RESULTSに保存;
+    if (サーチ元が選択済み?) then (はい)
+        :SearchResult.getの結果をSEARCH_RESULTSに保存;
+    else (いいえ)
+        :SEARCH_RESULTSをクリア\nサーチ元の選択を促す警告;
+    endif
 endif
 if (SEARCH_RESULTSがNoneではない?) then (はい)
-    :選択したソート順で並べ替え\n経路ごとに3カードと一致理由を表示;
+    if (検索結果が0件?) then (はい)
+        :サーチ元の変更・サーチ先の指定解除を案内;
+    else (いいえ)
+        :選択したソート順で並べ替え・グループ化\n経路数とグループごとの候補を表示;
+        :展開欄内に各経路と一致理由を表示;
+    endif
 endif
 :GitHub・問い合わせリンク表示;
 stop
@@ -265,7 +331,7 @@ stop
 
 ## 開発環境
 
-* python
+* Python 3.12以上（CI・開発コンテナは3.12）
 * github
 * streamlit
 * requests
@@ -275,6 +341,10 @@ stop
 * numpy
 * pytest
 * pytest-mock
+* uv（依存関係の固定ファイル生成用。`requirements-tools.txt` で管理）
+* Playwright・Chromium（スリープ対策スクリプトの検証用。追加インストールが必要）
+
+依存関係の指定は `requirements.in`、間接依存を含む固定バージョンは `requirements.txt` で管理する。起動・全件テスト・依存関係の更新手順は [README](../README.md) を参照する。
 
 コーディング規約はPython公式に従う。
 
