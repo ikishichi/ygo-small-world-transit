@@ -24,6 +24,15 @@ user --> uc2
 
 ブックマーク用URLには `cgid`、`dno`、`request_locale` を保存する。サーチ元・サーチ先の選択と検索結果はURLには保存しない。
 
+### 多言語対応
+
+- `st.context.locale`（ブラウザーの `navigator.language`）で言語を判定する。`en`・`en-US`・`en-GB` などの英語は `en`、その他・取得不能は `ja`。ページタイトルの設定前に判定し、`src/i18n.py` の翻訳辞書で画面の説明・操作・検索結果・エラー・フッターを表示する。英語の経路数は単数・複数を区別する。
+- デッキ取得言語と画面の表示言語は分ける。入力URL・ブックマークの空でない `request_locale` を優先し、未指定・空文字なら表示言語を補完する。単独で呼ぶURL関数の既定は `ja`。サンプルと説明リンクは表示言語に合わせる。
+- URLの正規化はUIでも取得前に行い、実際に取得した言語をブックマークに保存する。取得済みURLにも同じ言語を含め、検索・ソート時に再取得しない。画面の表示言語はURLに保存せず、閲覧者のブラウザーから毎回判定する。デッキ名は原文のままとする。
+- 種族の抽出は日本語の `【種族／効果】` と英語の `[ Type / Effect ]` に対応し、`Winged Beast` などの空白は保持する。DataFrameの列名と検索計算は共通とする。
+- ログ・内部例外メッセージは日本語のままとし、UIでは例外種別・コードに応じた翻訳文を表示する。予期しない例外の詳細はログに記録し、画面には再試行の案内を表示する。
+- スリープ対策のPlaywrightは `locale="ja-JP"` に固定し、日本語のタイトル・入力欄・ボタンで起動を確認する。
+
 ### 画面の動作
 
 - 初回はデッキURL入力フォームと検索フォームを表示する。デッキ未取得時はモンスターの選択欄と「経路を検索」を無効にする。クエリパラメータがない未取得状態では「サンプルで試す」も表示し、押下時は所定の公開デッキを取得する。
@@ -93,7 +102,7 @@ database "遊戯王ニューロン" as db
 
 以下はデッキ取得・解析・検索の正常系を示す。**デッキ取得ボタン押下時は同じURLでも再取得する。「サンプルで試す」も明示的な取得操作として扱う。それ以外は、`cgid` と `dno` があり、構築したURLが `LOADED_DECK_URL` と異なる場合だけ取得・解析する。** 初回は `LOADED_DECK_URL` が `None` のため、ブックマークの指定があれば取得する。検索・並べ替えなど、同じ取得済みURLでの再実行はセッション内のデッキを再利用する。
 
-取得前に `normalize_deck_url()` でスキーム（HTTP/HTTPS）・ホスト（`www.db.yugioh-card.com`）・パス（`/yugiohdb/member_deck.action`）と、空でない `cgid`・`dno` を検証する。取得URLはHTTPSに統一し、`request_locale` が未指定・空文字なら `ja` を補完する。HTTP取得には接続5秒・読み取り15秒のタイムアウトを設定し、転送応答には追従しない。
+取得前に `normalize_deck_url()` でスキーム（HTTP/HTTPS）・ホスト（`www.db.yugioh-card.com`）・パス（`/yugiohdb/member_deck.action`）と、空でない `cgid`・`dno` を検証する。取得URLはHTTPSに統一し、`request_locale` が未指定・空文字なら画面の表示言語を補完する（URL関数単独の既定は `ja`）。HTTP取得には接続5秒・読み取り15秒のタイムアウトを設定し、転送応答には追従しない。
 
 取得・解析時の例外はUIで捕捉し、次のように案内を分ける。**失敗時は元のデッキ情報・検索結果・ブックマークを保持するが、その実行では検索フォーム・結果の表示まで進まない。**
 
@@ -102,7 +111,9 @@ database "遊戯王ニューロン" as db
 | `NoMonsterError`（`ValueError` の派生） | メインデッキのモンスター領域が存在して空 | モンスターを含む公開デッキの指定 |
 | `DeckStructureError`（`AttributeError` の派生） | HTML構造・必須項目・デッキ名のmeta情報の欠落、未知のモンスター領域の内容 | 再試行とデッキの公開設定の確認 |
 | `requests.exceptions.RequestException` | 通信失敗・タイムアウト・HTTPの4xx/5xx | 通信状態の確認と再試行 |
-| `ValueError` | 無効なURL・必須パラメータ不足・3xxの転送応答 | 例外メッセージの表示 |
+| `DeckUrlError`（`ValueError` の派生） | 無効なURL・必須パラメータ不足 | エラーコードに応じた翻訳文 |
+| `DeckRedirectError`（`ValueError` の派生） | 3xxの転送応答 | 取得先の転送を知らせる翻訳文 |
+| その他の例外 | 予期しない処理エラー | 翻訳済みの再試行案内（詳細はログのみ） |
 
 解析成功後、`MONSTERS_DF`・`DECK_NAME`・`LOADED_DECK_URL` を更新し、`SEARCH_RESULTS` をクリアする。明示的な取得操作時だけブックマークを更新し、更新後のクエリパラメータから取得済みURLを構築する。`SHOW_DECK_FORM` を `False` にして `st.rerun()` し、再実行後にデッキ名と検索フォームを表示する。明示取得時は `SHOW_BOOKMARK_HINT` によりブックマーク案内を一度だけ表示する。キャッシュはセッション単位で、新しいセッションでは再取得する。
 
@@ -118,8 +129,8 @@ participant "SearchResult" as sr
 database "遊戯王ニューロン" as db
     user --> ui : デッキ取得またはStreamlit再実行
     ui --> ui : 初回のsession_state初期化・既存セッションのキャッシュキー補完
-    ui --> ur : build_url_from_query_params(query_params)
-    ur --> ui : クエリパラメータ由来のURL（言語未指定はja）
+    ui --> ur : build_url_from_query_params(query_params, default_locale)
+    ur --> ui : クエリパラメータ由来のURL（言語未指定は表示言語）
     opt SHOW_DECK_FORMがTrue
         ui --> user : URL入力フォームを表示
         opt クエリパラメータなし・デッキ未取得
@@ -131,13 +142,12 @@ database "遊戯王ニューロン" as db
     opt 明示的な取得操作またはcgid・dnoあり
         ui --> ur : select_url(input_url, query_params_url, submit_btn)
         ur --> ui : 使用するURL
-        opt 明示的な取得操作時
-            ui --> ui : URLプレフィックス検査
-        end
+        ui --> ur : normalize_deck_url(url, default_locale=表示言語)
+        ur --> ui : 検査済みHTTPS URL（明示言語優先・未指定は表示言語）
         alt submit_btnまたはLOADED_DECK_URLとURLが異なる
             ui --> di : DeckInfo(url)・fetch_html()
-            di --> ur : normalize_deck_url(url)
-            ur --> di : 検査済みHTTPS URL（言語未指定・空文字はja）
+            di --> ur : normalize_deck_url(url, default_locale="ja")
+            ur --> di : 検査済みHTTPS URL（UIで取得言語指定済み）
             di --> db : requests.get(url, allow_redirects=False, timeout=(5, 15))
             db --> di : デッキ情報HTML
             di --> di : 転送応答の拒否・raise_for_status()・html_content保存
@@ -237,9 +247,9 @@ beautiful soup
 を使用
 endnote
 class url_resolver <<module>> {
-    + normalize_deck_url(url)
+    + normalize_deck_url(url, default_locale="ja")
     + has_query_params(query_params)
-    + build_url_from_query_params(query_params)
+    + build_url_from_query_params(query_params, default_locale)
     + select_url(input_url, query_params_url, submit_btn)
 }
 ui ..> DeckInfo : 取得
@@ -265,13 +275,12 @@ if (SHOW_DECK_FORMがTrue?) then (はい)
 endif
 if (明示的な取得操作 または cgid・dnoあり?) then (はい)
     :入力URLまたはクエリパラメータ由来のURLを選択;
-    if (明示的な取得操作?) then (はい)
-        if (許可プレフィックス?) then (はい)
-        else (いいえ)
-            :無効なURLのエラー表示;
-            :GitHub・問い合わせリンク表示;
-            stop
-        endif
+    :URL検査・HTTPS化・未指定言語を表示言語で補完;
+    if (有効な公開デッキURL?) then (はい)
+    else (いいえ)
+        :無効なURLのエラー表示;
+        :GitHub・問い合わせリンク表示;
+        stop
     endif
     if (明示取得 または LOADED_DECK_URLとURLが異なる?) then (はい)
         :URL検査・HTTPS化・HTML取得\n接続5秒・読み取り15秒・転送追従なし;

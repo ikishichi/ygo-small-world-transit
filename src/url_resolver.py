@@ -6,31 +6,44 @@ VALID_PREFIX_HTTP = "http://www.db.yugioh-card.com/yugiohdb/member_deck.action"
 VALID_PREFIX_HTTPS = "https://www.db.yugioh-card.com/yugiohdb/member_deck.action"
 
 
-def normalize_deck_url(url):
+class DeckUrlError(ValueError):
+    """UIで翻訳可能なエラーコードを持つURL検証エラー。"""
+
+    def __init__(self, code, message):
+        super().__init__(message)
+        self.code = code
+
+
+def normalize_deck_url(url, default_locale="ja"):
     """デッキURLを検査し、HTTPS化と言語の既定値補完を行う。"""
-    parts = urlsplit(url)
+    try:
+        parts = urlsplit(url)
+    except ValueError as error:
+        raise DeckUrlError("invalid_url", "無効なURLです。") from error
     if (
         parts.scheme not in {"http", "https"}
         or parts.netloc != "www.db.yugioh-card.com"
         or parts.path != "/yugiohdb/member_deck.action"
     ):
-        raise ValueError(
-            "無効なURLです。遊戯王ニューロンの公開デッキレシピのURLを入力してください。"
+        raise DeckUrlError(
+            "invalid_url",
+            "無効なURLです。遊戯王ニューロンの公開デッキレシピのURLを入力してください。",
         )
     query_params = parse_qs(parts.query)
     if not all(query_params.get(key, [""])[0] for key in ("cgid", "dno")):
-        raise ValueError(
-            "デッキURLに必須情報（cgid、dno）がありません。公開デッキのURLを確認してください。"
+        raise DeckUrlError(
+            "missing_deck_params",
+            "デッキURLに必須情報（cgid、dno）がありません。公開デッキのURLを確認してください。",
         )
     query = parts.query
     if "request_locale" not in query_params:
-        # 空の言語指定も未指定として扱い、初回取得から日本語を指定する。
+        # 空の言語指定も未指定として扱い、指定された既定言語を初回取得から使用する。
         params = [
             (key, value)
             for key, value in parse_qsl(query, keep_blank_values=True)
             if key != "request_locale"
         ]
-        params.append(("request_locale", "ja"))
+        params.append(("request_locale", default_locale))
         query = urlencode(params)
     return urlunsplit(("https", parts.netloc, parts.path, query, ""))
 
@@ -47,19 +60,20 @@ def has_query_params(query_params):
     return all(key in query_params for key in ("cgid", "dno"))
 
 
-def build_url_from_query_params(query_params):
+def build_url_from_query_params(query_params, default_locale="ja"):
     """クエリパラメータから遊戯王ニューロン公開デッキURLを構築する
 
     Args:
         query_params: dict-like object (cgid, dno 必須、request_locale は任意)
+        default_locale: 言語未指定時の取得言語（既定はja）
 
     Returns:
         (str): 構築した遊戯王ニューロン公開デッキURL。必須パラメータが欠けていれば空文字を返す。
-               request_locale が欠けている場合は "ja" を補完する。
+               request_locale が未指定・空文字の場合は default_locale を補完する。
     """
     if not has_query_params(query_params):
         return ""
-    locale = query_params.get("request_locale", "ja")
+    locale = query_params.get("request_locale") or default_locale
     return (
         VALID_PREFIX_HTTPS
         + "?cgid=" + query_params["cgid"]

@@ -1,7 +1,7 @@
 import pytest
 import requests
 
-from src.deck_info import DeckInfo
+from src.deck_info import DeckInfo, DeckRedirectError
 
 # 有効・無効なURLを定義
 VALID_URL = "https://www.db.yugioh-card.com/yugiohdb/member_deck.action?cgid=1&dno=2"
@@ -114,7 +114,9 @@ def test_fetch_html_rejects_redirect_without_following_it(mocker, status_code):
     response.status_code = status_code
     get = mocker.patch("requests.get", return_value=response)
 
-    with pytest.raises(ValueError, match="デッキ取得先から転送応答が返されました"):
+    with pytest.raises(
+        DeckRedirectError, match="デッキ取得先から転送応答が返されました"
+    ):
         DeckInfo(VALID_URL).fetch_html()
 
     get.assert_called_once_with(

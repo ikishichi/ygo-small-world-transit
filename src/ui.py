@@ -1,7 +1,5 @@
 """スモール・ワールド乗り換え検索の画面表示モジュール"""
 import logging
-
-logger = logging.getLogger(__name__)
 import urllib.parse
 
 import pandas as pd
@@ -9,25 +7,28 @@ import requests
 import streamlit as st
 
 from deck import Deck
-from deck_info import DeckInfo
+from deck_info import DeckInfo, DeckRedirectError
 from html_parser import DeckStructureError, NoMonsterError
+from i18n import resolve_language, route_count, translate
 from search_result import SearchResult
 from url_resolver import (
-    VALID_PREFIX_HTTP,
-    VALID_PREFIX_HTTPS,
+    DeckUrlError,
     build_url_from_query_params,
     has_query_params,
+    normalize_deck_url,
     select_url,
 )
 
+logger = logging.getLogger(__name__)
+LANGUAGE = resolve_language(st.context.locale)
 
-MATCH_FIELDS = {
-    "attribute": "属性",
-    "type": "種族",
-    "level": "レベル",
-    "attack": "攻撃力",
-    "defence": "守備力",
-}
+
+def t(key, **values):
+    """現在のブラウザー言語で画面文言を取得する。"""
+    return translate(key, LANGUAGE, **values)
+
+
+MATCH_FIELDS = ("attribute", "type", "level", "attack", "defence")
 
 
 def get_matching_attributes(
@@ -42,8 +43,8 @@ def get_matching_attributes(
     first = first_rows.iloc[0]
     second = second_rows.iloc[0]
     return [
-        (label, str(first[field]))
-        for field, label in MATCH_FIELDS.items()
+        (t(field), str(first[field]))
+        for field in MATCH_FIELDS
         if (
             pd.notna(first[field])
             and pd.notna(second[field])
@@ -75,7 +76,7 @@ def show_deck_form():
     st.session_state["SHOW_DECK_FORM"] = True
 
 
-APP_TITLE = "遊戯王スモール・ワールド乗り換え検索"
+APP_TITLE = t("app_title")
 
 deck_name = st.session_state.get("DECK_NAME")
 st.set_page_config(
@@ -102,12 +103,10 @@ st.html(
     """
 )
 st.title(
-    "[遊戯王スモール・ワールド乗り換え検索]"
-    "(https://ygo-small-world-transit.streamlit.app/)",
+    f"[{APP_TITLE}](https://ygo-small-world-transit.streamlit.app/)",
     anchor=False,
 )
-st.caption("[遊戯王ニューロン](https://www.db.yugioh-card.com/yugiohdb/)の公開デッキを読み込むことで、"
-           "[<<スモール・ワールド>>](https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=2&cid=16555&request_locale=ja)のサーチ経路を検索できます。")
+st.caption(t("intro", locale=LANGUAGE))
 
 if 'MONSTERS_DF' not in st.session_state:
     initialize_session_state()
@@ -124,7 +123,9 @@ query_params = st.query_params
 
 try:
     # クエリパラメータから遊戯王ニューロンのURLを構築（必須パラメータが欠ければ空文字）
-    query_params_url = build_url_from_query_params(query_params)
+    query_params_url = build_url_from_query_params(
+        query_params, default_locale=LANGUAGE
+    )
 
     sample_btn = False
     submit_btn = False
@@ -137,9 +138,9 @@ try:
             )
         with st.form(key="deck_url"):
             input_url = st.text_input(
-                "遊戯王ニューロンの公開デッキURLを入力してください。",
+                t("deck_url_label"),
                 key="deck_url_input",
-                placeholder="URLを入力",
+                placeholder=t("url_placeholder"),
             )
             show_sample = not query_params and st.session_state["LOADED_DECK_URL"] is None
             if show_sample:
@@ -148,18 +149,22 @@ try:
                 fetch_column = st.container()
             with fetch_column:
                 submit_btn = st.form_submit_button(
-                    "デッキ取得", type="primary", width="stretch",
+                    t("fetch_deck"),
+                    type="primary",
+                    width="stretch",
                 )
             if show_sample:
                 with sample_column:
                     sample_btn = st.form_submit_button(
-                        "サンプルで試す", type="secondary", width="stretch",
+                        t("sample"),
+                        type="secondary",
+                        width="stretch",
                     )
 
         if sample_btn:
             input_url = (
                 "https://www.db.yugioh-card.com/yugiohdb/member_deck.action"
-                "?cgid=c8525f77e0268f9b1ba9110a8a05bc35&dno=193&request_locale=ja"
+                f"?cgid=c8525f77e0268f9b1ba9110a8a05bc35&dno=193&request_locale={LANGUAGE}"
             )
             submit_btn = True
 
@@ -172,16 +177,13 @@ try:
         # Issue #32: submit 時は必ずユーザー入力を採用し、クエリパラメータで上書きしない
         url = select_url(input_url, query_params_url, submit_btn)
 
-        # 取得ボタンが押下されている場合
-        if submit_btn:
-            if not url.startswith(VALID_PREFIX_HTTP) and not url.startswith(VALID_PREFIX_HTTPS):
-                logger.warning(f"無効なURL: {url}")
-                raise ValueError("無効なURLです。遊戯王ニューロンの公開デッキレシピのURLを入力してください。")
+        # 取得とブックマークに同じ言語の正規化済みURLを使う。
+        url = normalize_deck_url(url, default_locale=LANGUAGE)
 
         # ソートや検索による再実行では取得済みデッキを再利用する。
         # 明示的な取得操作は、同じURLでも最新状態を読み直す。
         if submit_btn or st.session_state["LOADED_DECK_URL"] != url:
-            with st.spinner("デッキを読み込んでいます…"):
+            with st.spinner(t("loading")):
                 # 取得・解析に失敗した場合は、現在の検索状態とブックマークを保持する。
                 deck_info = DeckInfo(url)
                 deck_info.fetch_html()
@@ -196,10 +198,12 @@ try:
                 st.query_params["cgid"] = db_query_params["cgid"][0]
                 st.query_params["dno"] = db_query_params["dno"][0]
                 st.query_params["request_locale"] = db_query_params.get(
-                    "request_locale", ["ja"]
+                    "request_locale", [LANGUAGE]
                 )[0]
                 # 入力URLに言語指定がなくても、ブックマーク側の既定値と一致させる。
-                loaded_url = build_url_from_query_params(st.query_params)
+                loaded_url = build_url_from_query_params(
+                    st.query_params, default_locale=LANGUAGE
+                )
             else:
                 loaded_url = url
                 st.session_state["DECK_INPUT_URL"] = url
@@ -216,50 +220,48 @@ try:
             st.session_state["SHOW_BOOKMARK_HINT"] = submit_btn
             st.rerun()
 
-        deck_name = st.session_state["DECK_NAME"] or "名前なしのデッキ"
+        deck_name = st.session_state["DECK_NAME"] or t("unnamed_deck")
         summary, change = st.columns([4, 1.5], vertical_alignment="center")
-        summary.markdown(f":green[✓ 読み込み済]　**{deck_name}**")
+        summary.markdown(t("loaded", name=deck_name))
         if not st.session_state["SHOW_DECK_FORM"]:
-            change.button(
-                "デッキを変更", key="change_deck", on_click=show_deck_form
-            )
+            change.button(t("change_deck"), key="change_deck", on_click=show_deck_form)
         if st.session_state.pop("SHOW_BOOKMARK_HINT", False):
-            st.caption(
-                "このページをブックマークすると、次回のデッキ入力を省略できます。"
-            )
+            st.caption(t("bookmark_hint"))
 
     with st.form(key='select_box'):
         # サーチ元指定（プルダウン。DataFrameの1列目が候補として表示される）
         monsters_df = st.session_state["MONSTERS_DF"]
         deck_is_loaded = not monsters_df.empty
         transit_start = st.selectbox(
-            "手札から見せるモンスターを選択してください:red[（必須）]",
+            t("origin_label"),
             monsters_df,
             index=None,
-            placeholder="モンスターを選択",
+            placeholder=t("monster_placeholder"),
             disabled=not deck_is_loaded,
         )
 
         # サーチ先指定（プルダウン）
         # 検索結果の中から候補を選ぶ「絞り込み検索」
         transit_goal = st.selectbox(
-            "サーチ先とするモンスターを選択してください（任意）",
+            t("destination_label"),
             monsters_df,
             index=None,
-            placeholder="モンスターを選択",
+            placeholder=t("monster_placeholder"),
             disabled=not deck_is_loaded,
         )
 
         # 検索実行ボタン
         search_btn = st.form_submit_button(
-            "経路を検索", disabled=st.session_state["MONSTERS_DF"].empty,
-            type="primary", width="stretch",
+            t("search"),
+            disabled=st.session_state["MONSTERS_DF"].empty,
+            type="primary",
+            width="stretch",
         )
 
     if search_btn:
         if transit_start is None:
             st.session_state["SEARCH_RESULTS"] = None
-            st.warning("サーチ元のモンスターを選択してください。")
+            st.warning(t("origin_required"))
         else:
             st.session_state["SEARCH_RESULTS"] = SearchResult(
                 st.session_state["MONSTERS_DF"], transit_start, transit_goal
@@ -268,28 +270,25 @@ try:
     # 検索結果表示
     if st.session_state["SEARCH_RESULTS"] is not None:
         if st.session_state["SEARCH_RESULTS"].empty:
-            st.info(
-                "該当する経路はありません。サーチ元を変更するか、"
-                "サーチ先の指定を外してお試しください。"
-            )
+            st.info(t("no_routes"))
         else:
             with st.container(horizontal=True, vertical_alignment="bottom"):
-                st.header("検索結果", width="content")
+                st.header(t("results"), width="content")
                 st.caption(
-                    f"{len(st.session_state['SEARCH_RESULTS'])}経路",
+                    route_count(len(st.session_state["SEARCH_RESULTS"]), LANGUAGE),
                     width="content",
                 )
 
             # ソート選択ラジオボタン
             sort = st.radio(
-                "並べ替え",
-                ["経由でソート", "サーチ先でソート"],
+                t("sort"),
+                [t("sort_transit"), t("sort_destination")],
                 index=1,
                 horizontal=True,
                 label_visibility="collapsed",
             )
 
-            if sort == "経由でソート":
+            if sort == t("sort_transit"):
                 group_by_destination = False
                 search_results = st.session_state["SEARCH_RESULTS"].sort_values(
                     "transit", kind="stable"
@@ -301,8 +300,8 @@ try:
                 )
 
             monsters_df = st.session_state["MONSTERS_DF"]
-            group_label = "サーチ先" if group_by_destination else "経由"
-            candidate_label = "経由" if group_by_destination else "サーチ先"
+            group_label = t("destination") if group_by_destination else t("bridge")
+            candidate_label = t("bridge") if group_by_destination else t("destination")
             group_field = "dest" if group_by_destination else "transit"
             candidate_field = "transit" if group_by_destination else "dest"
 
@@ -321,10 +320,10 @@ try:
                 route_group["routes"].append(route)
 
             def display_card_name(name):
-                return "カード名なし" if pd.isna(name) else str(name)
+                return t("unnamed_card") if pd.isna(name) else str(name)
 
             origin_name = display_card_name(search_results.iloc[0]["origin"])
-            st.markdown(f"**手札から見せるカード：** {origin_name}")
+            st.markdown(t("origin_summary", name=origin_name))
             displayed_route_number = 0
             for route_group in route_groups.values():
                 routes = route_group["routes"]
@@ -334,22 +333,35 @@ try:
                 ))
                 with st.container(border=True):
                     st.markdown(
-                        f"**{group_label}：** "
-                        f"{display_card_name(route_group['name'])}"
+                        t(
+                            "group_summary",
+                            label=group_label,
+                            names=display_card_name(route_group["name"]),
+                        )
                     )
                     st.markdown(
-                        f"**{candidate_label}：** {' / '.join(candidate_names)}"
+                        t(
+                            "group_summary",
+                            label=candidate_label,
+                            names=" / ".join(candidate_names),
+                        )
                     )
-                    st.caption(f"{len(routes)}経路")
-                    with st.expander(f"一致理由を表示（{len(routes)}経路）"):
+                    st.caption(route_count(len(routes), LANGUAGE))
+                    with st.expander(
+                        t("match_details", routes=route_count(len(routes), LANGUAGE))
+                    ):
                         for route in routes:
                             displayed_route_number += 1
                             transit_name = display_card_name(route.transit)
                             destination_name = display_card_name(route.dest)
                             st.markdown(
-                                f"**経路 {displayed_route_number}：** "
-                                f"{origin_name} → {transit_name} → "
-                                f"{destination_name}"
+                                t(
+                                    "route",
+                                    number=displayed_route_number,
+                                    origin=origin_name,
+                                    transit=transit_name,
+                                    destination=destination_name,
+                                )
                             )
                             if pd.notna(route.origin) and pd.notna(route.transit):
                                 first_matches = get_matching_attributes(
@@ -359,12 +371,9 @@ try:
                                 first_matches = []
                             if first_matches:
                                 label, value = first_matches[0]
-                                st.caption(f"手札→経由：{label}が一致（{value}）")
+                                st.caption(t("first_match", label=label, value=value))
                             else:
-                                st.caption(
-                                    "手札→経由："
-                                    "一致項目を表示できません"
-                                )
+                                st.caption(t("first_match_missing"))
                             if pd.notna(route.transit) and pd.notna(route.dest):
                                 second_matches = get_matching_attributes(
                                     monsters_df, route.transit, route.dest
@@ -373,31 +382,27 @@ try:
                                 second_matches = []
                             if second_matches:
                                 label, value = second_matches[0]
-                                st.caption(f"経由→サーチ先：{label}が一致（{value}）")
+                                st.caption(t("second_match", label=label, value=value))
                             else:
-                                st.caption(
-                                    "経由→サーチ先："
-                                    "一致項目を表示できません"
-                                )
+                                st.caption(t("second_match_missing"))
 
-except NoMonsterError as error:
-    st.error(error)
-    st.info("モンスターを含む公開デッキのURLを指定してください。")
+except NoMonsterError:
+    st.error(t("no_monsters"))
+    st.info(t("monsters_hint"))
 except DeckStructureError:
     logger.exception("遊戯王ニューロンのデッキHTMLを解析できませんでした")
-    st.error("デッキ情報を解析できませんでした。時間を置いて再試行してください。")
-    st.info("デッキレシピが「公開」になっているか確認してください。")
+    st.error(t("parse_error"))
+    st.info(t("public_hint"))
 except requests.exceptions.RequestException:
     logger.exception("遊戯王ニューロンからデッキ情報を取得できませんでした")
-    st.error("デッキ情報を取得できませんでした。通信状態を確認し、時間を置いて再試行してください。")
-except ValueError as ve:
-    st.error(ve)
-except RuntimeError as re:
-    st.error(re)
+    st.error(t("network_error"))
+except DeckUrlError as error:
+    st.error(t(error.code))
+except DeckRedirectError:
+    st.error(t("redirect_error"))
 except Exception:
     logger.exception("予期せぬ例外")
-    st.error("予期しないエラーが発生しました。時間を置いて再試行してください。")
+    st.error(t("unexpected_error"))
 
 finally:
-    st.write("[GitHub](https://github.com/ikishichi/ygo-small-world-transit) / "
-             "お問い合わせ・バグ報告は[こちら](https://docs.google.com/forms/d/18bz8n0Iw7zcS1Js1EhHxuyQ_HwOyts9goOyytDGqOvI/edit?pli=1)")
+    st.write(t("footer"))

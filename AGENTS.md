@@ -31,7 +31,7 @@ pytest test/html_parser_test.py::TestHtmlParser::test_get_deck_name_normal
 
 ## アーキテクチャ
 
-アプリは 6 モジュールで構成され、それぞれ単一責務を持つ。データの流れは基本的に一方向：
+アプリは 7 モジュールで構成され、それぞれ単一責務を持つ。データの流れは基本的に一方向：
 
 ```
 ui.py (Streamlit)
@@ -42,8 +42,9 @@ ui.py (Streamlit)
   └─ SearchResult(df, origin, dest).get() → pandas ベースでサーチ経路を算出
 ```
 
+- [src/i18n.py](src/i18n.py): `st.context.locale` から渡されたブラウザー言語を `en` / `ja` に分類し、画面文言と経路数の単数・複数表記を提供する。英語以外・取得不能は日本語。ログや内部例外メッセージは翻訳しない。
 - [src/ui.py](src/ui.py): Streamlit UI、クエリパラメータによるブックマーク対応、例外→画面エラー表示の責務。`session_state` に `MONSTERS_DF`・`SEARCH_RESULTS`・`DECK_NAME`・`LOADED_DECK_URL` を保持し、同じ取得済みURLの再実行では通信・解析を省く。明示的な取得操作は同じURLでも再取得する。取得成功後はURL入力フォームを閉じ、「デッキを変更」で再表示する。検索フォームは初期表示時から存在し、未取得時は無効。検索結果はサーチ先または経由ごとにまとめ、一致理由を展開表示する。
-- [src/deck_info.py](src/deck_info.py): `normalize_deck_url()` で取得URLを検証・HTTPS化した後、接続5秒・読み取り15秒のタイムアウトでHTTP取得する。転送には追従せず、3xxは `ValueError`、4xx・5xxは `raise_for_status()` で例外化する。
+- [src/deck_info.py](src/deck_info.py): `normalize_deck_url()` で取得URLを検証・HTTPS化した後、接続5秒・読み取り15秒のタイムアウトでHTTP取得する。転送には追従せず、3xxは `DeckRedirectError`（`ValueError` の派生）、4xx・5xxは `raise_for_status()` で例外化する。
 - [src/deck.py](src/deck.py): HtmlParser の結果を pandas.DataFrame 化する薄いラッパー。
 - [src/html_parser.py](src/html_parser.py): 遊戯王ニューロンの HTML 構造（`detailtext_main` → `t_body mlist_m` → `t_row c_normal`、`card_name` / `box_card_attribute` / `box_card_level_rank level` / `card_info_species_and_other_item` / `atk_power` / `def_power`）に強く依存している。**遊戯王ニューロンの HTML 構造変更がこのプロジェクトの最大の破壊要因**。構造や必須項目の欠落、未知のモンスター領域の内容、デッキ名の meta タグ・content 属性の欠落は `DeckStructureError`（`AttributeError` の派生）を送出する。モンスター領域が存在して空の場合は `NoMonsterError`（`ValueError` の派生）を送出する。UIは解析失敗とモンスター不在を区別して案内する。
 - [src/search_result.py](src/search_result.py): 《スモール・ワールド》のロジックの本体。モンスター属性 6 項目（name, attribute, type, level, attack, defence）のうち**ちょうど 1 項目だけが一致する**組を「経由可能」と判定する二重ループ。origin → transit → dest の 2 ホップで全経路を列挙し DataFrame で返す。
@@ -51,12 +52,13 @@ ui.py (Streamlit)
 
 ## 遊戯王ニューロンの URL 仕様
 
-- UIは `url_resolver.py` から読み込んだ `VALID_PREFIX_HTTP` / `VALID_PREFIX_HTTPS` で入力URLのプレフィックスを検査する。取得直前には `normalize_deck_url()` が、スキームは `http` / `https`、ホストは `www.db.yugioh-card.com`、パスは `/yugiohdb/member_deck.action` であることを厳密に検証する。HTTP入力も実際の取得はHTTPSに統一する。
-- クエリパラメータ `cgid` と `dno` でデッキを一意特定し、取得時には両方の空でない値が必要。`request_locale` は取得時に未指定・空文字なら `ja` を補完する。ブックマークからのURL構築では未指定時に `ja` を補完する。UI は明示的な取得操作での取得・解析成功後にこれら3項目を自身のURLにコピーして「ブックマーク共有」を実現している。サーチ元・サーチ先・検索結果はURLに保存しない。
+- UIと取得直前の両方で `normalize_deck_url()` が、スキームは `http` / `https`、ホストは `www.db.yugioh-card.com`、パスは `/yugiohdb/member_deck.action` であることを厳密に検証する。HTTP入力も実際の取得はHTTPSに統一する。
+- クエリパラメータ `cgid` と `dno` でデッキを一意特定し、取得時には両方の空でない値が必要。`request_locale` は未指定・空文字なら画面の表示言語を補完し、入力URL・ブックマークの明示指定は維持する。URL関連関数を単独で呼ぶ場合の既定は `ja`。UIでは正規化済みURLを取得・ブックマーク双方に使用する。URL検証失敗は翻訳用コードを持つ `DeckUrlError`（`ValueError` の派生）を送出する。UI は明示的な取得操作での取得・解析成功後にこれら3項目を自身のURLにコピーして「ブックマーク共有」を実現している。サーチ元・サーチ先・検索結果はURLに保存しない。
 
 ## テストの方針
 
 - 外部 HTTP は `pytest-mock` の `mocker.patch("requests.get", ...)` でモック。
+- HtmlParser は日英の種族区切り（`／` / `/`）と括弧（`【】` / `[]`）に対応し、英語の複数語の種族名の空白を保持する。
 - HtmlParser のテストはインラインの HTML 文字列をパラメタライズして渡す（実際の遊戯王ニューロンのフィクスチャは持たない）。新しい構造変更に追従する際はこのデータを更新する。
 - UIは Streamlit の `AppTest` で、フォームの切り替え、取得済みデッキの再利用、取得失敗時の状態保持、検索結果のグループ表示などを検証する。`scripts/` の脆弱性レポートとスリープ対策にもテストがあり、スリープ対策のテストには追加のPlaywright・Chromiumが必要（導入方法はREADMEを参照）。
 

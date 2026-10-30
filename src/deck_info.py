@@ -11,6 +11,10 @@ except ImportError:
     from url_resolver import normalize_deck_url
 
 
+class DeckRedirectError(ValueError):
+    """デッキ取得先から転送応答が返された。"""
+
+
 class DeckInfo:
     """デッキ情報クラス
 
@@ -29,7 +33,7 @@ class DeckInfo:
             url = normalize_deck_url(self.url)
             response = requests.get(url, allow_redirects=False, timeout=(5, 15))
             if 300 <= response.status_code < 400:
-                raise ValueError("デッキ取得先から転送応答が返されました")
+                raise DeckRedirectError("デッキ取得先から転送応答が返されました")
             response.raise_for_status()
             self.html_content = response.content
         except requests.exceptions.RequestException as e:

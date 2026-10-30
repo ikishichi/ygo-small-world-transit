@@ -635,3 +635,127 @@ def test_deck_form_closes_after_refresh_and_restores_input(mocker, monkeypatch):
         "ブックマーク" not in caption.value for caption in app.caption
     )
     assert get.call_count == 2
+
+
+@pytest.fixture
+def english_app(monkeypatch):
+    monkeypatch.syspath_prepend(str(PROJECT_ROOT / "src"))
+    monkeypatch.setattr(type(st.context), "locale", property(lambda _: "en-US"))
+    return AppTest.from_file(str(PROJECT_ROOT / "src" / "ui.py"))
+
+
+def test_english_initial_screen(english_app, mocker):
+    page_config = mocker.spy(st, "set_page_config")
+    english_app.run()
+    assert not english_app.exception
+    page_config.assert_called_with(page_title="Yu-Gi-Oh! Small World Route Finder")
+    assert "Yu-Gi-Oh! Small World Route Finder" in english_app.title[0].value
+    assert (
+        english_app.text_input[0].label
+        == "Enter a public deck URL from the Yu-Gi-Oh! Card Database."
+    )
+    assert [button.label for button in english_app.button] == [
+        "Load deck",
+        "Try a sample",
+        "Find routes",
+    ]
+    assert english_app.selectbox[0].disabled
+    assert english_app.selectbox[1].disabled
+    assert "request_locale=en" in english_app.caption[0].value
+    assert "Contact us or report a bug" in english_app.markdown[-1].value
+
+
+@pytest.mark.parametrize("entry", ["input", "bookmark"])
+@pytest.mark.parametrize(
+    "specified, expected", [(None, "en"), ("", "en"), ("ja", "ja"), ("en", "en")]
+)
+def test_english_deck_locale_and_cache(english_app, mocker, entry, specified, expected):
+    from test.html_parser_test import ENGLISH_DECK_HTML
+
+    get = mocker.patch(
+        "requests.get",
+        return_value=mocker.Mock(
+            status_code=200,
+            content=ENGLISH_DECK_HTML.encode("utf-8"),
+        ),
+    )
+    if entry == "bookmark":
+        english_app.query_params.update({"cgid": "A", "dno": "1"})
+        if specified is not None:
+            english_app.query_params["request_locale"] = specified
+        english_app.run()
+    else:
+        english_app.run()
+        url = "http://www.db.yugioh-card.com/yugiohdb/member_deck.action?cgid=A&dno=1"
+        if specified is not None:
+            url += "&request_locale=" + specified
+        english_app.text_input[0].set_value(url)
+        next(
+            button for button in english_app.button if button.label == "Load deck"
+        ).click().run()
+    assert not english_app.exception
+    assert not english_app.error
+    assert parse_qs(urlsplit(get.call_args.args[0]).query)["request_locale"] == [
+        expected
+    ]
+    assert english_app.selectbox[0].options[0] == "Mulcharmy Fuwalos"
+    if entry != "bookmark":
+        assert normalize_query_params(english_app.query_params)["request_locale"] == [
+            expected
+        ]
+    english_app.run()
+    assert not english_app.exception
+    get.assert_called_once()
+    # フォームを開いてもデッキ取得や検索状態の消去は起こらない。
+    english_app.button(key="change_deck").click().run()
+    get.assert_called_once()
+
+
+@pytest.mark.parametrize(
+    "failure, expected",
+    [
+        ("invalid", "Invalid URL."),
+        ("missing", "missing required information"),
+        ("redirect", "returned a redirect"),
+        ("network", "Check your connection"),
+        ("structure", "Could not read the deck information"),
+        ("empty", "No monsters were found"),
+        ("unexpected", "An unexpected error occurred"),
+    ],
+)
+def test_english_errors_do_not_expose_internal_messages(
+    english_app, mocker, failure, expected
+):
+    content = DECK_HTML
+    if failure == "structure":
+        content = "<html></html>"
+    elif failure == "empty":
+        content = '<div id="detailtext_main"><div class="t_body mlist_m"></div></div>'
+    get = mocker.patch(
+        "requests.get",
+        return_value=mocker.Mock(
+            status_code=302 if failure == "redirect" else 200,
+            content=content.encode("utf-8"),
+        ),
+    )
+    if failure == "network":
+        get.side_effect = requests.exceptions.ConnectionError("内部通信エラー")
+    elif failure == "unexpected":
+        get.side_effect = RuntimeError("内部処理エラー")
+    english_app.run()
+    url = "https://www.db.yugioh-card.com/yugiohdb/member_deck.action?cgid=A&dno=1"
+    if failure == "invalid":
+        url = "https://example.com/"
+    elif failure == "missing":
+        url = url.split("&dno")[0]
+    english_app.text_input[0].set_value(url)
+    next(
+        button for button in english_app.button if button.label == "Load deck"
+    ).click().run()
+    assert not english_app.exception
+    assert len(english_app.error) == 1
+    assert expected in english_app.error[0].value
+    assert "内部" not in english_app.error[0].value
+    assert not english_app.query_params
+    if failure in ("invalid", "missing"):
+        get.assert_not_called()

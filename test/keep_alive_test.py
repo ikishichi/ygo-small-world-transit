@@ -95,6 +95,7 @@ def test_run_retries_and_reports_failure(mocker, tmp_path, scenario):
     original_new_context = Browser.new_context
 
     async def new_context(browser, **kwargs):
+        assert kwargs["locale"] == "ja-JP"
         context = await original_new_context(browser, **kwargs)
 
         async def respond(route):

@@ -1,4 +1,6 @@
 """HTMLパーサーモジュール"""
+import re
+
 from bs4 import BeautifulSoup
 
 
@@ -99,7 +101,9 @@ class HtmlParser:
 
             # 改行やタブを削除
             attribute = "".join(attribute.split())
-            type_ = "".join(type_.split()).split('／')[0].strip("【】")
+            # 日英の区切り・括弧に対応し、Winged Beast等の語間は保持する。
+            species = re.split(r"[／/]", type_, maxsplit=1)[0]
+            type_ = " ".join(species.strip().strip("【】[]").split())
             level = "".join(level.split())
             attack = "".join(attack.split())
             defence = "".join(defence.split())

@@ -70,7 +70,7 @@ async def run(
             for attempt in range(1, 3):
                 started = monotonic()
                 # 再試行時も新しいセッションで接続し直す。
-                context = await browser.new_context()
+                context = await browser.new_context(locale="ja-JP")
                 page = await context.new_page()
                 try:
                     await page.goto(url, wait_until="domcontentloaded", timeout=30_000)
