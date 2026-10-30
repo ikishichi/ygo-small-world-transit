@@ -10,7 +10,7 @@ def resolve_language(browser_locale: str | None) -> str:
 MESSAGES = {
     "ja": {
         "app_title": "遊戯王スモール・ワールド乗り換え検索",
-        "intro": "[遊戯王ニューロン](https://www.db.yugioh-card.com/yugiohdb/?request_locale={locale})の公開デッキを読み込むことで、[<<スモール・ワールド>>](https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=2&cid=16555&request_locale={locale})のサーチ経路を検索できます。",
+        "intro": "[遊戯王ニューロン](https://www.db.yugioh-card.com/yugiohdb/?request_locale={locale})の公開デッキから[<<スモール・ワールド>>](https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=2&cid=16555&request_locale={locale})のサーチ経路を検索します。",
         "deck_url_label": "遊戯王ニューロンの公開デッキURLを入力してください。",
         "url_placeholder": "URLを入力",
         "fetch_deck": "デッキ取得",
