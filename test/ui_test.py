@@ -192,6 +192,11 @@ def test_switch_decks_without_initial_bookmark(mocker, monkeypatch, input_scheme
     assert not app.error
     open_deck_form(app)
     assert app.text_input[0].value == ""
+    intro = app.markdown[0].value
+    assert "[遊戯王ニューロン](" in intro
+    assert "の公開デッキから[<<スモール・ワールド>>](" in intro
+    assert intro.endswith("のサーチ経路を検索します。")
+    assert intro.count("request_locale=ja") == 2
     get.assert_not_called()
 
     for count, deck in enumerate(("A", "B", "C"), start=1):
@@ -370,7 +375,7 @@ def test_successful_deck_display_order(mocker, monkeypatch):
         caption.value == "このページをブックマークすると、次回のデッキ入力を省略できます。"
         for caption in app.caption
     )
-    assert ":green[✓ 読み込み済]　**テストデッキ**" == app.markdown[0].value
+    assert ":green[✓ 読み込み済]　**テストデッキ**" == app.markdown[1].value
     assert [button.label for button in app.button] == ["デッキを変更", "経路を検索"]
     assert app.button[1].proto.type == "primary"
     assert len(app.selectbox) == 2
@@ -661,7 +666,11 @@ def test_english_initial_screen(english_app, mocker):
     ]
     assert english_app.selectbox[0].disabled
     assert english_app.selectbox[1].disabled
-    assert "request_locale=en" in english_app.caption[0].value
+    intro = english_app.markdown[0].value
+    assert intro.startswith("Load a public deck from ")
+    assert "[Yu-Gi-Oh! Card Database](" in intro
+    assert "to find search routes for [Small World](" in intro
+    assert intro.count("request_locale=en") == 2
     assert "Contact us or report a bug" in english_app.markdown[-1].value
 
 

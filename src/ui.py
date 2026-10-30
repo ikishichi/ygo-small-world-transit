@@ -106,7 +106,7 @@ st.title(
     f"[{APP_TITLE}](https://ygo-small-world-transit.streamlit.app/)",
     anchor=False,
 )
-st.caption(t("intro", locale=LANGUAGE))
+st.markdown(t("intro", locale=LANGUAGE))
 
 if 'MONSTERS_DF' not in st.session_state:
     initialize_session_state()
