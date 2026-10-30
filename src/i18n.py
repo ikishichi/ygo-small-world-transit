@@ -10,7 +10,8 @@ def resolve_language(browser_locale: str | None) -> str:
 MESSAGES = {
     "ja": {
         "app_title": "遊戯王スモール・ワールド乗り換え検索",
-        "intro": "[遊戯王ニューロン](https://www.db.yugioh-card.com/yugiohdb/?request_locale={locale})の公開デッキから[<<スモール・ワールド>>](https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=2&cid=16555&request_locale={locale})のサーチ経路を検索します。",
+        "intro": "遊戯王ニューロンの公開デッキから<<スモール・ワールド>>のサーチ経路を検索します。",
+        "intro_links": "[遊戯王ニューロン](https://www.db.yugioh-card.com/yugiohdb/?request_locale={locale}) / [<<スモール・ワールド>>](https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=2&cid=16555&request_locale={locale})",
         "deck_url_label": "遊戯王ニューロンの公開デッキURLを入力してください。",
         "url_placeholder": "URLを入力",
         "fetch_deck": "デッキ取得",
@@ -61,7 +62,8 @@ MESSAGES = {
     },
     "en": {
         "app_title": "Yu-Gi-Oh! Small World Route Finder",
-        "intro": "Load a public deck from the [Yu-Gi-Oh! Card Database](https://www.db.yugioh-card.com/yugiohdb/?request_locale={locale}) to find search routes for [Small World](https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=2&cid=16555&request_locale={locale}).",
+        "intro": "Load a public deck from the Yu-Gi-Oh! Card Database to find search routes for Small World.",
+        "intro_links": "[Yu-Gi-Oh! Card Database](https://www.db.yugioh-card.com/yugiohdb/?request_locale={locale}) / [Small World](https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=2&cid=16555&request_locale={locale})",
         "deck_url_label": "Enter a public deck URL from the Yu-Gi-Oh! Card Database.",
         "url_placeholder": "Enter a URL",
         "fetch_deck": "Load deck",

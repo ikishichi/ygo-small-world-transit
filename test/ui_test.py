@@ -192,6 +192,13 @@ def test_switch_decks_without_initial_bookmark(mocker, monkeypatch, input_scheme
     assert not app.error
     open_deck_form(app)
     assert app.text_input[0].value == ""
+    assert app.text[0].value == (
+        "遊戯王ニューロンの公開デッキから"
+        "<<スモール・ワールド>>のサーチ経路を検索します。"
+    )
+    assert "[遊戯王ニューロン](" in app.caption[0].value
+    assert "[<<スモール・ワールド>>](" in app.caption[0].value
+    assert app.caption[0].value.count("request_locale=ja") == 2
     get.assert_not_called()
 
     for count, deck in enumerate(("A", "B", "C"), start=1):
@@ -661,7 +668,13 @@ def test_english_initial_screen(english_app, mocker):
     ]
     assert english_app.selectbox[0].disabled
     assert english_app.selectbox[1].disabled
-    assert "request_locale=en" in english_app.caption[0].value
+    assert english_app.text[0].value == (
+        "Load a public deck from the Yu-Gi-Oh! Card Database "
+        "to find search routes for Small World."
+    )
+    assert "[Yu-Gi-Oh! Card Database](" in english_app.caption[0].value
+    assert "[Small World](" in english_app.caption[0].value
+    assert english_app.caption[0].value.count("request_locale=en") == 2
     assert "Contact us or report a bug" in english_app.markdown[-1].value
 
 
