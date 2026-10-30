@@ -409,3 +409,47 @@ def test_search_results_recover_after_empty_search(app, monsters_df):
             )
             assert len(app.info) == 1
             assert "該当する経路はありません" in app.info[0].value
+
+
+def test_english_search_and_matching_properties(monkeypatch, mocker):
+    import streamlit as st
+    from test.html_parser_test import ENGLISH_DECK_HTML
+
+    monkeypatch.syspath_prepend(str(PROJECT_ROOT / "src"))
+    monkeypatch.setattr(type(st.context), "locale", property(lambda _: "en-GB"))
+    get = mocker.patch(
+        "requests.get",
+        return_value=mocker.Mock(
+            status_code=200,
+            content=ENGLISH_DECK_HTML.encode("utf-8"),
+        ),
+    )
+    app = AppTest.from_file(str(PROJECT_ROOT / "src" / "ui.py")).run()
+    next(
+        button for button in app.button if button.label == "Try a sample"
+    ).click().run()
+    # 必須項目未選択の案内。
+    next(button for button in app.button if button.label == "Find routes").click().run()
+    assert app.warning[0].value == "Select a monster to reveal from your hand."
+    app.selectbox[0].select("Mulcharmy Fuwalos")
+    app.selectbox[1].select("Dotscaper")
+    next(button for button in app.button if button.label == "Find routes").click().run()
+    assert not app.exception
+    assert not app.error
+    assert app.header[0].value == "Search results"
+    assert app.radio[0].value == "Sort by destination"
+    assert app.expander[0].label == "Show matching properties (1 route)"
+    captions = [caption.value for caption in app.caption]
+    assert "Hand → Bridge: matching Level (Level4)" in captions
+    assert "Bridge → Destination: matching Type (Cyberse)" in captions
+    assert "**Bridge:** Mathmech Sigma" in [md.value for md in app.markdown]
+    app.radio[0].set_value("Sort by bridge").run()
+    assert app.radio[0].value == "Sort by bridge"
+    assert app.expander[0].label == "Show matching properties (1 route)"
+    get.assert_called_once()
+    # 0件表示でも英語の案内となる。
+    app.selectbox[1].select("Mathmech Sigma")
+    next(button for button in app.button if button.label == "Find routes").click().run()
+    assert not app.exception
+    assert app.info[0].value.startswith("No routes found.")
+    assert not app.expander

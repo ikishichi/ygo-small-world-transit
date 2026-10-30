@@ -686,3 +686,83 @@ class TestHtmlParser:
 
         with pytest.raises(NoMonsterError, match="モンスターが見つかりません"):
             HtmlParser(html).generate_monsters()
+
+
+@pytest.mark.parametrize(
+    "species, expected",
+    [
+        ("[ Machine / Effect ]", "Machine"),
+        ("[ Winged Beast / Effect ]", "Winged Beast"),
+        ("[ Sea Serpent / Tuner / Effect ]", "Sea Serpent"),
+        ("[ Warrior ]", "Warrior"),
+        ("\n\t[\n Psychic\n / Effect\n ]", "Psychic"),
+    ],
+)
+def test_english_species_excludes_brackets_and_effect_types(species, expected):
+    html = MONSTER_HTML.replace("【戦士族／通常】", species)
+    assert HtmlParser(html).generate_monsters()[0]["type"] == expected
+
+
+# 公式DBの英語版で確認した表記（2026-10-30）。通信なしで解析・検索を検証する。
+# 種族は [ Machine / Effect ] 形式。複数語の種族は空白を保持する。
+ENGLISH_CARDS = [
+    ("Mulcharmy Fuwalos", "WIND", "Winged Beast", "4", "100", "600"),
+    ("Mathmech Sigma", "LIGHT", "Cyberse", "4", "1000", "1500"),
+    ("Dotscaper", "EARTH", "Cyberse", "1", "0", "2100"),
+]
+ENGLISH_DECK_HTML = (
+    '<meta name="description" content="Test Deck"><div id="detailtext_main"><div class="t_body mlist_m">'
+    + "".join(f"""<div class="t_row c_normal">
+      <span class="card_name">{name}</span>
+      <span class="box_card_attribute"><span>{attribute}</span></span>
+      <span class="box_card_level_rank level"><span>Level {level}</span></span>
+      <span class="card_info_species_and_other_item"><span>[
+          {species} / {"Tuner / Effect" if name == "Mathmech Sigma" else "Effect"}
+      ]</span></span>
+      <span class="atk_power"><span>ATK {attack}</span></span>
+      <span class="def_power"><span>DEF {defence}</span></span>
+    </div>""" for name, attribute, species, level, attack, defence in ENGLISH_CARDS)
+    + "</div></div>"
+)
+
+
+def test_japanese_and_english_decks_produce_equivalent_routes():
+    import pandas as pd
+    from src.search_result import SearchResult
+
+    english = pd.DataFrame(HtmlParser(ENGLISH_DECK_HTML).generate_monsters())
+    assert english["type"].tolist() == ["Winged Beast", "Cyberse", "Cyberse"]
+    japanese_html = ENGLISH_DECK_HTML
+    replacements = {
+        "Mulcharmy Fuwalos": "マルチャミー・フワロス",
+        "Mathmech Sigma": "斬機シグマ",
+        "Dotscaper": "ドットスケーパー",
+        "WIND": "風属性",
+        "LIGHT": "光属性",
+        "EARTH": "地属性",
+        "Winged Beast": "鳥獣族",
+        "Cyberse": "サイバース族",
+        "Level ": "レベル ",
+        "ATK ": "攻撃力 ",
+        "DEF ": "守備力 ",
+        "Tuner": "チューナー",
+        "Effect": "効果",
+        "[": "【",
+        "]": "】",
+        " / ": "／",
+    }
+    for old, new in replacements.items():
+        japanese_html = japanese_html.replace(old, new)
+    japanese = pd.DataFrame(HtmlParser(japanese_html).generate_monsters())
+    en_routes = SearchResult(english, "Mulcharmy Fuwalos", "Dotscaper").get()
+    ja_routes = SearchResult(
+        japanese, "マルチャミー・フワロス", "ドットスケーパー"
+    ).get()
+    assert en_routes.to_dict("records") == [
+        {
+            "origin": "Mulcharmy Fuwalos",
+            "transit": "Mathmech Sigma",
+            "dest": "Dotscaper",
+        }
+    ]
+    pd.testing.assert_frame_equal(en_routes.replace(replacements), ja_routes)

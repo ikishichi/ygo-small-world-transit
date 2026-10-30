@@ -1,9 +1,15 @@
 """url_resolver.py の単体テスト"""
+from urllib.parse import parse_qs, urlsplit
+
+import pytest
+
 from src.url_resolver import (
     VALID_PREFIX_HTTP,
     VALID_PREFIX_HTTPS,
+    DeckUrlError,
     build_url_from_query_params,
     has_query_params,
+    normalize_deck_url,
     select_url,
 )
 
@@ -73,3 +79,34 @@ class TestSelectUrl:
     def test_no_submit_ignores_input_url(self):
         """ブックマーク経由の自動ロード時はユーザー入力は考慮されない"""
         assert select_url("ignored", "from_params", submit_btn=False) == "from_params"
+
+
+@pytest.mark.parametrize("default_locale", ["ja", "en"])
+@pytest.mark.parametrize("specified", [None, "", "ja", "en", "fr"])
+def test_default_locale_is_used_only_when_unspecified(default_locale, specified):
+    params = {"cgid": "A", "dno": "1"}
+    url = VALID_PREFIX_HTTP + "?cgid=A&dno=1"
+    if specified is not None:
+        params["request_locale"] = specified
+        url += "&request_locale=" + specified
+    expected = specified or default_locale
+    for result in [
+        build_url_from_query_params(params, default_locale=default_locale),
+        normalize_deck_url(url, default_locale=default_locale),
+    ]:
+        assert urlsplit(result).scheme == "https"
+        assert parse_qs(urlsplit(result).query)["request_locale"] == [expected]
+
+
+@pytest.mark.parametrize(
+    "url, code",
+    [
+        ("https://example.com/", "invalid_url"),
+        ("http://[invalid", "invalid_url"),
+        (VALID_PREFIX_HTTPS + "?cgid=A", "missing_deck_params"),
+    ],
+)
+def test_invalid_url_has_translatable_error_code(url, code):
+    with pytest.raises(DeckUrlError) as caught:
+        normalize_deck_url(url)
+    assert caught.value.code == code
