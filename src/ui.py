@@ -102,26 +102,26 @@ st.html(
     """
     <style>
         [data-testid="stHeadingWithActionElements"]:has(
-            h1 a[href="https://ygo-small-world-transit.streamlit.app/"]
+            h1 a[href^="https://ygo-small-world-transit.streamlit.app/"]
         ) {
             container-type: inline-size;
         }
-        h1:has(a[href="https://ygo-small-world-transit.streamlit.app/"]) {
+        h1:has(a[href^="https://ygo-small-world-transit.streamlit.app/"]) {
             font-size: 5.5cqi;
             line-height: 1.3;
             white-space: nowrap;
         }
-        h1 a[href="https://ygo-small-world-transit.streamlit.app/"] {
+        h1 a[href^="https://ygo-small-world-transit.streamlit.app/"] {
             color: inherit !important;
             text-decoration: none !important;
         }
     </style>
     """
 )
-st.title(
-    f"[{APP_TITLE}](https://ygo-small-world-transit.streamlit.app/)",
-    anchor=False,
-)
+home_url = "https://ygo-small-world-transit.streamlit.app/"
+if st.query_params.get("lang") in {"ja", "en"}:
+    home_url += f"?lang={LANGUAGE}"
+st.title(f"[{APP_TITLE}]({home_url})", anchor=False)
 st.caption(t("intro", locale=LANGUAGE))
 
 # URLの直接変更・自動判定も選択状態に反映する。解除時は現在の言語に戻す。

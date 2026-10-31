@@ -52,7 +52,9 @@ def test_initial_language_and_sample(app_factory, monkeypatch, browser, lang, ex
 
 
 @pytest.mark.parametrize("lang", ["ja", "en"])
-def test_switch_and_reload_without_deck(app_factory, lang):
+def test_switch_reload_and_home_without_deck(app_factory, monkeypatch, lang):
+    browser_locale = "en-US" if lang == "ja" else "ja-JP"
+    monkeypatch.setattr(type(st.context), "locale", property(lambda _: browser_locale))
     make, get, _ = app_factory
     app = make({"lang": "en" if lang == "ja" else "ja"})
     app.segmented_control[0].set_value(lang).run()
@@ -65,7 +67,59 @@ def test_switch_and_reload_without_deck(app_factory, lang):
     reloaded = make(dict(app.query_params))
     assert not reloaded.exception
     assert reloaded.segmented_control[0].value == lang
+    home_url = app.title[0].value.split("](")[1][:-1]
+    assert home_url == f"https://ygo-small-world-transit.streamlit.app/?lang={lang}"
+    home_params = {
+        key: values[-1]
+        for key, values in parse_qs(urlsplit(home_url).query).items()
+    }
+    home = make(home_params)
+    assert not home.exception
+    assert home.segmented_control[0].value == lang
     get.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "browser, lang, expected",
+    [
+        ("ja-JP", "en", "en"),
+        ("en-US", "ja", "ja"),
+        ("en-US", None, "en"),
+        ("en-US", "", "en"),
+        ("en-US", "fr", "en"),
+        (None, None, "ja"),
+    ],
+)
+def test_home_keeps_explicit_language_and_clears_deck(
+    app_factory, monkeypatch, browser, lang, expected
+):
+    monkeypatch.setattr(type(st.context), "locale", property(lambda _: browser))
+    make, get, _ = app_factory
+    params = {"cgid": "A", "dno": "1", "request_locale": "ja"}
+    if lang is not None:
+        params["lang"] = lang
+    app = make(params)
+    assert not app.exception
+    assert not app.error
+
+    home_url = app.title[0].value.split("](")[1][:-1]
+    expected_query = {"lang": [lang]} if lang in {"ja", "en"} else {}
+    assert parse_qs(urlsplit(home_url).query) == expected_query
+    expected_url = "https://ygo-small-world-transit.streamlit.app/"
+    if lang in {"ja", "en"}:
+        expected_url += f"?lang={lang}"
+    assert home_url == expected_url
+    home_params = {
+        key: values[-1]
+        for key, values in parse_qs(urlsplit(home_url).query).items()
+    }
+    home = make(home_params)
+    assert not home.exception
+    assert not home.error
+    assert home.segmented_control[0].value == expected
+    assert home.session_state["LOADED_DECK_URL"] is None
+    assert normalize_query_params(app.query_params) == normalize_query_params(params)
+    get.assert_called_once()
 
 
 @pytest.mark.parametrize("lang", [None, "ja", "en"])
