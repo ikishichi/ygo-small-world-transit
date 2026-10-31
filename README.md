@@ -1,5 +1,7 @@
 # ygo-small-world-transit
 
+[日本語](#about) / [English](#english)
+
 ## About
 
 [遊戯王スモール・ワールド乗り換え検索](https://ygo-small-world-transit.streamlit.app)では、[遊戯王ニューロン](https://www.db.yugioh-card.com/yugiohdb/)の公開デッキURLを読み込むことで、<<スモール・ワールド>>のサーチ経路を検索できます。
@@ -23,15 +25,53 @@ YouTubeで[使い方動画](https://www.youtube.com/watch?v=VVvS8u706BM&t=6s)を
 
 読み込み後はデッキ名と検索欄を表示します。別のデッキに切り替えるときや同じデッキを再読み込みするときは、「デッキを変更」からURL入力欄を開いてください。
 
-デッキ取得後のページをブックマークすると、次回は同じデッキを自動で読み込みます。サーチ元・サーチ先の選択や検索結果は保存されません。
+デッキ取得後のページをブックマークすると、URLの `cgid`・`dno`・`request_locale` を使って次回も同じデッキを自動で読み込みます。`lang` があれば表示言語も維持します。従来の `lang` がないブックマークも利用できます。サーチ元・サーチ先の選択や検索結果はURLに保存されません。
 
 ## 表示言語
 
-ブラウザーの優先言語が英語（`en`、`en-US`、`en-GB` など）の場合は画面を英語で表示します。それ以外の言語や、言語を取得できない場合は日本語で表示します。
+[日本語版](https://ygo-small-world-transit.streamlit.app/?lang=ja) / [English version](https://ygo-small-world-transit.streamlit.app/?lang=en)
+
+表示言語はURLの `lang=ja`（日本語）・`lang=en`（英語）を優先します。未指定・未対応のコードの場合はブラウザーの優先言語に従い、英語（`en`、`en-US`、`en-GB` など）なら英語、それ以外や取得不能時は日本語で表示します。自動判定時に `lang` をURLへ追加することはありません。
+
+画面右上の「日本語」「English」で手動切り替えができます。切り替えるとURLの `lang` だけが更新され、再読み込み後も選択言語を維持します。タイトルのホームリンクから初期画面に戻る場合も、有効な `lang` の明示指定を引き継ぎます。`lang` だけのURLでも通常の初期画面とサンプルデッキを利用できます。
 
 デッキURLの `request_locale` が未指定・空文字の場合、英語画面では英語、日本語画面では日本語のカード情報を取得します。入力URLやブックマークに言語が明示されている場合は、その指定を維持します。そのため、英語画面でも日本語指定のデッキURLから読み込むとカード名は日本語になります。サンプルデッキとカード説明リンクは画面の表示言語に合わせます。
 
-画面の表示言語はブックマークには保存せず、アクセスしたブラウザーごとに判定します。デッキ名は登録された名前をそのまま表示します。手動の言語切り替えはありません。
+`lang` はUI表示用、`request_locale` はデッキ情報取得用の独立した指定です。例えば `?lang=en&cgid=xxx&dno=123&request_locale=ja` では、UIは英語、取得するカード情報は日本語になります。UIの切り替えだけではデッキを再取得せず、取得済みのカード名・デッキ名、検索条件・検索結果を維持します。カード情報の言語を変えたい場合は「デッキを変更」から、希望する `request_locale` を付けたURLを読み込んでください。デッキ名は登録された名前をそのまま表示します。
+
+## English
+
+[Open the app in English](https://ygo-small-world-transit.streamlit.app/?lang=en) · [Automatic language selection](https://ygo-small-world-transit.streamlit.app/)
+
+Find **Small World** search routes using a public deck from the [Yu-Gi-Oh! Card Database / NEURON](https://www.db.yugioh-card.com/yugiohdb/?request_locale=en). The app lists possible bridges and destinations, and explains which monster property matches at each step.
+
+### How to use
+
+1. Paste the public deck URL shown at the top of its deck page and select **Load deck**, or select **Try a sample** on the initial screen.
+2. Select a monster to reveal from your hand. Optionally select a destination; leave it empty to find all reachable destinations in the loaded deck.
+3. Select **Find routes**. Results are grouped by destination. Use **Sort by bridge** to group by bridge instead.
+4. Open **Show matching properties** to see each hand → bridge → destination route and its matching properties.
+
+After loading, use **Change deck** to open the URL form and load another deck or refresh the current one. Bookmark the page after loading to automatically load that deck next time. The URL stores `cgid`, `dno`, and `request_locale`, plus `lang` if selected. Search selections and results are not stored in the URL. Older bookmarks without `lang` continue to work.
+
+### Language selection
+
+The UI uses `?lang=en` or `?lang=ja` first. If `lang` is absent or unsupported, it follows the browser language: English locales such as `en-US` use English; all others, including unavailable locales, fall back to Japanese. Automatic detection does not add `lang` to the URL.
+
+Use the **日本語 / English** buttons at the top right of the app to switch languages. This updates only `lang`, preserving deck parameters and keeping your choice after a reload. The title’s home link also preserves an explicit `lang=ja` or `lang=en` when returning to the initial screen. A URL containing only `lang` opens the normal initial screen, including the sample option.
+
+`lang` controls the **UI**, while `request_locale` controls **deck data fetched from NEURON**. An explicit, nonempty `request_locale` in a deck URL or bookmark is respected; if absent or empty, the current UI language is used when loading. For example, `?lang=en&cgid=xxx&dno=123&request_locale=ja` shows an English UI with Japanese card data. Switching the UI language keeps the loaded deck, search selections, results, and sort order without fetching again or translating existing card/deck names. To change the card data language, load a deck URL with the desired `request_locale` via **Change deck**. Sample requests and explanatory links follow the UI language; registered deck names are shown as provided.
+
+### Run locally and test
+
+Requires Python 3.12 or later. Clone this repository, enter its root directory, and run (a virtual environment is recommended):
+
+```bash
+python -m pip install -r requirements.txt
+python -m streamlit run ./src/ui.py
+```
+
+Run `python -m pytest` from the repository root. The keep-alive browser tests additionally require `playwright==1.63.0` and `python -m playwright install chromium`; without Playwright they are skipped. See the [design document (Japanese)](docs/ygo-small-world-transit.md) for implementation details. The code is licensed under the [MIT License](LICENSE.txt).
 
 ## ローカルでの起動方法
 
