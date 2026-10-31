@@ -20,11 +20,11 @@ from url_resolver import (
 )
 
 logger = logging.getLogger(__name__)
-LANGUAGE = resolve_language(st.context.locale)
+LANGUAGE = resolve_language(st.context.locale, st.query_params.get("lang"))
 
 
 def t(key, **values):
-    """現在のブラウザー言語で画面文言を取得する。"""
+    """現在の表示言語で画面文言を取得する。"""
     return translate(key, LANGUAGE, **values)
 
 
@@ -76,6 +76,22 @@ def show_deck_form():
     st.session_state["SHOW_DECK_FORM"] = True
 
 
+def change_language():
+    """デッキ用パラメータを保ったままUIの言語指定だけを更新する。"""
+    language = st.session_state["ui_language"]
+    if language in {"ja", "en"} and st.query_params.get("lang") != language:
+        st.query_params["lang"] = language
+
+
+def deck_query_params():
+    """UIの言語指定を除く、ブックマークの取得用パラメータ。"""
+    return {
+        key: st.query_params[key]
+        for key in ("cgid", "dno", "request_locale")
+        if key in st.query_params
+    }
+
+
 APP_TITLE = t("app_title")
 
 deck_name = st.session_state.get("DECK_NAME")
@@ -108,6 +124,16 @@ st.title(
 )
 st.caption(t("intro", locale=LANGUAGE))
 
+# URLの直接変更・自動判定も選択状態に反映する。解除時は現在の言語に戻す。
+st.session_state["ui_language"] = LANGUAGE
+st.segmented_control(
+    "Language / 言語",
+    ["ja", "en"],
+    format_func=lambda language: {"ja": "日本語", "en": "English"}[language],
+    key="ui_language",
+    on_change=change_language,
+)
+
 if 'MONSTERS_DF' not in st.session_state:
     initialize_session_state()
 else:
@@ -126,6 +152,12 @@ try:
     query_params_url = build_url_from_query_params(
         query_params, default_locale=LANGUAGE
     )
+    if (
+        st.session_state["LOADED_DECK_URL"] is not None
+        and st.session_state.get("LOADED_DECK_PARAMS") == deck_query_params()
+    ):
+        # 旧ブックマークの取得言語が未指定でも、UI言語だけでは再取得しない。
+        query_params_url = st.session_state["LOADED_DECK_URL"]
 
     sample_btn = False
     submit_btn = False
@@ -142,7 +174,10 @@ try:
                 key="deck_url_input",
                 placeholder=t("url_placeholder"),
             )
-            show_sample = not query_params and st.session_state["LOADED_DECK_URL"] is None
+            show_sample = (
+                not has_query_params(query_params)
+                and st.session_state["LOADED_DECK_URL"] is None
+            )
             if show_sample:
                 fetch_column, sample_column = st.columns(2)
             else:
@@ -212,7 +247,10 @@ try:
             st.session_state["MONSTERS_DF"] = deck.monsters_df
             st.session_state["DECK_NAME"] = deck.deck_name
             st.session_state["LOADED_DECK_URL"] = loaded_url
+            st.session_state["LOADED_DECK_PARAMS"] = deck_query_params()
             st.session_state["SEARCH_RESULTS"] = None
+            for key in ("origin", "destination", "sort"):
+                st.session_state.pop(key, None)
 
             # 取得が完了したら入力欄を閉じ、検索フォームへ進む。
             st.session_state["SHOW_DECK_FORM"] = False
@@ -238,6 +276,7 @@ try:
             index=None,
             placeholder=t("monster_placeholder"),
             disabled=not deck_is_loaded,
+            key="origin",
         )
 
         # サーチ先指定（プルダウン）
@@ -248,6 +287,7 @@ try:
             index=None,
             placeholder=t("monster_placeholder"),
             disabled=not deck_is_loaded,
+            key="destination",
         )
 
         # 検索実行ボタン
@@ -282,13 +322,15 @@ try:
             # ソート選択ラジオボタン
             sort = st.radio(
                 t("sort"),
-                [t("sort_transit"), t("sort_destination")],
+                ["transit", "destination"],
+                format_func=lambda value: t(f"sort_{value}"),
                 index=1,
                 horizontal=True,
                 label_visibility="collapsed",
+                key="sort",
             )
 
-            if sort == t("sort_transit"):
+            if sort == "transit":
                 group_by_destination = False
                 search_results = st.session_state["SEARCH_RESULTS"].sort_values(
                     "transit", kind="stable"

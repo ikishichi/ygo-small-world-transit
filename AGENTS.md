@@ -42,8 +42,8 @@ ui.py (Streamlit)
   └─ SearchResult(df, origin, dest).get() → pandas ベースでサーチ経路を算出
 ```
 
-- [src/i18n.py](src/i18n.py): `st.context.locale` から渡されたブラウザー言語を `en` / `ja` に分類し、画面文言と経路数の単数・複数表記を提供する。英語以外・取得不能は日本語。ログや内部例外メッセージは翻訳しない。
-- [src/ui.py](src/ui.py): Streamlit UI、クエリパラメータによるブックマーク対応、例外→画面エラー表示の責務。`session_state` に `MONSTERS_DF`・`SEARCH_RESULTS`・`DECK_NAME`・`LOADED_DECK_URL` を保持し、同じ取得済みURLの再実行では通信・解析を省く。明示的な取得操作は同じURLでも再取得する。取得成功後はURL入力フォームを閉じ、「デッキを変更」で再表示する。検索フォームは初期表示時から存在し、未取得時は無効。検索結果はサーチ先または経由ごとにまとめ、一致理由を展開表示する。
+- [src/i18n.py](src/i18n.py): URLの `lang=ja/en`、`st.context.locale` のブラウザー言語、日本語の順に表示言語を決定し、画面文言と経路数の単数・複数表記を提供する。未指定・未対応の `lang` はブラウザー判定に戻り、英語以外・取得不能は日本語。ログや内部例外メッセージは翻訳しない。
+- [src/ui.py](src/ui.py): Streamlit UI、クエリパラメータによるブックマーク対応、例外→画面エラー表示の責務。`session_state` に `MONSTERS_DF`・`SEARCH_RESULTS`・`DECK_NAME`・`LOADED_DECK_URL` を保持し、同じ取得済みURLの再実行では通信・解析を省く。`LOADED_DECK_PARAMS` に取得成功時の `cgid`・`dno`・`request_locale` を保持し、これらが同じならUI言語変更時も取得済みURLを再利用する（旧ブックマークの取得言語未指定・空文字にも対応）。明示的な取得操作は同じURLでも再取得する。画面上部の標準 `segmented_control` で日本語・英語を切り替え、コールバックで `lang` のみ更新する。検索選択欄は固定キー、ソートは固定値と翻訳ラベルを使い、言語変更でも条件・結果・並び順を保持する。取得成功後はURL入力フォームを閉じ、「デッキを変更」で再表示する。検索フォームは初期表示時から存在し、未取得時は無効。検索結果はサーチ先または経由ごとにまとめ、一致理由を展開表示する。
 - [src/deck_info.py](src/deck_info.py): `normalize_deck_url()` で取得URLを検証・HTTPS化した後、接続5秒・読み取り15秒のタイムアウトでHTTP取得する。転送には追従せず、3xxは `DeckRedirectError`（`ValueError` の派生）、4xx・5xxは `raise_for_status()` で例外化する。
 - [src/deck.py](src/deck.py): HtmlParser の結果を pandas.DataFrame 化する薄いラッパー。
 - [src/html_parser.py](src/html_parser.py): 遊戯王ニューロンの HTML 構造（`detailtext_main` → `t_body mlist_m` → `t_row c_normal`、`card_name` / `box_card_attribute` / `box_card_level_rank level` / `card_info_species_and_other_item` / `atk_power` / `def_power`）に強く依存している。**遊戯王ニューロンの HTML 構造変更がこのプロジェクトの最大の破壊要因**。構造や必須項目の欠落、未知のモンスター領域の内容、デッキ名の meta タグ・content 属性の欠落は `DeckStructureError`（`AttributeError` の派生）を送出する。モンスター領域が存在して空の場合は `NoMonsterError`（`ValueError` の派生）を送出する。UIは解析失敗とモンスター不在を区別して案内する。
@@ -53,14 +53,14 @@ ui.py (Streamlit)
 ## 遊戯王ニューロンの URL 仕様
 
 - UIと取得直前の両方で `normalize_deck_url()` が、スキームは `http` / `https`、ホストは `www.db.yugioh-card.com`、パスは `/yugiohdb/member_deck.action` であることを厳密に検証する。HTTP入力も実際の取得はHTTPSに統一する。
-- クエリパラメータ `cgid` と `dno` でデッキを一意特定し、取得時には両方の空でない値が必要。`request_locale` は未指定・空文字なら画面の表示言語を補完し、入力URL・ブックマークの明示指定は維持する。URL関連関数を単独で呼ぶ場合の既定は `ja`。UIでは正規化済みURLを取得・ブックマーク双方に使用する。URL検証失敗は翻訳用コードを持つ `DeckUrlError`（`ValueError` の派生）を送出する。UI は明示的な取得操作での取得・解析成功後にこれら3項目を自身のURLにコピーして「ブックマーク共有」を実現している。サーチ元・サーチ先・検索結果はURLに保存しない。
+- クエリパラメータ `cgid` と `dno` でデッキを一意特定し、取得時には両方の空でない値が必要。`request_locale` は未指定・空文字なら画面の表示言語を補完し、入力URL・ブックマークの明示指定は維持する。URL関連関数を単独で呼ぶ場合の既定は `ja`。UIでは正規化済みURLを取得・ブックマーク双方に使用する。URL検証失敗は翻訳用コードを持つ `DeckUrlError`（`ValueError` の派生）を送出する。UI は明示的な取得操作での取得・解析成功後にこれら3項目を自身のURLにコピーして「ブックマーク共有」を実現している。`lang` はUI専用で取得言語から独立し、デッキ取得・言語切り替えの双方で他方のクエリパラメータを保持する。`lang` のみでは自動取得せず、デッキ識別用パラメータがない未取得状態ではサンプルを利用できる。サーチ元・サーチ先・検索結果はURLに保存しない。
 
 ## テストの方針
 
 - 外部 HTTP は `pytest-mock` の `mocker.patch("requests.get", ...)` でモック。
 - HtmlParser は日英の種族区切り（`／` / `/`）と括弧（`【】` / `[]`）に対応し、英語の複数語の種族名の空白を保持する。
 - HtmlParser のテストはインラインの HTML 文字列をパラメタライズして渡す（実際の遊戯王ニューロンのフィクスチャは持たない）。新しい構造変更に追従する際はこのデータを更新する。
-- UIは Streamlit の `AppTest` で、フォームの切り替え、取得済みデッキの再利用、取得失敗時の状態保持、検索結果のグループ表示などを検証する。`scripts/` の脆弱性レポートとスリープ対策にもテストがあり、スリープ対策のテストには追加のPlaywright・Chromiumが必要（導入方法はREADMEを参照）。
+- UIは Streamlit の `AppTest` で、URL指定・手動言語切り替えと再読み込み、旧ブックマークの言語未指定・空文字、検索条件・結果・ソート順の保持、フォームの切り替え、取得済みデッキの再利用、取得失敗時の状態保持、検索結果のグループ表示などを検証する。`scripts/` の脆弱性レポートとスリープ対策にもテストがあり、スリープ対策のテストには追加のPlaywright・Chromiumが必要（導入方法はREADMEを参照）。
 
 ## コーディング規約
 

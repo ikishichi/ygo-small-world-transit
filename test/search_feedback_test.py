@@ -77,7 +77,7 @@ def test_nonempty_routes_have_count_and_sorting(mocker, monkeypatch):
     assert result_elements[header_index:header_index + 3] == [
         ("header", "検索結果"),
         ("caption", "2経路"),
-        ("radio", "サーチ先でソート"),
+        ("radio", "destination"),
     ]
 
 
