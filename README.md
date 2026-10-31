@@ -33,7 +33,7 @@ YouTubeで[使い方動画](https://www.youtube.com/watch?v=VVvS8u706BM&t=6s)を
 
 表示言語はURLの `lang=ja`（日本語）・`lang=en`（英語）を優先します。未指定・未対応のコードの場合はブラウザーの優先言語に従い、英語（`en`、`en-US`、`en-GB` など）なら英語、それ以外や取得不能時は日本語で表示します。自動判定時に `lang` をURLへ追加することはありません。
 
-画面上部の「Language / 言語」で手動切り替えができます。切り替えるとURLの `lang` だけが更新され、再読み込み後も選択言語を維持します。タイトルのホームリンクから初期画面に戻る場合も、有効な `lang` の明示指定を引き継ぎます。`lang` だけのURLでも通常の初期画面とサンプルデッキを利用できます。
+画面右上の「日本語」「English」で手動切り替えができます。切り替えるとURLの `lang` だけが更新され、再読み込み後も選択言語を維持します。タイトルのホームリンクから初期画面に戻る場合も、有効な `lang` の明示指定を引き継ぎます。`lang` だけのURLでも通常の初期画面とサンプルデッキを利用できます。
 
 デッキURLの `request_locale` が未指定・空文字の場合、英語画面では英語、日本語画面では日本語のカード情報を取得します。入力URLやブックマークに言語が明示されている場合は、その指定を維持します。そのため、英語画面でも日本語指定のデッキURLから読み込むとカード名は日本語になります。サンプルデッキとカード説明リンクは画面の表示言語に合わせます。
 
@@ -58,7 +58,7 @@ After loading, use **Change deck** to open the URL form and load another deck or
 
 The UI uses `?lang=en` or `?lang=ja` first. If `lang` is absent or unsupported, it follows the browser language: English locales such as `en-US` use English; all others, including unavailable locales, fall back to Japanese. Automatic detection does not add `lang` to the URL.
 
-Use **Language / 言語** near the top of the app to switch between **日本語** and **English**. This updates only `lang`, preserving deck parameters and keeping your choice after a reload. The title’s home link also preserves an explicit `lang=ja` or `lang=en` when returning to the initial screen. A URL containing only `lang` opens the normal initial screen, including the sample option.
+Use the **日本語 / English** buttons at the top right of the app to switch languages. This updates only `lang`, preserving deck parameters and keeping your choice after a reload. The title’s home link also preserves an explicit `lang=ja` or `lang=en` when returning to the initial screen. A URL containing only `lang` opens the normal initial screen, including the sample option.
 
 `lang` controls the **UI**, while `request_locale` controls **deck data fetched from NEURON**. An explicit, nonempty `request_locale` in a deck URL or bookmark is respected; if absent or empty, the current UI language is used when loading. For example, `?lang=en&cgid=xxx&dno=123&request_locale=ja` shows an English UI with Japanese card data. Switching the UI language keeps the loaded deck, search selections, results, and sort order without fetching again or translating existing card/deck names. To change the card data language, load a deck URL with the desired `request_locale` via **Change deck**. Sample requests and explanatory links follow the UI language; registered deck names are shown as provided.
 
