@@ -1,8 +1,12 @@
 """ブラウザー言語の判定と画面に表示する日英文言。"""
 
 
-def resolve_language(browser_locale: str | None) -> str:
-    """英語を優先するブラウザーはen、それ以外・取得不能時はja。"""
+def resolve_language(
+    browser_locale: str | None, requested_language: str | None = None
+) -> str:
+    """URLの日英指定を優先し、未指定・無効ならブラウザー言語で判定する。"""
+    if requested_language in ("ja", "en"):
+        return requested_language
     language = (browser_locale or "").replace("_", "-").split("-")[0].lower()
     return "en" if language == "en" else "ja"
 

@@ -10,6 +10,7 @@ from deck import Deck
 from deck_info import DeckInfo, DeckRedirectError
 from html_parser import DeckStructureError, NoMonsterError
 from i18n import resolve_language, route_count, translate
+from language_links import APP_URL, language_metadata, language_navigation
 from search_result import SearchResult
 from url_resolver import (
     DeckUrlError,
@@ -20,11 +21,11 @@ from url_resolver import (
 )
 
 logger = logging.getLogger(__name__)
-LANGUAGE = resolve_language(st.context.locale)
+LANGUAGE = resolve_language(st.context.locale, st.query_params.get("lang"))
 
 
 def t(key, **values):
-    """現在のブラウザー言語で画面文言を取得する。"""
+    """URL指定またはブラウザー言語で画面文言を取得する。"""
     return translate(key, LANGUAGE, **values)
 
 
@@ -86,24 +87,29 @@ st.html(
     """
     <style>
         [data-testid="stHeadingWithActionElements"]:has(
-            h1 a[href="https://ygo-small-world-transit.streamlit.app/"]
+            h1 a[href^="https://ygo-small-world-transit.streamlit.app/"]
         ) {
             container-type: inline-size;
         }
-        h1:has(a[href="https://ygo-small-world-transit.streamlit.app/"]) {
+        h1:has(a[href^="https://ygo-small-world-transit.streamlit.app/"]) {
             font-size: 5.5cqi;
             line-height: 1.3;
             white-space: nowrap;
         }
-        h1 a[href="https://ygo-small-world-transit.streamlit.app/"] {
+        h1 a[href^="https://ygo-small-world-transit.streamlit.app/"] {
             color: inherit !important;
             text-decoration: none !important;
         }
     </style>
     """
 )
+home_url = (
+    APP_URL + f"?lang={LANGUAGE}"
+    if st.query_params.get("lang") in ("ja", "en")
+    else APP_URL
+)
 st.title(
-    f"[{APP_TITLE}](https://ygo-small-world-transit.streamlit.app/)",
+    f"[{APP_TITLE}]({home_url})",
     anchor=False,
 )
 st.caption(t("intro", locale=LANGUAGE))
@@ -142,7 +148,10 @@ try:
                 key="deck_url_input",
                 placeholder=t("url_placeholder"),
             )
-            show_sample = not query_params and st.session_state["LOADED_DECK_URL"] is None
+            show_sample = (
+                not any(key != "lang" for key in query_params)
+                and st.session_state["LOADED_DECK_URL"] is None
+            )
             if show_sample:
                 fetch_column, sample_column = st.columns(2)
             else:
@@ -405,4 +414,9 @@ except Exception:
     st.error(t("unexpected_error"))
 
 finally:
+    st.html(
+        "<small>" + language_navigation(st.query_params) + "</small>"
+        + language_metadata(LANGUAGE, st.query_params),
+        unsafe_allow_javascript=True,
+    )
     st.write(t("footer"))

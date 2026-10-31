@@ -31,7 +31,7 @@ pytest test/html_parser_test.py::TestHtmlParser::test_get_deck_name_normal
 
 ## アーキテクチャ
 
-アプリは 7 モジュールで構成され、それぞれ単一責務を持つ。データの流れは基本的に一方向：
+アプリは 8 モジュールで構成され、それぞれ単一責務を持つ。データの流れは基本的に一方向：
 
 ```
 ui.py (Streamlit)
@@ -42,7 +42,8 @@ ui.py (Streamlit)
   └─ SearchResult(df, origin, dest).get() → pandas ベースでサーチ経路を算出
 ```
 
-- [src/i18n.py](src/i18n.py): `st.context.locale` から渡されたブラウザー言語を `en` / `ja` に分類し、画面文言と経路数の単数・複数表記を提供する。英語以外・取得不能は日本語。ログや内部例外メッセージは翻訳しない。
+- [src/i18n.py](src/i18n.py): URLの `lang=ja` / `lang=en` を優先し、未指定・無効時は `st.context.locale` のブラウザー言語から画面文言を選ぶ。ブラウザー言語が英語以外・取得不能なら日本語。経路数の単数・複数表記も提供する。ログや内部例外メッセージは翻訳しない。
+- [src/language_links.py](src/language_links.py): デッキ識別情報と `request_locale` を保持した日英切り替えリンクを作る。`st.html` のJavaScriptで描画後のheadに自己参照・相互参照の `hreflang` を設定し、HTMLの `lang` も更新する。`lang` は画面の表示言語、`request_locale` はデッキ取得言語を指定する。
 - [src/ui.py](src/ui.py): Streamlit UI、クエリパラメータによるブックマーク対応、例外→画面エラー表示の責務。`session_state` に `MONSTERS_DF`・`SEARCH_RESULTS`・`DECK_NAME`・`LOADED_DECK_URL` を保持し、同じ取得済みURLの再実行では通信・解析を省く。明示的な取得操作は同じURLでも再取得する。取得成功後はURL入力フォームを閉じ、「デッキを変更」で再表示する。検索フォームは初期表示時から存在し、未取得時は無効。検索結果はサーチ先または経由ごとにまとめ、一致理由を展開表示する。
 - [src/deck_info.py](src/deck_info.py): `normalize_deck_url()` で取得URLを検証・HTTPS化した後、接続5秒・読み取り15秒のタイムアウトでHTTP取得する。転送には追従せず、3xxは `DeckRedirectError`（`ValueError` の派生）、4xx・5xxは `raise_for_status()` で例外化する。
 - [src/deck.py](src/deck.py): HtmlParser の結果を pandas.DataFrame 化する薄いラッパー。

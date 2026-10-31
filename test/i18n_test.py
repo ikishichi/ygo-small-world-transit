@@ -26,6 +26,18 @@ def test_browser_language(locale, expected):
     assert resolve_language(locale) == expected
 
 
+@pytest.mark.parametrize("browser_locale", ["ja-JP", "en-US", None])
+@pytest.mark.parametrize("requested", ["ja", "en"])
+def test_explicit_language_overrides_browser(browser_locale, requested):
+    assert resolve_language(browser_locale, requested) == requested
+
+
+@pytest.mark.parametrize("requested", [None, "", "fr", "EN", "en-US"])
+def test_invalid_language_uses_browser(requested):
+    assert resolve_language("en-US", requested) == "en"
+    assert resolve_language(None, requested) == "ja"
+
+
 def test_translation_keys_and_placeholders_match():
     assert MESSAGES["ja"].keys() == MESSAGES["en"].keys()
 
