@@ -80,6 +80,9 @@ def change_language():
     """デッキ用パラメータを保ったままUIの言語指定だけを更新する。"""
     language = st.session_state["ui_language"]
     if language in {"ja", "en"} and st.query_params.get("lang") != language:
+        if "sort" in st.session_state:
+            # 翻訳後の選択値をブラウザーへ再送する。
+            st.session_state["sort"] = st.session_state["sort"]
         st.query_params["lang"] = language
 
 
@@ -251,8 +254,9 @@ try:
             st.session_state["LOADED_DECK_URL"] = loaded_url
             st.session_state["LOADED_DECK_PARAMS"] = deck_query_params()
             st.session_state["SEARCH_RESULTS"] = None
-            for key in ("origin", "destination", "sort"):
-                st.session_state.pop(key, None)
+            for key in ("origin", "destination"):
+                st.session_state[key] = None
+            st.session_state.pop("sort", None)
 
             # 取得が完了したら入力欄を閉じ、検索フォームへ進む。
             st.session_state["SHOW_DECK_FORM"] = False
@@ -326,7 +330,7 @@ try:
                 t("sort"),
                 ["transit", "destination"],
                 format_func=lambda value: t(f"sort_{value}"),
-                index=1,
+                index=None if "sort" in st.session_state else 1,
                 horizontal=True,
                 label_visibility="collapsed",
                 key="sort",
