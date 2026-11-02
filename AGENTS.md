@@ -1,76 +1,41 @@
 # AGENTS.md
 
-This file provides guidance to AI when working with code in this repository.
+遊戯王ニューロンの公開デッキURLから《スモール・ワールド》のサーチ経路を検索するPython / Streamlitアプリ。
 
-## プロジェクト概要
+## 作業ルール
 
-遊戯王の《スモール・ワールド》のサーチ経路を、遊戯王ニューロンの公開デッキURLから検索するStreamlitアプリ。本番は [ygo-small-world-transit.streamlit.app](https://ygo-small-world-transit.streamlit.app) にデプロイされている。
+- mainブランチで修正しない。
+- Python公式スタイルガイドに従い、ログには `logging` を使う。`print` は使わない。
+- コミットメッセージはConventional Commits準拠のプレフィックスを付け、本文は修正内容を日本語で要約する。
 
-## よく使うコマンド
+## 実行・検証
+
+Python 3.12以上を使用し、以下はすべてプロジェクトルートで実行する。
 
 ```bash
-# 依存関係のインストール
-pip install -r requirements.txt
-
-# ローカル起動（プロジェクトルートで実行）
-streamlit run ./src/ui.py
-
-# テスト実行（プロジェクトルートで実行。src.* 形式で import しているため CWD 依存）
-pytest
-
-# 単一テストファイル / 単一テスト
-pytest test/html_parser_test.py
-pytest test/html_parser_test.py::TestHtmlParser::test_get_deck_name_normal
+python -m pip install -r requirements.txt
+python -m streamlit run ./src/ui.py
+python -m pytest
+python -m pytest test/html_parser_test.py
 ```
 
-## 実行パス上の落とし穴
+- `src/` 内は主に裸のimport、テストは `src.` 付きのimportを使う。`python -m src.deck` はImportErrorになるため、UIは上記のStreamlitコマンドで起動する。モジュールの追加・名前変更時は、起動経路とテスト経路の両方を確認する。
+- 外部HTTPは `mocker.patch("requests.get", ...)` でモックし、UIはStreamlitの `AppTest` で検証する。
+- HtmlParserのテストはインラインHTMLを使い、実サイトのフィクスチャは持たない。HTML構造に追従する際はテストデータも更新し、日英の形式を検証する。
+- ブラウザーテストにはPlaywright・Chromiumが別途必要。Playwright未導入時はスキップされる。導入手順は [README](README.md#スリープ対策スクリプトのローカル検証)、CIの検証手順は [.github/workflows/tests.yml](.github/workflows/tests.yml) を参照する。
+- 依存関係の変更は `requirements.in` を編集し、`requirements.txt` を再生成する。生成ファイルは直接編集しない。手順は [README](README.md#依存関係の管理) を参照する。
 
-- `src/` 配下のモジュール同士は主に裸の import（例：`from deck import Deck`）を使っている。`deck_info.py` は相対 import と裸の import の両方に対応するが、`deck.py` や `ui.py` は対応していない。`streamlit run ./src/ui.py` やスクリプトを直接実行する `python src/deck.py` では `src/` が sys.path に追加される。一方、**プロジェクトルートから `python -m src.deck` のようにモジュールとして実行すると、裸の import を解決できず ImportError になる**。UI の起動には Streamlit のコマンドを使用する。
-- 一方、`test/` 配下のテストは `from src.deck_info import DeckInfo` のように `src.` プレフィックス付きで import している。**pytest はプロジェクトルートから実行する必要がある**（`test/` に `cd` してから実行すると解決しない）。
-- 実行経路とテスト経路で import 形式が非対称な点に注意すること。モジュール名の変更や新規モジュール追加時は両方の経路で確認する。
+## 変更時の注意点
 
-## アーキテクチャ
-
-アプリは 7 モジュールで構成され、それぞれ単一責務を持つ。データの流れは基本的に一方向：
-
-```
-ui.py (Streamlit)
-  ├─ url_resolver                       → URL構築・選択・取得前の検証とHTTPS化
-  ├─ DeckInfo(url).fetch_html()          → 遊戯王ニューロンからHTML取得 (requests)
-  ├─ Deck(html).parse_html()             → HtmlParser でモンスター情報を抽出し DataFrame 化
-  │    └─ HtmlParser                     → BeautifulSoup(lxml) で detailtext_main を解析
-  └─ SearchResult(df, origin, dest).get() → pandas ベースでサーチ経路を算出
-```
-
-- [src/i18n.py](src/i18n.py): URLの `lang=ja/en`、`st.context.locale` のブラウザー言語、日本語の順に表示言語を決定し、画面文言と経路数の単数・複数表記を提供する。未指定・未対応の `lang` はブラウザー判定に戻り、英語以外・取得不能は日本語。ログや内部例外メッセージは翻訳しない。
-- [src/ui.py](src/ui.py): Streamlit UI、クエリパラメータによるブックマーク対応、例外→画面エラー表示の責務。`session_state` に `MONSTERS_DF`・`SEARCH_RESULTS`・`DECK_NAME`・`LOADED_DECK_URL` を保持し、同じ取得済みURLの再実行では通信・解析を省く。`LOADED_DECK_PARAMS` に取得成功時の `cgid`・`dno`・`request_locale` を保持し、これらが同じならUI言語変更時も取得済みURLを再利用する（旧ブックマークの取得言語未指定・空文字にも対応）。明示的な取得操作は同じURLでも再取得する。ページ末尾のお問い合わせの下に標準 `menu_button`（`tertiary`、地球儀アイコン付き、標準コンテナで右揃え）を置き、現在の言語をボタンのラベルに表示し、メニュー内では現在の言語だけを太字にして日本語・英語を切り替え、コールバックで `lang` のみ更新する。タイトルのホームリンクも有効な `lang` の明示指定を保持し、未指定・未対応なら自動判定のホームに戻る。検索選択欄は固定キー、ソートは固定値と翻訳ラベルを使い、言語変更でも条件・結果・並び順を保持する。取得成功後はURL入力フォームを閉じ、「デッキを変更」で再表示する。検索フォームは初期表示時から存在し、未取得時は無効。検索結果はサーチ先または経由ごとにまとめ、一致理由を展開表示する。
-- [src/deck_info.py](src/deck_info.py): `normalize_deck_url()` で取得URLを検証・HTTPS化した後、接続5秒・読み取り15秒のタイムアウトでHTTP取得する。転送には追従せず、3xxは `DeckRedirectError`（`ValueError` の派生）、4xx・5xxは `raise_for_status()` で例外化する。
-- [src/deck.py](src/deck.py): HtmlParser の結果を pandas.DataFrame 化する薄いラッパー。
-- [src/html_parser.py](src/html_parser.py): 遊戯王ニューロンの HTML 構造（`detailtext_main` → `t_body mlist_m` → `t_row c_normal`、`card_name` / `box_card_attribute` / `box_card_level_rank level` / `card_info_species_and_other_item` / `atk_power` / `def_power`）に強く依存している。**遊戯王ニューロンの HTML 構造変更がこのプロジェクトの最大の破壊要因**。構造や必須項目の欠落、未知のモンスター領域の内容、デッキ名の meta タグ・content 属性の欠落は `DeckStructureError`（`AttributeError` の派生）を送出する。モンスター領域が存在して空の場合は `NoMonsterError`（`ValueError` の派生）を送出する。UIは解析失敗とモンスター不在を区別して案内する。
-- [src/search_result.py](src/search_result.py): 《スモール・ワールド》のロジックの本体。モンスター属性 6 項目（name, attribute, type, level, attack, defence）のうち**ちょうど 1 項目だけが一致する**組を「経由可能」と判定する二重ループ。origin → transit → dest の 2 ホップで全経路を列挙し DataFrame で返す。
-- [src/url_resolver.py](src/url_resolver.py): デッキ識別用クエリパラメータの有無を判定し、遊戯王ニューロンのURLを構築する。デッキ取得ボタン押下時（「サンプルで試す」を含む）は入力URL、それ以外はクエリパラメータから構築したURLを選択する。`normalize_deck_url()` は取得先と必須パラメータを検証し、HTTPS化・取得時の言語補完・フラグメント除去を行う。
-
-## 遊戯王ニューロンの URL 仕様
-
-- UIと取得直前の両方で `normalize_deck_url()` が、スキームは `http` / `https`、ホストは `www.db.yugioh-card.com`、パスは `/yugiohdb/member_deck.action` であることを厳密に検証する。HTTP入力も実際の取得はHTTPSに統一する。
-- クエリパラメータ `cgid` と `dno` でデッキを一意特定し、取得時には両方の空でない値が必要。`request_locale` は未指定・空文字なら画面の表示言語を補完し、入力URL・ブックマークの明示指定は維持する。URL関連関数を単独で呼ぶ場合の既定は `ja`。UIでは正規化済みURLを取得・ブックマーク双方に使用する。URL検証失敗は翻訳用コードを持つ `DeckUrlError`（`ValueError` の派生）を送出する。UI は明示的な取得操作での取得・解析成功後にこれら3項目を自身のURLにコピーして「ブックマーク共有」を実現している。`lang` はUI専用で取得言語から独立し、デッキ取得・言語切り替えの双方で他方のクエリパラメータを保持する。`lang` のみでは自動取得せず、デッキ識別用パラメータがない未取得状態ではサンプルを利用できる。サーチ元・サーチ先・検索結果はURLに保存しない。
-
-## テストの方針
-
-- 外部 HTTP は `pytest-mock` の `mocker.patch("requests.get", ...)` でモック。
-- HtmlParser は日英の種族区切り（`／` / `/`）と括弧（`【】` / `[]`）に対応し、英語の複数語の種族名の空白を保持する。
-- HtmlParser のテストはインラインの HTML 文字列をパラメタライズして渡す（実際の遊戯王ニューロンのフィクスチャは持たない）。新しい構造変更に追従する際はこのデータを更新する。
-- UIは Streamlit の `AppTest` で、URL指定・手動言語切り替えと再読み込み、旧ブックマークの言語未指定・空文字、検索条件・結果・ソート順の保持、フォームの切り替え、取得済みデッキの再利用、取得失敗時の状態保持、検索結果のグループ表示などを検証する。`scripts/` の脆弱性レポートとスリープ対策にもテストがあり、スリープ対策のテストには追加のPlaywright・Chromiumが必要（導入方法はREADMEを参照）。
-
-## コーディング規約
-
-- Python 公式スタイルガイドに従う（docs/ygo-small-world-transit.md で明記）。
-- ログは `logging` モジュールを使用（`print` は使わない）。
+- URL検証はUIと取得直前の両方で `normalize_deck_url()` を使う。取得先の制限・HTTPS化・リダイレクトへの追従禁止を維持する。
+- `lang` はUI用、`request_locale` はデッキ取得用。UI言語変更だけでデッキを再取得せず、検索条件・結果・ソート順と旧ブックマークの互換性を維持する。明示的な取得操作は同じURLでも再取得する。
+- HtmlParserは外部サイトのHTML構造に依存する。解析失敗（`DeckStructureError`）とモンスター不在（`NoMonsterError`）を区別し、取得・解析失敗時は取得済みデッキや検索結果を壊さない。
+- 仕様変更・修正の前に、対象範囲の [設計書](docs/ygo-small-world-transit.md) と関連テストを確認する。詳細仕様・データフロー・モジュール構成は設計書、利用方法・運用は [README](README.md) を参照する。
 
 ## レビュー
 
 - 仕様・既存レビュースレッドを確認し、全変更ファイル・全差分と必要な関連コードを読む。
-- 解決可能な既存レビュースレッドは解決済みにする。
+- 修正済みかつ返信済みのスレッドは、その修正内容が妥当であれば解決済みにする。
 - 正常系・異常系・境界値・既存動作への回帰、関連するセキュリティ・性能・保守性を確認する。
 - 関連テストと必要なチェックを確認・実行し、変更箇所の静的解析警告を無視しない。
 - 指摘は発生条件・影響・根拠・対象箇所・修正方向を示し、不具合・仕様の不明点・任意の改善案を区別する。確認範囲・未検証事項・検証結果も報告する。
@@ -78,7 +43,8 @@ ui.py (Streamlit)
 
 ### レビュー文面のフォーマット
 
+- コードに対する指摘は、差分内外を問わず、対象コードに紐づくインラインコメントとして投稿する。
 - 各指摘は `[must|should|imo|nits] サマリー` で始める。
 - 本文は「なぜ」（発生条件・根拠・影響）、「どのように」（修正方針と対象言語・形式のコードブロックによる最小限の修正案）、「メリット」（修正の効果）の順で改行して記載し、対象ファイル・最小限の行範囲を特定する。
 - 仕様の質問・判断保留やレビュー全体の検証結果は、指摘とは別に報告する。
-- GitHubへのレビュー本文には `レビュー実行モデル: モデル識別子` を記載し、単独コメントでは末尾に追記する。
+- GitHubへのレビュー本文には `レビュー実行モデル: モデル識別子` を記載し、単独コメントでは末尾に追記する。（例：GPT-6.1 Sol）
