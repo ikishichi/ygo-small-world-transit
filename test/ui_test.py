@@ -640,8 +640,10 @@ def test_deck_form_closes_after_refresh_and_restores_input(mocker, monkeypatch):
 @pytest.fixture
 def english_app(monkeypatch):
     monkeypatch.syspath_prepend(str(PROJECT_ROOT / "src"))
-    monkeypatch.setattr(type(st.context), "locale", property(lambda _: "en-US"))
-    return AppTest.from_file(str(PROJECT_ROOT / "src" / "ui.py"))
+    monkeypatch.setattr(type(st.context), "locale", property(lambda _: "ja-JP"))
+    app = AppTest.from_file(str(PROJECT_ROOT / "src" / "ui.py"))
+    app.query_params["lang"] = "en"
+    return app
 
 
 def test_english_initial_screen(english_app, mocker):
@@ -756,6 +758,6 @@ def test_english_errors_do_not_expose_internal_messages(
     assert len(english_app.error) == 1
     assert expected in english_app.error[0].value
     assert "内部" not in english_app.error[0].value
-    assert not english_app.query_params
+    assert normalize_query_params(english_app.query_params) == {"lang": ["en"]}
     if failure in ("invalid", "missing"):
         get.assert_not_called()

@@ -27,31 +27,42 @@ def app_factory(mocker, monkeypatch):
     return make, get, response
 
 
+@pytest.mark.parametrize("browser", ["ja-JP", "en-US", "fr-FR", None])
 @pytest.mark.parametrize(
-    "browser, lang, expected",
+    "lang, expected",
     [
-        ("en-US", "ja", "ja"),
-        ("ja-JP", "en", "en"),
-        ("en-US", None, "en"),
-        ("en-US", "fr", "en"),
-        (None, None, "ja"),
+        (None, "ja"),
+        ("", "ja"),
+        ("fr", "ja"),
+        ("ja", "ja"),
+        ("en", "en"),
     ],
 )
-def test_initial_language_and_sample(app_factory, monkeypatch, browser, lang, expected):
+def test_initial_language_and_sample(
+    app_factory, monkeypatch, mocker, browser, lang, expected
+):
     monkeypatch.setattr(type(st.context), "locale", property(lambda _: browser))
+    page_config = mocker.spy(st, "set_page_config")
     make, get, _ = app_factory
     params = {} if lang is None else {"lang": lang}
     app = make(params)
+    expected_title = (
+        "遊戯王スモール・ワールド乗り換え検索"
+        if expected == "ja" else "Yu-Gi-Oh! Small World Transit Search"
+    )
 
     assert not app.exception
     assert not app.error
+    page_config.assert_called_with(page_title=expected_title)
+    assert expected_title in app.title[0].value
     assert app.menu_button(key="ui_language_menu").label == LANGUAGE_LABELS[expected]
     assert app.menu_button(key="ui_language_menu").options == (
         ["**日本語**", "English"]
         if expected == "ja" else ["日本語", "**English**"]
     )
     assert normalize_query_params(app.query_params) == normalize_query_params(params)
-    assert any(button.label in ("サンプルで試す", "Try a sample") for button in app.button)
+    sample_label = "サンプルで試す" if expected == "ja" else "Try a sample"
+    assert any(button.label == sample_label for button in app.button)
     assert all(app.selectbox(key=key).disabled for key in ("origin", "destination"))
     assert not app.menu_button(key="ui_language_menu").disabled
     get.assert_not_called()
@@ -69,7 +80,7 @@ def test_switch_reload_and_home_without_deck(app_factory, monkeypatch, lang):
     assert not app.error
     assert app.menu_button(key="ui_language_menu").label == LANGUAGE_LABELS[lang]
     assert normalize_query_params(app.query_params) == {"lang": [lang]}
-    # 新規セッションでURLを開き直しても、ブラウザー言語に戻らない。
+    # 新規セッションでURLを開き直しても、選択した言語を維持する。
     reloaded = make(dict(app.query_params))
     assert not reloaded.exception
     assert reloaded.menu_button(key="ui_language_menu").label == LANGUAGE_LABELS[lang]
@@ -90,9 +101,9 @@ def test_switch_reload_and_home_without_deck(app_factory, monkeypatch, lang):
     [
         ("ja-JP", "en", "en"),
         ("en-US", "ja", "ja"),
-        ("en-US", None, "en"),
-        ("en-US", "", "en"),
-        ("en-US", "fr", "en"),
+        ("en-US", None, "ja"),
+        ("en-US", "", "ja"),
+        ("en-US", "fr", "ja"),
         (None, None, "ja"),
     ],
 )
@@ -130,7 +141,10 @@ def test_home_keeps_explicit_language_and_clears_deck(
 
 @pytest.mark.parametrize("lang", [None, "ja", "en"])
 @pytest.mark.parametrize("request_locale", [None, "", "ja", "en"])
-def test_bookmark_locale_survives_ui_switch(app_factory, lang, request_locale):
+def test_bookmark_locale_survives_ui_switch(
+    app_factory, monkeypatch, lang, request_locale
+):
+    monkeypatch.setattr(type(st.context), "locale", property(lambda _: "en-US"))
     make, get, _ = app_factory
     params = {"cgid": "A", "dno": "123"}
     if lang is not None:
@@ -191,34 +205,44 @@ def test_switch_preserves_search_selections_results_sort_and_title(app_factory, 
     get.assert_called_once()
 
 
-@pytest.mark.parametrize("lang", ["ja", "en"])
-def test_sample_and_manual_load_keep_language_in_bookmark(app_factory, lang):
+@pytest.mark.parametrize("lang", [None, "ja", "en"])
+def test_sample_and_manual_load_keep_language_in_bookmark(
+    app_factory, monkeypatch, lang
+):
+    monkeypatch.setattr(type(st.context), "locale", property(lambda _: "en-US"))
     make, get, _ = app_factory
-    app = make({"lang": lang})
-    sample_label = "Try a sample" if lang == "en" else "サンプルで試す"
+    params = {} if lang is None else {"lang": lang}
+    language = lang or "ja"
+    expected_params = normalize_query_params(params)
+    app = make(params)
+    sample_label = "Try a sample" if language == "en" else "サンプルで試す"
     next(button for button in app.button if button.label == sample_label).click().run()
     assert not app.exception
     assert not app.error
     assert normalize_query_params(app.query_params) == {
-        "lang": [lang], "cgid": ["c8525f77e0268f9b1ba9110a8a05bc35"],
-        "dno": ["193"], "request_locale": [lang],
+        **expected_params, "cgid": ["c8525f77e0268f9b1ba9110a8a05bc35"],
+        "dno": ["193"], "request_locale": [language],
     }
     app.button(key="change_deck").click().run()
     app.text_input[0].set_value(
         "https://www.db.yugioh-card.com/yugiohdb/member_deck.action?cgid=B&dno=2"
     )
-    fetch_label = "Load deck" if lang == "en" else "デッキ取得"
+    fetch_label = "Load deck" if language == "en" else "デッキ取得"
     next(button for button in app.button if button.label == fetch_label).click().run()
     assert not app.exception
     assert not app.error
     assert normalize_query_params(app.query_params) == {
-        "lang": [lang], "cgid": ["B"], "dno": ["2"], "request_locale": [lang],
+        **expected_params, "cgid": ["B"], "dno": ["2"],
+        "request_locale": [language],
     }
     assert get.call_count == 2
     reloaded = make(dict(app.query_params))
     assert not reloaded.exception
     assert not reloaded.error
-    assert reloaded.menu_button(key="ui_language_menu").label == LANGUAGE_LABELS[lang]
+    assert (
+        reloaded.menu_button(key="ui_language_menu").label
+        == LANGUAGE_LABELS[language]
+    )
     assert reloaded.session_state["DECK_NAME"] == "テストデッキ"
     assert get.call_count == 3
 
@@ -234,7 +258,8 @@ def test_explicit_deck_locale_change_still_reloads(app_factory):
     assert parse_qs(urlsplit(get.call_args.args[0]).query)["request_locale"] == ["en"]
 
 
-def test_url_language_changes_update_control(app_factory):
+def test_url_language_changes_update_control(app_factory, monkeypatch):
+    monkeypatch.setattr(type(st.context), "locale", property(lambda _: "en-US"))
     make, get, _ = app_factory
     app = make({"lang": "ja"})
     app.query_params["lang"] = "en"
@@ -243,4 +268,11 @@ def test_url_language_changes_update_control(app_factory):
     assert not app.exception
     assert not app.error
     assert normalize_query_params(app.query_params) == {"lang": ["en"]}
+
+    del app.query_params["lang"]
+    app.run()
+    assert not app.exception
+    assert not app.error
+    assert app.menu_button(key="ui_language_menu").label == "日本語"
+    assert normalize_query_params(app.query_params) == {}
     get.assert_not_called()

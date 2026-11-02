@@ -20,7 +20,7 @@ from url_resolver import (
 )
 
 logger = logging.getLogger(__name__)
-LANGUAGE = resolve_language(st.context.locale, st.query_params.get("lang"))
+LANGUAGE = resolve_language(st.query_params.get("lang"))
 LANGUAGE_NAMES = {"ja": "日本語", "en": "English"}
 
 

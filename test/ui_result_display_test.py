@@ -424,7 +424,9 @@ def test_english_search_and_matching_properties(monkeypatch, mocker):
             content=ENGLISH_DECK_HTML.encode("utf-8"),
         ),
     )
-    app = AppTest.from_file(str(PROJECT_ROOT / "src" / "ui.py")).run()
+    app = AppTest.from_file(str(PROJECT_ROOT / "src" / "ui.py"))
+    app.query_params["lang"] = "en"
+    app.run()
     next(
         button for button in app.button if button.label == "Try a sample"
     ).click().run()
