@@ -25,7 +25,7 @@ YouTubeで[使い方動画](https://www.youtube.com/watch?v=VVvS8u706BM&t=6s)を
 
 [日本語版](https://ygo-small-world-transit.streamlit.app/?lang=ja) / [English version](https://ygo-small-world-transit.streamlit.app/?lang=en)
 
-日本語・英語に対応しています。ページ下部の地球儀アイコンのメニューから表示言語を切り替えられます。
+通常は日本語で表示され、ページ下部の地球儀アイコンのメニューから英語に切り替えられます。
 
 ## ローカルでの起動方法
 
@@ -124,7 +124,7 @@ python -m pytest test/keep_alive_test.py
 
 ## English
 
-[Open the app in English](https://ygo-small-world-transit.streamlit.app/?lang=en) · [Automatic language selection](https://ygo-small-world-transit.streamlit.app/)
+[Japanese (default)](https://ygo-small-world-transit.streamlit.app/) · [Open the app in English](https://ygo-small-world-transit.streamlit.app/?lang=en)
 
 Find **Small World** search routes using a public deck from the [Yu-Gi-Oh! Card Database / NEURON](https://www.db.yugioh-card.com/yugiohdb/?request_locale=en). The app lists possible bridges and destinations, and explains which monster property matches at each step.
 
@@ -139,4 +139,4 @@ After loading, use **Change deck** to open the URL form and load another deck or
 
 ### Language selection
 
-The app supports Japanese and English. Use the language menu with the globe icon at the bottom of the page to switch the display language.
+The app is displayed in Japanese by default. Use the language menu with the globe icon at the bottom of the page to switch to English.

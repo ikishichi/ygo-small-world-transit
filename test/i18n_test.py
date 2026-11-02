@@ -8,29 +8,24 @@ from src.i18n import MESSAGES, resolve_language, route_count
 
 
 @pytest.mark.parametrize(
-    "locale, expected",
+    "lang, expected",
     [
-        ("en", "en"),
-        ("en-US", "en"),
-        ("en-GB", "en"),
-        ("EN-us", "en"),
-        ("en_AU", "en"),
-        ("ja-JP", "ja"),
-        ("fr-FR", "ja"),
         (None, "ja"),
         ("", "ja"),
-        ("english", "ja"),
+        ("ja", "ja"),
+        ("en", "en"),
+        ("fr", "ja"),
+        ("en-US", "ja"),
+        ("JA", "ja"),
+        ("EN", "ja"),
     ],
 )
-def test_browser_language(locale, expected):
-    assert resolve_language(locale) == expected
+def test_url_language_and_japanese_default(lang, expected):
+    assert resolve_language(lang) == expected
 
 
-@pytest.mark.parametrize("browser_locale", ["ja-JP", "en-US", "fr-FR", None, ""])
-@pytest.mark.parametrize("lang", ["ja", "en", None, "", "fr", "en-US"])
-def test_url_language_priority(browser_locale, lang):
-    expected = lang if lang in {"ja", "en"} else resolve_language(browser_locale)
-    assert resolve_language(browser_locale, lang) == expected
+def test_language_is_japanese_when_omitted():
+    assert resolve_language() == "ja"
 
 
 def test_translation_keys_and_placeholders_match():
