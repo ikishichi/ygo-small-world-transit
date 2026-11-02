@@ -62,7 +62,7 @@ MESSAGES = {
         "footer": "[GitHub](https://github.com/ikishichi/ygo-small-world-transit) / お問い合わせ・バグ報告は[こちら](https://docs.google.com/forms/d/18bz8n0Iw7zcS1Js1EhHxuyQ_HwOyts9goOyytDGqOvI/edit?pli=1)",
     },
     "en": {
-        "app_title": "Yu-Gi-Oh! Small World Route Finder",
+        "app_title": "Yu-Gi-Oh! Small World Transit Search",
         "intro": "Load a public deck from the [Yu-Gi-Oh! Card Database](https://www.db.yugioh-card.com/yugiohdb/?request_locale={locale}) to find search routes for [Small World](https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=2&cid=16555&request_locale={locale}).",
         "deck_url_label": "Enter a public deck URL from the Yu-Gi-Oh! Card Database.",
         "url_placeholder": "Enter a URL",
