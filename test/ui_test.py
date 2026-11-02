@@ -648,8 +648,8 @@ def test_english_initial_screen(english_app, mocker):
     page_config = mocker.spy(st, "set_page_config")
     english_app.run()
     assert not english_app.exception
-    page_config.assert_called_with(page_title="Yu-Gi-Oh! Small World Route Finder")
-    assert "Yu-Gi-Oh! Small World Route Finder" in english_app.title[0].value
+    page_config.assert_called_with(page_title="Yu-Gi-Oh! Small World Transit Search")
+    assert "Yu-Gi-Oh! Small World Transit Search" in english_app.title[0].value
     assert (
         english_app.text_input[0].label
         == "Enter a public deck URL from the Yu-Gi-Oh! Card Database."

@@ -185,7 +185,7 @@ def test_switch_preserves_search_selections_results_sort_and_title(app_factory, 
         assert app.session_state["DECK_NAME"] == deck_name
         assert app.header[0].value == ("Search results" if language == "en" else "検索結果")
     page_config.assert_called_with(
-        page_title=f"{deck_name} | Yu-Gi-Oh! Small World Route Finder"
+        page_title=f"{deck_name} | Yu-Gi-Oh! Small World Transit Search"
     )
     assert app.radio[0].options == ["Sort by bridge", "Sort by destination"]
     get.assert_called_once()
