@@ -26,6 +26,13 @@ def test_browser_language(locale, expected):
     assert resolve_language(locale) == expected
 
 
+@pytest.mark.parametrize("browser_locale", ["ja-JP", "en-US", "fr-FR", None, ""])
+@pytest.mark.parametrize("lang", ["ja", "en", None, "", "fr", "en-US"])
+def test_url_language_priority(browser_locale, lang):
+    expected = lang if lang in {"ja", "en"} else resolve_language(browser_locale)
+    assert resolve_language(browser_locale, lang) == expected
+
+
 def test_translation_keys_and_placeholders_match():
     assert MESSAGES["ja"].keys() == MESSAGES["en"].keys()
 

@@ -15,6 +15,16 @@ from src.url_resolver import (
 
 
 class TestHasQueryParams:
+    def test_language_only_is_not_a_deck(self):
+        assert has_query_params({"lang": "en"}) is False
+        assert build_url_from_query_params({"lang": "en"}) == ""
+
+    def test_ui_language_does_not_change_deck_locale(self):
+        params = {"lang": "en", "cgid": "A", "dno": "1", "request_locale": "ja"}
+        assert build_url_from_query_params(params, default_locale="en") == (
+            VALID_PREFIX_HTTPS + "?cgid=A&dno=1&request_locale=ja"
+        )
+
     def test_both_present(self):
         assert has_query_params({"cgid": "A", "dno": "1"}) is True
 

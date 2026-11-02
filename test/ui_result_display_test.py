@@ -106,7 +106,7 @@ def test_search_results_display_complete_routes_and_matching_fields(app):
     ], columns=["origin", "transit", "dest"])
     app.run()
 
-    assert app.radio[0].value == "サーチ先でソート"
+    assert app.radio[0].value == "destination"
     assert not app.exception
     assert not app.error
     assert route_output_events(app) == (
@@ -124,7 +124,7 @@ def test_search_results_display_complete_routes_and_matching_fields(app):
         )
     )
 
-    app.radio[0].set_value("経由でソート").run()
+    app.radio[0].set_value("transit").run()
 
     assert not app.exception
     assert not app.error
@@ -176,20 +176,20 @@ def test_parsed_species_match_is_displayed_without_brackets(app, monsters_df):
     )
 
 
-@pytest.mark.parametrize("sort_label, expected_indices, group_sizes", [
+@pytest.mark.parametrize("sort_value, expected_indices, group_sizes", [
     (
-        "経由でソート",
+        "transit",
         [18, 0, 4, 8, 12, 3, 7, 11, 15, 17, 2, 6, 10, 14, 16, 1, 5, 9, 13, 19],
         [1, 4, 5, 5, 4, 1],
     ),
     (
-        "サーチ先でソート",
+        "destination",
         [4, 9, 14, 17, 3, 8, 13, 16, 18, 19, 1, 6, 11, 12, 2, 7, 0, 5, 10, 15],
         [4, 4, 2, 4, 2, 4],
     ),
 ])
 def test_search_results_keep_input_order_for_equal_sort_keys(
-    app, sort_label, expected_indices, group_sizes
+    app, sort_value, expected_indices, group_sizes
 ):
     """実在カード間の異なる20経路で、同値キーの入力順を維持する。"""
     pairs = [
@@ -219,7 +219,7 @@ def test_search_results_keep_input_order_for_equal_sort_keys(
     ], columns=["origin", "transit", "dest"])
     app.session_state["SEARCH_RESULTS"] = original_results.copy()
     app.run()
-    app.radio[0].set_value(sort_label).run()
+    app.radio[0].set_value(sort_value).run()
 
     expected_events = []
     for number, index in enumerate(expected_indices, 1):
@@ -327,7 +327,7 @@ def test_grouping_follows_selected_sort_for_interleaved_candidates(app):
         "**経由：** R－ACEエアホイスター / R－ACEプリベンター",
     ]
 
-    app.radio[0].set_value("経由でソート").run()
+    app.radio[0].set_value("transit").run()
 
     assert not app.exception
     assert not app.error
@@ -437,14 +437,14 @@ def test_english_search_and_matching_properties(monkeypatch, mocker):
     assert not app.exception
     assert not app.error
     assert app.header[0].value == "Search results"
-    assert app.radio[0].value == "Sort by destination"
+    assert app.radio[0].value == "destination"
     assert app.expander[0].label == "Show matching properties (1 route)"
     captions = [caption.value for caption in app.caption]
     assert "Hand → Bridge: matching Level (Level4)" in captions
     assert "Bridge → Destination: matching Type (Cyberse)" in captions
     assert "**Bridge:** Mathmech Sigma" in [md.value for md in app.markdown]
-    app.radio[0].set_value("Sort by bridge").run()
-    assert app.radio[0].value == "Sort by bridge"
+    app.radio[0].set_value("transit").run()
+    assert app.radio[0].value == "transit"
     assert app.expander[0].label == "Show matching properties (1 route)"
     get.assert_called_once()
     # 0件表示でも英語の案内となる。
