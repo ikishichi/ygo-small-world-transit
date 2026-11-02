@@ -21,7 +21,7 @@ def test_search_disabled_until_deck_is_loaded(mocker, monkeypatch):
     app = make_app(mocker, monkeypatch, loaded=False)
     assert not app.exception
     search_buttons = [button for button in app.button if button.label == "経路を検索"]
-    assert len(app.selectbox) == 2
+    assert len(app.selectbox) == 3
     assert len(search_buttons) == 1
     assert search_buttons[0].disabled
 

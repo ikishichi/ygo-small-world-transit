@@ -127,18 +127,6 @@ if st.query_params.get("lang") in {"ja", "en"}:
 st.title(f"[{APP_TITLE}]({home_url})", anchor=False)
 st.caption(t("intro", locale=LANGUAGE))
 
-# URLの直接変更・自動判定も選択状態に反映する。解除時は現在の言語に戻す。
-st.session_state["ui_language"] = LANGUAGE
-with st.container(horizontal=True, horizontal_alignment="right"):
-    st.segmented_control(
-        "Language / 言語",
-        ["ja", "en"],
-        format_func=lambda language: {"ja": "日本語", "en": "English"}[language],
-        key="ui_language",
-        on_change=change_language,
-        label_visibility="collapsed",
-    )
-
 if 'MONSTERS_DF' not in st.session_state:
     initialize_session_state()
 else:
@@ -454,3 +442,15 @@ except Exception:
 
 finally:
     st.write(t("footer"))
+    # URLの直接変更・自動判定も選択状態に反映する。
+    st.session_state["ui_language"] = LANGUAGE
+    with st.container(horizontal=True, horizontal_alignment="right"):
+        st.selectbox(
+            "Language / 言語",
+            ["ja", "en"],
+            format_func=lambda language: {"ja": "日本語", "en": "English"}[language],
+            key="ui_language",
+            on_change=change_language,
+            label_visibility="collapsed",
+            width=180,
+        )

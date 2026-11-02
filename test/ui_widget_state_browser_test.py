@@ -125,7 +125,16 @@ def test_language_round_trip_preserves_sort_display_and_grouping(
     expect(page.get_by_label(LABELS[language][sort], exact=True)).to_be_checked()
 
     for target in ("ja" if language == "en" else "en", language):
-        page.get_by_text("日本語" if target == "ja" else "English", exact=True).click()
+        expect(page.get_by_test_id("stStatusWidget")).not_to_be_visible()
+        language_control = page.get_by_test_id("stSelectbox").filter(
+            has=page.get_by_role("combobox", name="Language / 言語", exact=True)
+        )
+        language_control.scroll_into_view_if_needed()
+        expect(language_control).to_be_in_viewport(ratio=1)
+        language_control.get_by_role("button", name="Open", exact=True).click()
+        page.get_by_role(
+            "option", name="日本語" if target == "ja" else "English", exact=True
+        ).click()
         labels = LABELS[target]
         expect(page.get_by_label(labels[sort], exact=True)).to_be_checked()
         expect(page.get_by_text(labels[f"group_{sort}"], exact=True)).to_be_visible()

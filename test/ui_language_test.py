@@ -43,11 +43,12 @@ def test_initial_language_and_sample(app_factory, monkeypatch, browser, lang, ex
 
     assert not app.exception
     assert not app.error
-    assert app.segmented_control[0].value == expected
-    assert app.segmented_control[0].options == ["日本語", "English"]
+    assert app.selectbox(key="ui_language").value == expected
+    assert app.selectbox(key="ui_language").options == ["日本語", "English"]
     assert normalize_query_params(app.query_params) == normalize_query_params(params)
     assert any(button.label in ("サンプルで試す", "Try a sample") for button in app.button)
-    assert all(selectbox.disabled for selectbox in app.selectbox)
+    assert all(app.selectbox(key=key).disabled for key in ("origin", "destination"))
+    assert not app.selectbox(key="ui_language").disabled
     get.assert_not_called()
 
 
@@ -57,16 +58,16 @@ def test_switch_reload_and_home_without_deck(app_factory, monkeypatch, lang):
     monkeypatch.setattr(type(st.context), "locale", property(lambda _: browser_locale))
     make, get, _ = app_factory
     app = make({"lang": "en" if lang == "ja" else "ja"})
-    app.segmented_control[0].set_value(lang).run()
+    app.selectbox(key="ui_language").set_value(lang).run()
 
     assert not app.exception
     assert not app.error
-    assert app.segmented_control[0].value == lang
+    assert app.selectbox(key="ui_language").value == lang
     assert normalize_query_params(app.query_params) == {"lang": [lang]}
     # 新規セッションでURLを開き直しても、ブラウザー言語に戻らない。
     reloaded = make(dict(app.query_params))
     assert not reloaded.exception
-    assert reloaded.segmented_control[0].value == lang
+    assert reloaded.selectbox(key="ui_language").value == lang
     home_url = app.title[0].value.split("](")[1][:-1]
     assert home_url == f"https://ygo-small-world-transit.streamlit.app/?lang={lang}"
     home_params = {
@@ -75,7 +76,7 @@ def test_switch_reload_and_home_without_deck(app_factory, monkeypatch, lang):
     }
     home = make(home_params)
     assert not home.exception
-    assert home.segmented_control[0].value == lang
+    assert home.selectbox(key="ui_language").value == lang
     get.assert_not_called()
 
 
@@ -116,7 +117,7 @@ def test_home_keeps_explicit_language_and_clears_deck(
     home = make(home_params)
     assert not home.exception
     assert not home.error
-    assert home.segmented_control[0].value == expected
+    assert home.selectbox(key="ui_language").value == expected
     assert home.session_state["LOADED_DECK_URL"] is None
     assert normalize_query_params(app.query_params) == normalize_query_params(params)
     get.assert_called_once()
@@ -140,7 +141,7 @@ def test_bookmark_locale_survives_ui_switch(app_factory, lang, request_locale):
     ]
     loaded_url = app.session_state["LOADED_DECK_URL"]
     next_language = "ja" if lang == "en" else "en"
-    app.segmented_control[0].set_value(next_language).run()
+    app.selectbox(key="ui_language").set_value(next_language).run()
     app.run()
 
     assert not app.exception
@@ -168,7 +169,7 @@ def test_switch_preserves_search_selections_results_sort_and_title(app_factory, 
     deck_name = app.session_state["DECK_NAME"]
 
     for language in ("en", "ja", "en"):
-        app.segmented_control[0].set_value(language).run()
+        app.selectbox(key="ui_language").set_value(language).run()
         assert not app.exception
         assert not app.error
         assert app.selectbox(key="origin").value == "Mulcharmy Fuwalos"
@@ -211,7 +212,7 @@ def test_sample_and_manual_load_keep_language_in_bookmark(app_factory, lang):
     reloaded = make(dict(app.query_params))
     assert not reloaded.exception
     assert not reloaded.error
-    assert reloaded.segmented_control[0].value == lang
+    assert reloaded.selectbox(key="ui_language").value == lang
     assert reloaded.session_state["DECK_NAME"] == "テストデッキ"
     assert get.call_count == 3
 
@@ -227,15 +228,13 @@ def test_explicit_deck_locale_change_still_reloads(app_factory):
     assert parse_qs(urlsplit(get.call_args.args[0]).query)["request_locale"] == ["en"]
 
 
-def test_url_language_changes_update_control_and_clearing_selection_is_safe(app_factory):
+def test_url_language_changes_update_control(app_factory):
     make, get, _ = app_factory
     app = make({"lang": "ja"})
     app.query_params["lang"] = "en"
     app.run()
-    assert app.segmented_control[0].value == "en"
-    app.segmented_control[0].set_value(None).run()
+    assert app.selectbox(key="ui_language").value == "en"
     assert not app.exception
     assert not app.error
-    assert app.segmented_control[0].value == "en"
     assert normalize_query_params(app.query_params) == {"lang": ["en"]}
     get.assert_not_called()

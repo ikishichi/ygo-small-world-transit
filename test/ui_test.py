@@ -373,7 +373,7 @@ def test_successful_deck_display_order(mocker, monkeypatch):
     assert ":green[✓ 読み込み済]　**テストデッキ**" == app.markdown[0].value
     assert [button.label for button in app.button] == ["デッキを変更", "経路を検索"]
     assert app.button[1].proto.type == "primary"
-    assert len(app.selectbox) == 2
+    assert len(app.selectbox) == 3
     assert not app.button[1].disabled
 
 
