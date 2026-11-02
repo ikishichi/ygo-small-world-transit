@@ -126,15 +126,20 @@ def test_language_round_trip_preserves_sort_display_and_grouping(
 
     for target in ("ja" if language == "en" else "en", language):
         expect(page.get_by_test_id("stStatusWidget")).not_to_be_visible()
-        language_control = page.get_by_test_id("stSelectbox").filter(
-            has=page.get_by_role("combobox", name="Language / 言語", exact=True)
-        )
+        language_control = page.locator(".st-key-ui_language_menu")
         language_control.scroll_into_view_if_needed()
         expect(language_control).to_be_in_viewport(ratio=1)
-        language_control.get_by_role("button", name="Open", exact=True).click()
+        language_control.get_by_role("button").click()
+        current_label = "English" if target == "ja" else "日本語"
+        expect(
+            page.get_by_role("menuitem", name=current_label, exact=True).locator("strong")
+        ).to_have_text(current_label)
         page.get_by_role(
-            "option", name="日本語" if target == "ja" else "English", exact=True
+            "menuitem", name="日本語" if target == "ja" else "English", exact=True
         ).click()
+        expect(language_control.get_by_role("button")).to_contain_text(
+            "日本語" if target == "ja" else "English"
+        )
         labels = LABELS[target]
         expect(page.get_by_label(labels[sort], exact=True)).to_be_checked()
         expect(page.get_by_text(labels[f"group_{sort}"], exact=True)).to_be_visible()

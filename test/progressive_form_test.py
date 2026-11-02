@@ -17,10 +17,10 @@ def test_initial_page_shows_search_form_with_disabled_search(mocker, monkeypatch
     app, get = make_app(mocker, monkeypatch)
 
     assert not app.exception
-    assert len(app.selectbox) == 3
-    assert all(not selectbox.options for selectbox in app.selectbox[:2])
-    assert all(selectbox.proto.disabled for selectbox in app.selectbox[:2])
-    assert [selectbox.proto.placeholder for selectbox in app.selectbox[:2]] == [
+    assert len(app.selectbox) == 2
+    assert all(not selectbox.options for selectbox in app.selectbox)
+    assert all(selectbox.proto.disabled for selectbox in app.selectbox)
+    assert [selectbox.proto.placeholder for selectbox in app.selectbox] == [
         "モンスターを選択",
         "モンスターを選択",
     ]
@@ -38,13 +38,13 @@ def test_loading_deck_enables_search(mocker, monkeypatch):
 
     assert not app.exception
     assert not app.error
-    assert len(app.selectbox) == 3
+    assert len(app.selectbox) == 2
     assert app.selectbox[0].options == ["テストモンスター"]
-    assert [selectbox.proto.placeholder for selectbox in app.selectbox[:2]] == [
+    assert [selectbox.proto.placeholder for selectbox in app.selectbox] == [
         "モンスターを選択",
         "モンスターを選択",
     ]
-    assert all(not selectbox.proto.disabled for selectbox in app.selectbox[:2])
+    assert all(not selectbox.proto.disabled for selectbox in app.selectbox)
     assert [button.label for button in app.button] == ["デッキを変更", "経路を検索"]
     assert not app.button[1].disabled
 
@@ -56,7 +56,7 @@ def test_bookmark_enables_search(mocker, monkeypatch):
 
     assert not app.exception
     assert not app.error
-    assert len(app.selectbox) == 3
+    assert len(app.selectbox) == 2
     assert not app.button[1].disabled
     assert all(
         "ブックマーク" not in caption.value for caption in app.caption
@@ -79,7 +79,7 @@ def test_failed_first_load_does_not_reveal_search_form(mocker, monkeypatch):
 
     assert not app.exception
     assert app.error
-    assert [selectbox.key for selectbox in app.selectbox] == ["ui_language"]
+    assert not app.selectbox
     assert [button.label for button in app.button] == ["デッキ取得", "サンプルで試す"]
     assert all(
         "ブックマーク" not in caption.value for caption in app.caption

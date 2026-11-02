@@ -21,6 +21,7 @@ from url_resolver import (
 
 logger = logging.getLogger(__name__)
 LANGUAGE = resolve_language(st.context.locale, st.query_params.get("lang"))
+LANGUAGE_NAMES = {"ja": "日本語", "en": "English"}
 
 
 def t(key, **values):
@@ -78,7 +79,7 @@ def show_deck_form():
 
 def change_language():
     """デッキ用パラメータを保ったままUIの言語指定だけを更新する。"""
-    language = st.session_state["ui_language"]
+    language = st.session_state["ui_language_menu"]
     if language in {"ja", "en"} and st.query_params.get("lang") != language:
         if "sort" in st.session_state:
             # 翻訳後の選択値をブラウザーへ再送する。
@@ -442,15 +443,16 @@ except Exception:
 
 finally:
     st.write(t("footer"))
-    # URLの直接変更・自動判定も選択状態に反映する。
-    st.session_state["ui_language"] = LANGUAGE
     with st.container(horizontal=True, horizontal_alignment="right"):
-        st.selectbox(
-            "Language / 言語",
-            ["ja", "en"],
-            format_func=lambda language: {"ja": "日本語", "en": "English"}[language],
-            key="ui_language",
-            on_change=change_language,
-            label_visibility="collapsed",
-            width=180,
+        st.menu_button(
+            LANGUAGE_NAMES[LANGUAGE],
+            LANGUAGE_NAMES,
+            format_func=lambda language: (
+                f"**{LANGUAGE_NAMES[language]}**"
+                if language == LANGUAGE else LANGUAGE_NAMES[language]
+            ),
+            key="ui_language_menu",
+            on_click=change_language,
+            type="tertiary",
+            icon=":material/language:",
         )
