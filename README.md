@@ -6,10 +6,6 @@
 
 [遊戯王スモール・ワールド乗り換え検索](https://ygo-small-world-transit.streamlit.app)では、[遊戯王ニューロン](https://www.db.yugioh-card.com/yugiohdb/)の公開デッキURLを読み込むことで、<<スモール・ワールド>>のサーチ経路を検索できます。
 
-## ライセンス
-
-本プロジェクトのコードはMITライセンスで公開しています。詳細は[LICENSE.txt](LICENSE.txt)を参照してください。
-
 ## 使い方
 
 YouTubeで[使い方動画](https://www.youtube.com/watch?v=VVvS8u706BM&t=6s)を公開しています。
@@ -32,36 +28,6 @@ YouTubeで[使い方動画](https://www.youtube.com/watch?v=VVvS8u706BM&t=6s)を
 [日本語版](https://ygo-small-world-transit.streamlit.app/?lang=ja) / [English version](https://ygo-small-world-transit.streamlit.app/?lang=en)
 
 日本語・英語に対応しています。ページ下部の地球儀アイコンのメニューから表示言語を切り替えられます。
-
-## English
-
-[Open the app in English](https://ygo-small-world-transit.streamlit.app/?lang=en) · [Automatic language selection](https://ygo-small-world-transit.streamlit.app/)
-
-Find **Small World** search routes using a public deck from the [Yu-Gi-Oh! Card Database / NEURON](https://www.db.yugioh-card.com/yugiohdb/?request_locale=en). The app lists possible bridges and destinations, and explains which monster property matches at each step.
-
-### How to use
-
-1. Paste the public deck URL shown at the top of its deck page and select **Load deck**, or select **Try a sample** on the initial screen.
-2. Select a monster to reveal from your hand. Optionally select a destination; leave it empty to find all reachable destinations in the loaded deck.
-3. Select **Find routes**. Results are grouped by destination. Use **Sort by bridge** to group by bridge instead.
-4. Open **Show matching properties** to see each hand → bridge → destination route and its matching properties.
-
-After loading, use **Change deck** to open the URL form and load another deck or refresh the current one. Bookmark the page after loading to load the same deck next time. Search selections and results are not saved.
-
-### Language selection
-
-The app supports Japanese and English. Use the language menu with the globe icon at the bottom of the page to switch the display language.
-
-### Run locally and test
-
-Requires Python 3.12 or later. Clone this repository, enter its root directory, and run (a virtual environment is recommended):
-
-```bash
-python -m pip install -r requirements.txt
-python -m streamlit run ./src/ui.py
-```
-
-Run `python -m pytest` from the repository root. The keep-alive browser tests additionally require `playwright==1.63.0` and `python -m playwright install chromium`; without Playwright they are skipped. See the [design document (Japanese)](docs/ygo-small-world-transit.md) for implementation details. The code is licensed under the [MIT License](LICENSE.txt).
 
 ## ローカルでの起動方法
 
@@ -153,3 +119,26 @@ python -m pytest test/keep_alive_test.py
 ```
 
 `python scripts/keep_alive.py` は公開アプリに実際にアクセスして復帰を確認します。`python -m pytest test/keep_alive_test.py` はChromiumを使用し、通信先をローカルで再現します。Playwright未導入時はテストをスキップします。
+
+## ライセンス
+
+本プロジェクトのコードはMITライセンスで公開しています。詳細は[LICENSE.txt](LICENSE.txt)を参照してください。
+
+## English
+
+[Open the app in English](https://ygo-small-world-transit.streamlit.app/?lang=en) · [Automatic language selection](https://ygo-small-world-transit.streamlit.app/)
+
+Find **Small World** search routes using a public deck from the [Yu-Gi-Oh! Card Database / NEURON](https://www.db.yugioh-card.com/yugiohdb/?request_locale=en). The app lists possible bridges and destinations, and explains which monster property matches at each step.
+
+### How to use
+
+1. Paste the public deck URL shown at the top of its deck page and select **Load deck**, or select **Try a sample** on the initial screen.
+2. Select a monster to reveal from your hand. Optionally select a destination; leave it empty to find all reachable destinations in the loaded deck.
+3. Select **Find routes**. Results are grouped by destination. Use **Sort by bridge** to group by bridge instead.
+4. Open **Show matching properties** to see each hand → bridge → destination route and its matching properties.
+
+After loading, use **Change deck** to open the URL form and load another deck or refresh the current one. Bookmark the page after loading to load the same deck next time. Search selections and results are not saved.
+
+### Language selection
+
+The app supports Japanese and English. Use the language menu with the globe icon at the bottom of the page to switch the display language.
