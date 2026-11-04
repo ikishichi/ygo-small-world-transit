@@ -291,6 +291,7 @@ try:
             index=None,
             placeholder=t("monster_placeholder"),
             disabled=not deck_is_loaded,
+            filter_mode=None,
             key="origin",
         )
 
@@ -302,6 +303,7 @@ try:
             index=None,
             placeholder=t("monster_placeholder"),
             disabled=not deck_is_loaded,
+            filter_mode=None,
             key="destination",
         )
 
