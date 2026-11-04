@@ -2,7 +2,7 @@
 
 [![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://ygo-small-world-transit.streamlit.app/?lang=en)
 
-This app finds [**Small World**](https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=2&cid=16555&request_locale=en) search routes from a public deck URL on [Yu-Gi-Oh! Neuron](https://www.db.yugioh-card.com/yugiohdb/?request_locale=en).
+This app finds [**Small World**](https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=2&cid=16555&request_locale=en) search routes from a public deck on [Yu-Gi-Oh! Neuron](https://www.db.yugioh-card.com/yugiohdb/?request_locale=en).
 
 <div align="center">
 
