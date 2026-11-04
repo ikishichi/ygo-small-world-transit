@@ -1,6 +1,8 @@
 # ygo-small-world-transit
 
-[游戏王小世界检索路径查询](https://ygo-small-world-transit.streamlit.app/?lang=zh-CN)可根据[游戏王 Neuron](https://www.db.yugioh-card.com/yugiohdb/?request_locale=cn)的公开牌组 URL，搜索[**小世界**](https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=2&cid=16555&request_locale=cn)的检索路径。
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://ygo-small-world-transit.streamlit.app/?lang=zh-CN)
+
+本应用可根据[游戏王 Neuron](https://www.db.yugioh-card.com/yugiohdb/?request_locale=cn)的公开牌组 URL，搜索[**小世界**](https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=2&cid=16555&request_locale=cn)的检索路径。
 
 <div align="center">
 
