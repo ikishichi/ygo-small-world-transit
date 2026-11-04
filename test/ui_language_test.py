@@ -57,8 +57,8 @@ def test_initial_language_and_sample(
     assert expected_title in app.title[0].value
     assert app.menu_button(key="ui_language_menu").label == LANGUAGE_LABELS[expected]
     assert app.menu_button(key="ui_language_menu").options == (
-        ["**日本語**", "English"]
-        if expected == "ja" else ["日本語", "**English**"]
+        [":red[**日本語**]", "English"]
+        if expected == "ja" else ["日本語", ":red[**English**]"]
     )
     assert normalize_query_params(app.query_params) == normalize_query_params(params)
     sample_label = "サンプルで試す" if expected == "ja" else "Try a sample"
