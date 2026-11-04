@@ -455,3 +455,30 @@ def test_english_search_and_matching_properties(monkeypatch, mocker):
     assert not app.exception
     assert app.info[0].value.startswith("No routes found.")
     assert not app.expander
+
+
+@pytest.mark.parametrize(
+    "language, expected_header, expected_count, expected_match",
+    [
+        ("ko", "검색 결과", "1개의 경로", "속성"),
+        ("zh-CN", "查询结果", "1条路径", "属性"),
+    ],
+)
+def test_search_result_summary_translates_for_new_languages(
+    app, language, expected_header, expected_count, expected_match
+):
+    app.session_state["SEARCH_RESULTS"] = pd.DataFrame(
+        [("R－ACEタービュランス", "R－ACEプリベンター", "R－ACEファイア・エンジン")],
+        columns=["origin", "transit", "dest"],
+    )
+    app.run()
+    app.menu_button(key="ui_language_menu").click(language).run()
+
+    assert not app.exception
+    assert not app.error
+    assert app.header[0].value == expected_header
+    assert expected_count in [caption.value for caption in app.caption]
+    assert expected_count in app.expander[0].label
+    assert any(
+        expected_match in caption.value for caption in app.caption
+    )

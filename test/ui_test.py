@@ -654,7 +654,7 @@ def test_english_initial_screen(english_app, mocker):
     assert "Yu-Gi-Oh! Small World Transit Search" in english_app.title[0].value
     assert (
         english_app.text_input[0].label
-        == "Enter a public deck URL from the Yu-Gi-Oh! Card Database."
+        == "Enter a public deck URL from Yu-Gi-Oh! Neuron."
     )
     assert [button.label for button in english_app.button] == [
         "Load deck",

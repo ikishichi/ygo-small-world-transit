@@ -26,14 +26,14 @@ user --> uc2
 
 ### 多言語対応
 
-- `resolve_language(lang=None)` はURLの有効な `lang=ja` / `lang=en` を優先し、未指定・空・未対応の場合は `ja` を返す。ブラウザー言語では表示言語を切り替えない。ページタイトルの設定前に判定し、`src/i18n.py` の翻訳辞書で画面の説明・操作・検索結果・エラー・フッターを表示する。英語の経路数は単数・複数を区別する。
-- デッキ取得言語と画面の表示言語は分ける。入力URL・ブックマークの空でない `request_locale` を優先し、未指定・空文字なら表示言語を補完する。単独で呼ぶURL関数の既定は `ja`。サンプルと説明リンクは表示言語に合わせる。
+- `resolve_language(lang=None)` はURLの有効な `lang=ja` / `lang=en` / `lang=ko` / `lang=zh-CN` を優先し、未指定・空・未対応の場合は `ja` を返す。ブラウザー言語では表示言語を切り替えない。ページタイトルの設定前に判定し、`src/i18n.py` の翻訳辞書で画面の説明・操作・検索結果・エラー・フッターを表示する。英語の経路数は単数・複数を区別する。
+- デッキ取得言語と画面の表示言語は分ける。入力URL・ブックマークの空でない `request_locale` を優先し、未指定・空文字なら `get_request_locale()` で表示言語に対応する取得言語を補完する。`ja` / `en` / `ko` は同じコード、`zh-CN` は公式DBの `cn` に対応する。単独で呼ぶURL関数の既定は `ja`。サンプルと説明リンクにも同じ対応を使う。
 - URLの正規化はUIでも取得前に行い、実際に取得した言語をブックマークに保存する。取得済みURLにも同じ言語を含め、検索・ソート時に再取得しない。取得成功時のデッキ用パラメータ（`cgid`・`dno`・`request_locale` の値と有無）を `LOADED_DECK_PARAMS` に保存し、これらが変わらなければ取得済みURLを再利用する。これにより取得言語未指定・空文字の旧ブックマークも、UI言語だけで再取得・カード名変更・検索結果クリアを起こさない。デッキ名は原文のままとする。
-- 言語メニューはアプリ画面の冒頭に置き、アプリタイトルの上部右側に標準の `st.menu_button` を右寄せで表示する。メニューとタイトルは `st.container(gap="xxsmall")` の縦並びにする。ページ上部の余白は `.streamlit/config.toml` の `[theme] paddingTop = "1rem"` で設定し、Streamlitツールバーは `[client] toolbarMode = "minimal"` で最小化する。メニューのボタンラベルに現在言語（日本語・English）を表示し、`type="tertiary"` で枠・背景なし、`icon=":material/language:"` で地球儀アイコン付きとする。言語の選択肢は開いたメニュー内に表示し、StreamlitのMarkdownで現在の言語だけを赤の太字にして、値は `ja` / `en` を維持する。メニューのキーは `ui_language_menu` とし、選択時の値をコールバックで読み取る。コールバックは `lang` のみ更新し、通常の再実行で翻訳とページタイトルを更新する。フッターにはGitHub・お問い合わせリンクだけを表示する。URLの `lang` が有効ならその言語を表示し、未指定・空・未対応の値はURLを書き換えず日本語を表示する。言語のリダイレクト・URL正規化はしない。タイトルのホームリンクは有効な `lang=ja/en` の明示指定だけを引き継いで初期画面に戻り、未指定・無効な場合は言語指定なしホームに戻る。タイトルのCSSはホームURLの前方一致でクエリ付きリンクにも適用する。
+- 言語メニューはアプリ画面の冒頭に置き、アプリタイトルの上部右側に標準の `st.menu_button` を右寄せで表示する。メニューとタイトルは `st.container(gap="xxsmall")` の縦並びにする。ページ上部の余白は `.streamlit/config.toml` の `[theme] paddingTop = "1rem"` で設定し、Streamlitツールバーは `[client] toolbarMode = "minimal"` で最小化する。メニューのボタンラベルに現在言語（日本語・English・한국어・简体中文）を表示し、`type="tertiary"` で枠・背景なし、`icon=":material/language:"` で地球儀アイコン付きとする。言語の選択肢は開いたメニュー内に表示し、StreamlitのMarkdownで現在の言語だけを赤の太字にして、値は `ja` / `en` / `ko` / `zh-CN` とする。対応言語名は `src/i18n.py` の `LANGUAGE_NAMES` で管理する。メニューのキーは `ui_language_menu` とし、選択時の値をコールバックで読み取る。コールバックは `lang` のみ更新し、通常の再実行で翻訳とページタイトルを更新する。フッターにはGitHub・お問い合わせリンクだけを表示する。URLの `lang` が有効ならその言語を表示し、未指定・空・未対応の値はURLを書き換えず日本語を表示する。言語のリダイレクト・URL正規化はしない。タイトルのホームリンクは有効な `lang=ja/en/ko/zh-CN` の明示指定だけを引き継いで初期画面に戻り、未指定・無効な場合は言語指定なしホームに戻る。タイトルのCSSはホームURLの前方一致でクエリ付きリンクにも適用する。
 - `lang` はUI専用、`request_locale` はデッキ情報取得用。両者は独立し、`?lang=en&cgid=xxx&dno=123&request_locale=ja` は英語UI・日本語カード情報となる。UI切り替え時はデッキの3パラメータを保持し、明示取得後のブックマーク更新時も `lang` を保持する。
 - サーチ元・サーチ先の選択欄は固定キー、ソートは固定値（`transit` / `destination`）と翻訳表示を使い、UI切り替えで検索条件・結果・並び順を保持する。デッキ取得・解析成功時には選択欄とソートをリセットする。
-- 公開先は引き続きStreamlit Community Cloudとし、英語版は `?lang=en` で直接参照できる。hreflang・canonicalの追加や静的SEOサイトは導入しない。
-- 種族の抽出は日本語の `【種族／効果】` と英語の `[ Type / Effect ]` に対応し、`Winged Beast` などの空白は保持する。DataFrameの列名と検索計算は共通とする。
+- 公開先は引き続きStreamlit Community Cloudとし、各言語版は `?lang=ja/en/ko/zh-CN` の該当コードで直接参照できる。hreflang・canonicalの追加や静的SEOサイトは導入しない。READMEは日本語の `README.md` を基準に `README.en.md` / `README.ko.md` / `README.zh-CN.md` に分け、各冒頭で相互リンクする。
+- 種族の抽出は日本語の `【種族／効果】` と英語の `[ Type / Effect ]`、韓国語の `[ 종족 / 효과 ]`、簡体字の `[ 种族 / 效果 ]` に対応し、`Winged Beast` などの空白は保持する。DataFrameの列名と検索計算は共通とする。
 - ログ・内部例外メッセージは日本語のままとし、UIでは例外種別・コードに応じた翻訳文を表示する。予期しない例外の詳細はログに記録し、画面には再試行の案内を表示する。
 - スリープ対策のPlaywrightは `locale="ja-JP"` に固定し、日本語のタイトル・入力欄・ボタンで起動を確認する。
 
@@ -106,7 +106,7 @@ database "遊戯王ニューロン" as db
 
 以下はデッキ取得・解析・検索の正常系を示す。**デッキ取得ボタン押下時は同じURLでも再取得する。「サンプルで試す」も明示的な取得操作として扱う。それ以外は、`cgid` と `dno` があり、デッキ用パラメータが変わらなければ取得済みURLを再利用し、異なる場合は新しく構築したURLが `LOADED_DECK_URL` と異なるときだけ取得・解析する。** 初回は `LOADED_DECK_URL` が `None` のため、ブックマークの指定があれば取得する。検索・並べ替えなど、同じ取得済みURLでの再実行はセッション内のデッキを再利用する。
 
-取得前に `normalize_deck_url()` でスキーム（HTTP/HTTPS）・ホスト（`www.db.yugioh-card.com`）・パス（`/yugiohdb/member_deck.action`）と、空でない `cgid`・`dno` を検証する。取得URLはHTTPSに統一し、`request_locale` が未指定・空文字なら画面の表示言語を補完する（URL関数単独の既定は `ja`）。HTTP取得には接続5秒・読み取り15秒のタイムアウトを設定し、転送応答には追従しない。
+取得前に `normalize_deck_url()` でスキーム（HTTP/HTTPS）・ホスト（`www.db.yugioh-card.com`）・パス（`/yugiohdb/member_deck.action`）と、空でない `cgid`・`dno` を検証する。取得URLはHTTPSに統一し、`request_locale` が未指定・空文字なら画面の表示言語に対応する取得言語を補完する（簡体字は `cn`、URL関数単独の既定は `ja`）。HTTP取得には接続5秒・読み取り15秒のタイムアウトを設定し、転送応答には追従しない。
 
 取得・解析時の例外はUIで捕捉し、次のように案内を分ける。**失敗時は元のデッキ情報・検索結果・ブックマークを保持するが、その実行では検索フォーム・結果の表示まで進まない。**
 
@@ -136,7 +136,7 @@ database "遊戯王ニューロン" as db
     ui --> ui : 有効なlang指定・日本語の順で表示言語を決定
     ui --> user : 右寄せの言語メニューと直下のタイトルを表示（gap=xxsmall、選択時はlangのみ更新）
     ui --> ur : build_url_from_query_params(query_params, default_locale)
-    ur --> ui : クエリパラメータ由来のURL（言語未指定は表示言語）
+    ur --> ui : クエリパラメータ由来のURL（言語未指定は表示言語に対応する取得言語）
     opt デッキ用パラメータが取得成功時と同じ
         ui --> ui : LOADED_DECK_URLを再利用
     end
@@ -151,8 +151,8 @@ database "遊戯王ニューロン" as db
     opt 明示的な取得操作またはcgid・dnoあり
         ui --> ur : select_url(input_url, query_params_url, submit_btn)
         ur --> ui : 使用するURL
-        ui --> ur : normalize_deck_url(url, default_locale=表示言語)
-        ur --> ui : 検査済みHTTPS URL（明示言語優先・未指定は表示言語）
+        ui --> ur : normalize_deck_url(url, default_locale=表示言語に対応する取得言語)
+        ur --> ui : 検査済みHTTPS URL（明示言語優先・未指定は表示言語に対応する取得言語）
         alt submit_btnまたはLOADED_DECK_URLとURLが異なる
             ui --> di : DeckInfo(url)・fetch_html()
             di --> ur : normalize_deck_url(url, default_locale="ja")
@@ -287,7 +287,7 @@ if (SHOW_DECK_FORMがTrue?) then (はい)
 endif
 if (明示的な取得操作 または cgid・dnoあり?) then (はい)
     :入力URLまたはクエリパラメータ由来のURLを選択;
-    :URL検査・HTTPS化・未指定言語を表示言語で補完;
+    :URL検査・HTTPS化・未指定言語を表示言語に対応する取得言語で補完;
     if (有効な公開デッキURL?) then (はい)
     else (いいえ)
         :無効なURLのエラー表示;
@@ -373,4 +373,4 @@ https://docs.python.org/ja/3/tutorial/controlflow.html#intermezzo-coding-style
 
 ## 言語切り替えの検証
 
-`test/i18n_test.py` で有効なURL指定の優先順位と、未指定・空・不正な指定時の日本語フォールバック、翻訳キー・プレースホルダー・単複を検証する。`test/ui_language_test.py` のAppTestでブラウザー言語によらない日本語既定、言語切り替えと新規セッションでの再読み込み、旧ブックマーク・lang付きブックマーク・langのみ、取得言語の明示指定と未指定・空文字、サンプル・手動取得後のURL更新、再取得抑止、検索条件・結果・並び順保持を検証する。実ブラウザー・外部DBの確認はAppTestと区別してPRに記録する。
+`test/i18n_test.py` で4言語の有効なURL指定と、未指定・空・不正な指定時の日本語フォールバック、取得言語への対応、翻訳キー・プレースホルダー・単複を検証する。`test/ui_language_test.py` のAppTestでブラウザー言語によらない日本語既定、言語切り替えと新規セッションでの再読み込み、旧ブックマーク・lang付きブックマーク・langのみ、取得言語の明示指定と未指定・空文字、サンプル・手動取得後のURL更新、再取得抑止、検索条件・結果・並び順保持を検証する。`test/html_parser_test.py` のインラインHTMLで日英韓中の種族形式と検索経路を、`test/ui_result_display_test.py` で各言語の結果表示を検証する。実ブラウザー・外部DBの確認はAppTestと区別してPRに記録する。

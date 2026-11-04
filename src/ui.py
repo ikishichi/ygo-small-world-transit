@@ -9,7 +9,13 @@ import streamlit as st
 from deck import Deck
 from deck_info import DeckInfo, DeckRedirectError
 from html_parser import DeckStructureError, NoMonsterError
-from i18n import resolve_language, route_count, translate
+from i18n import (
+    LANGUAGE_NAMES,
+    get_request_locale,
+    resolve_language,
+    route_count,
+    translate,
+)
 from search_result import SearchResult
 from url_resolver import (
     DeckUrlError,
@@ -21,7 +27,7 @@ from url_resolver import (
 
 logger = logging.getLogger(__name__)
 LANGUAGE = resolve_language(st.query_params.get("lang"))
-LANGUAGE_NAMES = {"ja": "日本語", "en": "English"}
+REQUEST_LOCALE = get_request_locale(LANGUAGE)
 
 
 def t(key, **values):
@@ -80,7 +86,7 @@ def show_deck_form():
 def change_language():
     """デッキ用パラメータを保ったままUIの言語指定だけを更新する。"""
     language = st.session_state["ui_language_menu"]
-    if language in {"ja", "en"} and st.query_params.get("lang") != language:
+    if language in LANGUAGE_NAMES and st.query_params.get("lang") != language:
         if "sort" in st.session_state:
             # 翻訳後の選択値をブラウザーへ再送する。
             st.session_state["sort"] = st.session_state["sort"]
@@ -123,7 +129,7 @@ st.html(
     """
 )
 home_url = "https://ygo-small-world-transit.streamlit.app/"
-if st.query_params.get("lang") in {"ja", "en"}:
+if st.query_params.get("lang") in LANGUAGE_NAMES:
     home_url += f"?lang={LANGUAGE}"
 with st.container(gap="xxsmall"):
     with st.container(horizontal=True, horizontal_alignment="right"):
@@ -140,7 +146,7 @@ with st.container(gap="xxsmall"):
             icon=":material/language:",
         )
     st.title(f"[{APP_TITLE}]({home_url})", anchor=False)
-st.caption(t("intro", locale=LANGUAGE))
+st.caption(t("intro", locale=REQUEST_LOCALE))
 
 if 'MONSTERS_DF' not in st.session_state:
     initialize_session_state()
@@ -158,7 +164,7 @@ query_params = st.query_params
 try:
     # クエリパラメータから遊戯王ニューロンのURLを構築（必須パラメータが欠ければ空文字）
     query_params_url = build_url_from_query_params(
-        query_params, default_locale=LANGUAGE
+        query_params, default_locale=REQUEST_LOCALE
     )
     if (
         st.session_state["LOADED_DECK_URL"] is not None
@@ -207,7 +213,7 @@ try:
         if sample_btn:
             input_url = (
                 "https://www.db.yugioh-card.com/yugiohdb/member_deck.action"
-                f"?cgid=c8525f77e0268f9b1ba9110a8a05bc35&dno=193&request_locale={LANGUAGE}"
+                f"?cgid=c8525f77e0268f9b1ba9110a8a05bc35&dno=193&request_locale={REQUEST_LOCALE}"
             )
             submit_btn = True
 
@@ -221,7 +227,7 @@ try:
         url = select_url(input_url, query_params_url, submit_btn)
 
         # 取得とブックマークに同じ言語の正規化済みURLを使う。
-        url = normalize_deck_url(url, default_locale=LANGUAGE)
+        url = normalize_deck_url(url, default_locale=REQUEST_LOCALE)
 
         # ソートや検索による再実行では取得済みデッキを再利用する。
         # 明示的な取得操作は、同じURLでも最新状態を読み直す。
@@ -241,11 +247,11 @@ try:
                 st.query_params["cgid"] = db_query_params["cgid"][0]
                 st.query_params["dno"] = db_query_params["dno"][0]
                 st.query_params["request_locale"] = db_query_params.get(
-                    "request_locale", [LANGUAGE]
+                    "request_locale", [REQUEST_LOCALE]
                 )[0]
                 # 入力URLに言語指定がなくても、ブックマーク側の既定値と一致させる。
                 loaded_url = build_url_from_query_params(
-                    st.query_params, default_locale=LANGUAGE
+                    st.query_params, default_locale=REQUEST_LOCALE
                 )
             else:
                 loaded_url = url
