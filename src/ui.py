@@ -125,7 +125,21 @@ st.html(
 home_url = "https://ygo-small-world-transit.streamlit.app/"
 if st.query_params.get("lang") in {"ja", "en"}:
     home_url += f"?lang={LANGUAGE}"
-st.title(f"[{APP_TITLE}]({home_url})", anchor=False)
+with st.container(gap="xxsmall"):
+    with st.container(horizontal=True, horizontal_alignment="right"):
+        st.menu_button(
+            LANGUAGE_NAMES[LANGUAGE],
+            LANGUAGE_NAMES,
+            format_func=lambda language: (
+                f"**{LANGUAGE_NAMES[language]}**"
+                if language == LANGUAGE else LANGUAGE_NAMES[language]
+            ),
+            key="ui_language_menu",
+            on_click=change_language,
+            type="tertiary",
+            icon=":material/language:",
+        )
+    st.title(f"[{APP_TITLE}]({home_url})", anchor=False)
 st.caption(t("intro", locale=LANGUAGE))
 
 if 'MONSTERS_DF' not in st.session_state:
@@ -443,16 +457,3 @@ except Exception:
 
 finally:
     st.write(t("footer"))
-    with st.container(horizontal=True, horizontal_alignment="right"):
-        st.menu_button(
-            LANGUAGE_NAMES[LANGUAGE],
-            LANGUAGE_NAMES,
-            format_func=lambda language: (
-                f"**{LANGUAGE_NAMES[language]}**"
-                if language == LANGUAGE else LANGUAGE_NAMES[language]
-            ),
-            key="ui_language_menu",
-            on_click=change_language,
-            type="tertiary",
-            icon=":material/language:",
-        )

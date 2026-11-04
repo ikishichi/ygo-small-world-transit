@@ -25,7 +25,7 @@ YouTubeで[使い方動画](https://www.youtube.com/watch?v=VVvS8u706BM&t=6s)を
 
 [日本語版](https://ygo-small-world-transit.streamlit.app/?lang=ja) / [English version](https://ygo-small-world-transit.streamlit.app/?lang=en)
 
-通常は日本語で表示され、ページ下部の地球儀アイコンのメニューから英語に切り替えられます。
+通常は日本語で表示されます。英語に切り替えるには、アプリ名の上部右側にある地球儀アイコンのメニューを使います。
 
 ## ローカルでの起動方法
 
@@ -139,4 +139,4 @@ After loading, use **Change deck** to open the URL form and load another deck or
 
 ### Language selection
 
-The app is displayed in Japanese by default. Use the language menu with the globe icon at the bottom of the page to switch to English.
+The app is displayed in Japanese by default. Use the globe icon menu at the upper right, above the app title, to switch to English.

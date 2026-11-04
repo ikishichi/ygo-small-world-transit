@@ -1,0 +1,5 @@
+[theme]
+paddingTop = "1rem"
+
+[client]
+toolbarMode = "minimal"
