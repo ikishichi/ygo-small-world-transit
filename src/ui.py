@@ -131,7 +131,7 @@ with st.container(gap="xxsmall"):
             LANGUAGE_NAMES[LANGUAGE],
             LANGUAGE_NAMES,
             format_func=lambda language: (
-                f"**{LANGUAGE_NAMES[language]}**"
+                f":red[**{LANGUAGE_NAMES[language]}**]"
                 if language == LANGUAGE else LANGUAGE_NAMES[language]
             ),
             key="ui_language_menu",
