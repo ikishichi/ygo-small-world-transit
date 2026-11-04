@@ -2,7 +2,7 @@
 
 [![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://ygo-small-world-transit.streamlit.app/)
 
-[遊戯王ニューロン](https://www.db.yugioh-card.com/yugiohdb/)の公開デッキURLから[《スモール・ワールド》](https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=2&cid=16555&request_locale=ja)のサーチ経路を検索するアプリです。
+[遊戯王ニューロン](https://www.db.yugioh-card.com/yugiohdb/)の公開デッキから[《スモール・ワールド》](https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=2&cid=16555&request_locale=ja)のサーチ経路を検索するアプリです。
 
 <div align="center">
 
