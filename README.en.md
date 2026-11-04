@@ -1,6 +1,6 @@
 # ygo-small-world-transit
 
-[Yu-Gi-Oh! Small World Transit Search](https://ygo-small-world-transit.streamlit.app/?lang=en) finds **Small World** search routes from a public deck URL on [Yu-Gi-Oh! Neuron](https://www.db.yugioh-card.com/yugiohdb/?request_locale=en).
+[Yu-Gi-Oh! Small World Transit Search](https://ygo-small-world-transit.streamlit.app/?lang=en) finds [**Small World**](https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=2&cid=16555&request_locale=en) search routes from a public deck URL on [Yu-Gi-Oh! Neuron](https://www.db.yugioh-card.com/yugiohdb/?request_locale=en).
 
 <div align="center">
 
