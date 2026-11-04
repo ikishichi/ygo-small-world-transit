@@ -36,6 +36,33 @@ LABELS = {
         "group_transit": "経由： Mathmech Sigma",
         "group_destination": "サーチ先： Dotscaper",
     },
+    "ko": {
+        "search": "경로 검색",
+        "results": "검색 결과",
+        "change": "덱 변경",
+        "load": "덱 불러오기",
+        "transit": "경유 몬스터순",
+        "destination": "패에 넣을 몬스터순",
+        "group_transit": "경유 몬스터 Mathmech Sigma",
+        "group_destination": "패에 넣을 몬스터 Dotscaper",
+    },
+    "zh-CN": {
+        "search": "查找路径",
+        "results": "查询结果",
+        "change": "更换牌组",
+        "load": "加载牌组",
+        "transit": "按中转怪兽排序",
+        "destination": "按目标怪兽排序",
+        "group_transit": "中转怪兽 Mathmech Sigma",
+        "group_destination": "目标怪兽 Dotscaper",
+    },
+}
+
+LANGUAGE_NAMES = {
+    "en": "English",
+    "ja": "日本語",
+    "ko": "한국어",
+    "zh-CN": "简体中文",
 }
 
 
@@ -114,7 +141,7 @@ def load_and_search(page, url, language):
     page.get_by_role("heading", name=labels["results"], exact=True).wait_for()
 
 
-@pytest.mark.parametrize("language", ["en", "ja"])
+@pytest.mark.parametrize("language", ["en", "ja", "ko", "zh-CN"])
 @pytest.mark.parametrize("sort", ["transit", "destination"])
 def test_language_round_trip_preserves_sort_display_and_grouping(
     browser_app, page, language, sort
@@ -124,21 +151,22 @@ def test_language_round_trip_preserves_sort_display_and_grouping(
     page.get_by_text(LABELS[language][sort], exact=True).click()
     expect(page.get_by_label(LABELS[language][sort], exact=True)).to_be_checked()
 
-    for target in ("ja" if language == "en" else "en", language):
+    current_language = language
+    for target in ("en", language) if language != "en" else ("ja", "en"):
         expect(page.get_by_test_id("stStatusWidget")).not_to_be_visible()
         language_control = page.locator(".st-key-ui_language_menu")
         language_control.scroll_into_view_if_needed()
         expect(language_control).to_be_in_viewport(ratio=1)
         language_control.get_by_role("button").click()
-        current_label = "English" if target == "ja" else "日本語"
+        current_label = LANGUAGE_NAMES[current_language]
         expect(
             page.get_by_role("menuitem", name=current_label, exact=True).locator("strong")
         ).to_have_text(current_label)
         page.get_by_role(
-            "menuitem", name="日本語" if target == "ja" else "English", exact=True
+            "menuitem", name=LANGUAGE_NAMES[target], exact=True
         ).click()
         expect(language_control.get_by_role("button")).to_contain_text(
-            "日本語" if target == "ja" else "English"
+            LANGUAGE_NAMES[target]
         )
         labels = LABELS[target]
         expect(page.get_by_label(labels[sort], exact=True)).to_be_checked()
@@ -153,9 +181,10 @@ def test_language_round_trip_preserves_sort_display_and_grouping(
         expect(page.get_by_role("combobox").nth(0)).to_have_value("Mulcharmy Fuwalos")
         expect(page.get_by_role("combobox").nth(1)).to_have_value("Dotscaper")
         expect(page.get_by_text("The widget with key", exact=False)).to_have_count(0)
+        current_language = target
 
 
-@pytest.mark.parametrize("language", ["en", "ja"])
+@pytest.mark.parametrize("language", ["en", "ja", "ko", "zh-CN"])
 def test_refresh_same_deck_clears_browser_selections(browser_app, page, language):
     _, url = browser_app
     load_and_search(page, url, language)

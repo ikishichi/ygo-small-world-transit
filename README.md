@@ -1,8 +1,8 @@
 # ygo-small-world-transit
 
-[遊戯王スモール・ワールド乗り換え検索](https://ygo-small-world-transit.streamlit.app)は、[遊戯王ニューロン](https://www.db.yugioh-card.com/yugiohdb/)の公開デッキURLから《スモール・ワールド》のサーチ経路を検索するアプリです。
+[日本語](README.md) / [English](README.en.md) / [한국어](README.ko.md) / [简体中文](README.zh-CN.md)
 
-[日本語](#ygo-small-world-transit) / [English](#english)
+[遊戯王スモール・ワールド乗り換え検索](https://ygo-small-world-transit.streamlit.app)は、[遊戯王ニューロン](https://www.db.yugioh-card.com/yugiohdb/)の公開デッキURLから《スモール・ワールド》のサーチ経路を検索するアプリです。
 
 ## 使い方
 
@@ -23,9 +23,9 @@ YouTubeで[使い方動画](https://www.youtube.com/watch?v=VVvS8u706BM&t=6s)を
 
 ## 表示言語
 
-[日本語版](https://ygo-small-world-transit.streamlit.app/?lang=ja) / [English version](https://ygo-small-world-transit.streamlit.app/?lang=en)
+[日本語](https://ygo-small-world-transit.streamlit.app/?lang=ja) / [English](https://ygo-small-world-transit.streamlit.app/?lang=en) / [한국어](https://ygo-small-world-transit.streamlit.app/?lang=ko) / [简体中文](https://ygo-small-world-transit.streamlit.app/?lang=zh-CN)
 
-通常は日本語で表示されます。英語に切り替えるには、アプリ名の上部右側にある地球儀アイコンのメニューを使います。
+通常は日本語で表示されます。言語を切り替えるには、アプリ名の上部右側にある地球儀アイコンのメニューを使います。
 
 ## ローカルでの起動方法
 
@@ -121,22 +121,3 @@ python -m pytest test/keep_alive_test.py
 ## ライセンス
 
 本プロジェクトのコードはMITライセンスで公開しています。詳細は[LICENSE.txt](LICENSE.txt)を参照してください。
-
-## English
-
-[Japanese (default)](https://ygo-small-world-transit.streamlit.app/) · [Open the app in English](https://ygo-small-world-transit.streamlit.app/?lang=en)
-
-Find **Small World** search routes using a public deck from the [Yu-Gi-Oh! Card Database / NEURON](https://www.db.yugioh-card.com/yugiohdb/?request_locale=en). The app lists possible bridges and destinations, and explains which monster property matches at each step.
-
-### How to use
-
-1. Paste the public deck URL shown at the top of its deck page and select **Load deck**, or select **Try a sample** on the initial screen.
-2. Select a monster to reveal from your hand. Optionally select a destination; leave it empty to find all reachable destinations in the loaded deck.
-3. Select **Find routes**. Results are grouped by destination. Use **Sort by bridge** to group by bridge instead.
-4. Open **Show matching properties** to see each hand → bridge → destination route and its matching properties.
-
-After loading, use **Change deck** to open the URL form and load another deck or refresh the current one. Bookmark the page after loading to load the same deck next time. Search selections and results are not saved.
-
-### Language selection
-
-The app is displayed in Japanese by default. Use the globe icon menu at the upper right, above the app title, to switch to English.

@@ -766,3 +766,64 @@ def test_japanese_and_english_decks_produce_equivalent_routes():
         }
     ]
     pd.testing.assert_frame_equal(en_routes.replace(replacements), ja_routes)
+
+
+@pytest.mark.parametrize(
+    "replacements, expected_species",
+    [
+        ({
+            "Mulcharmy Fuwalos": "시작 몬스터",
+            "Mathmech Sigma": "경유 몬스터",
+            "Dotscaper": "목표 몬스터",
+            "WIND": "바람",
+            "LIGHT": "빛",
+            "EARTH": "땅",
+            "Winged Beast": "비행야수족",
+            "Cyberse": "사이버스족",
+            "Level ": "레벨 ",
+            "ATK ": "공격력 ",
+            "DEF ": "수비력 ",
+            "Tuner": "튜너",
+            "Effect": "효과",
+        }, ["비행야수족", "사이버스족", "사이버스족"]),
+        ({
+            "Mulcharmy Fuwalos": "起点怪兽",
+            "Mathmech Sigma": "中转怪兽",
+            "Dotscaper": "目标怪兽",
+            "WIND": "风属性",
+            "LIGHT": "光属性",
+            "EARTH": "地属性",
+            "Winged Beast": "鸟兽族",
+            "Cyberse": "电子界族",
+            "Level ": "等级 ",
+            "Tuner": "调整",
+            "Effect": "效果",
+        }, ["鸟兽族", "电子界族", "电子界族"]),
+    ],
+)
+def test_korean_and_chinese_decks_produce_equivalent_routes(
+    replacements, expected_species
+):
+    """韓国語・簡体字の種族形式とUTF-8取得データで検索経路を検証する。"""
+    import pandas as pd
+    from src.search_result import SearchResult
+
+    html = ENGLISH_DECK_HTML
+    for original, translated in replacements.items():
+        html = html.replace(original, translated)
+    # 公式DBで確認した [ 種族 / 効果 ] 形式（2026-11-04）。
+    html = '<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">' + html
+    localized = pd.DataFrame(HtmlParser(html.encode("utf-8")).generate_monsters())
+    assert localized["type"].tolist() == expected_species
+    assert localized["level"].tolist() == [
+        (replacements["Level "] + level).replace(" ", "")
+        for level in ("4", "4", "1")
+    ]
+    origin = replacements["Mulcharmy Fuwalos"]
+    destination = replacements["Dotscaper"]
+    routes = SearchResult(localized, origin, destination).get()
+    assert routes.to_dict("records") == [{
+        "origin": origin,
+        "transit": replacements["Mathmech Sigma"],
+        "dest": destination,
+    }]
