@@ -134,8 +134,7 @@ database "遊戯王ニューロン" as db
     user --> ui : デッキ取得またはStreamlit再実行
     ui --> ui : 初回のsession_state初期化・既存セッションのキャッシュキー補完
     ui --> ui : 有効なlang指定・日本語の順で表示言語を決定
-    ui --> user : タイトルの上に右寄せの言語メニューを表示（変更時はlangのみ更新）
-    ui --> user : タイトル上部右側に言語メニュー、直下にアプリタイトル（縦並びgap=xxsmall）
+    ui --> user : 右寄せの言語メニューと直下のタイトルを表示（gap=xxsmall、選択時はlangのみ更新）
     ui --> ur : build_url_from_query_params(query_params, default_locale)
     ur --> ui : クエリパラメータ由来のURL（言語未指定は表示言語）
     opt デッキ用パラメータが取得成功時と同じ
@@ -281,8 +280,7 @@ Deck ..> HtmlParser : HTMLから情報抽出
 start
 :session_state初期化またはキャッシュキー補完;
 :有効なlang指定・日本語の順で表示言語決定;
-:タイトルの上に右寄せの言語メニューを表示;
-:タイトル上部右側に言語メニュー、直下にアプリタイトル（縦並びgap=xxsmall）;
+:右寄せの言語メニューと直下のタイトルを表示（gap=xxsmall）;
 :クエリパラメータからURLを構築\nデッキ用パラメータが取得成功時と同じなら取得済みURLを再利用;
 if (SHOW_DECK_FORMがTrue?) then (はい)
     :URL入力フォーム表示\nデッキ識別用パラメータなし・未取得ならサンプルボタンも表示;
