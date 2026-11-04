@@ -40,10 +40,21 @@ jobs:
           cp requirements.txt "$SCAN_REPORT_DIR/requirements.txt"
           cp .trivyignore "$SCAN_REPORT_DIR/trivyignore.txt"
       - name: Install Trivy
-        uses: aquasecurity/setup-trivy@81e514348e19b6112ce2a7e3ecbafe19c1e1f567 # v0.3.1
-        with:
-          version: v0.76.1
-          cache: false
+        shell: bash
+        env:
+          # バージョンを更新するときは公式リリースのSHA-256も更新する。
+          TRIVY_VERSION: "0.76.1"
+          TRIVY_SHA256: c7cbe3137fb8a48a17574bede3dd6beb16742d1e9772929940fc90082c39d9c0
+        run: |
+          install_dir="$(mktemp -d "$RUNNER_TEMP/trivy.XXXXXX")"
+          archive="trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz"
+          cd "$install_dir"
+          curl --fail --silent --show-error --location --retry 3 \
+            --output "$archive" \
+            "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/${archive}"
+          printf '%s  %s\n' "$TRIVY_SHA256" "$archive" | sha256sum --check
+          tar -xzf "$archive" trivy
+          printf '%s\n' "$install_dir" >> "$GITHUB_PATH"
       - name: Scan locked dependencies
         id: scan
         working-directory: ${{ runner.temp }}
