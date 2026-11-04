@@ -1,12 +1,14 @@
+# ygo-small-world-transit
+
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://ygo-small-world-transit.streamlit.app/?lang=ko)
+
+[유희왕 뉴런](https://www.db.yugioh-card.com/yugiohdb/?request_locale=ko)의 공개 덱에서 [**스몰 월드**](https://www.db.yugioh-card.com/yugiohdb/card_search.action?ope=2&cid=16555&request_locale=ko) 서치 경로를 찾는 앱입니다.
+
 <div align="center">
 
 [日本語](README.md) | [English](README.en.md) | **한국어** | [简体中文](README.zh-CN.md)
 
 </div>
-
-# ygo-small-world-transit
-
-[유희왕 스몰 월드 경로 검색](https://ygo-small-world-transit.streamlit.app/?lang=ko)은 [유희왕 뉴런](https://www.db.yugioh-card.com/yugiohdb/?request_locale=ko)의 공개 덱 URL에서 **스몰 월드** 서치 경로를 찾는 앱입니다.
 
 ## 사용 방법
 
