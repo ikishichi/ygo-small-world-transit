@@ -1,6 +1,10 @@
-# ygo-small-world-transit
+<div align="center">
 
-[日本語](README.md) / [English](README.en.md) / [한국어](README.ko.md) / [简体中文](README.zh-CN.md)
+[日本語](README.md) | **English** | [한국어](README.ko.md) | [简体中文](README.zh-CN.md)
+
+</div>
+
+# ygo-small-world-transit
 
 [Yu-Gi-Oh! Small World Transit Search](https://ygo-small-world-transit.streamlit.app/?lang=en) finds **Small World** search routes from a public deck URL on [Yu-Gi-Oh! Neuron](https://www.db.yugioh-card.com/yugiohdb/?request_locale=en).
 

@@ -1,6 +1,10 @@
-# ygo-small-world-transit
+<div align="center">
 
-[日本語](README.md) / [English](README.en.md) / [한국어](README.ko.md) / [简体中文](README.zh-CN.md)
+**日本語** | [English](README.en.md) | [한국어](README.ko.md) | [简体中文](README.zh-CN.md)
+
+</div>
+
+# ygo-small-world-transit
 
 [遊戯王スモール・ワールド乗り換え検索](https://ygo-small-world-transit.streamlit.app)は、[遊戯王ニューロン](https://www.db.yugioh-card.com/yugiohdb/)の公開デッキURLから《スモール・ワールド》のサーチ経路を検索するアプリです。
 
