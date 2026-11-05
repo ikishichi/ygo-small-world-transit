@@ -359,8 +359,6 @@ try:
                 )
 
             monsters_df = st.session_state["MONSTERS_DF"]
-            group_label = t("destination") if group_by_destination else t("bridge")
-            candidate_label = t("bridge") if group_by_destination else t("destination")
             group_field = "dest" if group_by_destination else "transit"
             candidate_field = "transit" if group_by_destination else "dest"
 
@@ -390,19 +388,27 @@ try:
                     display_card_name(getattr(route, candidate_field))
                     for route in routes
                 ))
+                group_name = display_card_name(route_group["name"])
+                candidate_summary = " / ".join(candidate_names)
+                transit_names = (
+                    candidate_summary if group_by_destination else group_name
+                )
+                destination_names = (
+                    group_name if group_by_destination else candidate_summary
+                )
                 with st.container(border=True):
                     st.markdown(
                         t(
                             "group_summary",
-                            label=group_label,
-                            names=display_card_name(route_group["name"]),
+                            label=t("bridge"),
+                            names=transit_names,
                         )
                     )
                     st.markdown(
                         t(
                             "group_summary",
-                            label=candidate_label,
-                            names=" / ".join(candidate_names),
+                            label=t("destination"),
+                            names=destination_names,
                         )
                     )
                     st.caption(route_count(len(routes), LANGUAGE))

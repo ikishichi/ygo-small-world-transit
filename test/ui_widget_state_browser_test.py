@@ -21,8 +21,8 @@ LABELS = {
         "results": "Search results",
         "change": "Change deck",
         "load": "Load deck",
-        "transit": "Sort by bridge",
-        "destination": "Sort by destination",
+        "transit": "Group by bridge",
+        "destination": "Group by destination",
         "group_transit": "Bridge: Mathmech Sigma",
         "group_destination": "Destination: Dotscaper",
     },
@@ -31,8 +31,8 @@ LABELS = {
         "results": "検索結果",
         "change": "デッキを変更",
         "load": "デッキ取得",
-        "transit": "経由でソート",
-        "destination": "サーチ先でソート",
+        "transit": "経由でまとめる",
+        "destination": "サーチ先でまとめる",
         "group_transit": "経由： Mathmech Sigma",
         "group_destination": "サーチ先： Dotscaper",
     },
@@ -41,8 +41,8 @@ LABELS = {
         "results": "검색 결과",
         "change": "덱 변경",
         "load": "덱 불러오기",
-        "transit": "경유 몬스터순",
-        "destination": "패에 넣을 몬스터순",
+        "transit": "경유 몬스터별로 묶기",
+        "destination": "패에 넣을 몬스터별로 묶기",
         "group_transit": "경유 몬스터 Mathmech Sigma",
         "group_destination": "패에 넣을 몬스터 Dotscaper",
     },
@@ -51,8 +51,8 @@ LABELS = {
         "results": "查询结果",
         "change": "更换牌组",
         "load": "加载牌组",
-        "transit": "按中转怪兽排序",
-        "destination": "按目标怪兽排序",
+        "transit": "按中转怪兽分组",
+        "destination": "按目标怪兽分组",
         "group_transit": "中转怪兽 Mathmech Sigma",
         "group_destination": "目标怪兽 Dotscaper",
     },
@@ -174,10 +174,10 @@ def test_language_round_trip_preserves_sort_display_and_grouping(
         summaries = page.locator(
             '[data-testid="stMarkdownContainer"]'
         ).all_text_contents()
-        # グループ見出しと候補行の順序も、選択したソートに従う。
+        # ソート軸や表示言語によらず、経由の行をサーチ先の行より先に表示する。
         bridge_index = summaries.index(labels["group_transit"])
         destination_index = summaries.index(labels["group_destination"])
-        assert (bridge_index < destination_index) == (sort == "transit")
+        assert bridge_index < destination_index
         expect(page.get_by_role("combobox").nth(0)).to_have_value("Mulcharmy Fuwalos")
         expect(page.get_by_role("combobox").nth(1)).to_have_value("Dotscaper")
         expect(page.get_by_text("The widget with key", exact=False)).to_have_count(0)
