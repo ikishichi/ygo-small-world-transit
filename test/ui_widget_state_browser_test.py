@@ -174,10 +174,10 @@ def test_language_round_trip_preserves_sort_display_and_grouping(
         summaries = page.locator(
             '[data-testid="stMarkdownContainer"]'
         ).all_text_contents()
-        # グループ見出しと候補行の順序も、選択したソートに従う。
+        # ソート軸や表示言語によらず、経由の行をサーチ先の行より先に表示する。
         bridge_index = summaries.index(labels["group_transit"])
         destination_index = summaries.index(labels["group_destination"])
-        assert (bridge_index < destination_index) == (sort == "transit")
+        assert bridge_index < destination_index
         expect(page.get_by_role("combobox").nth(0)).to_have_value("Mulcharmy Fuwalos")
         expect(page.get_by_role("combobox").nth(1)).to_have_value("Dotscaper")
         expect(page.get_by_text("The widget with key", exact=False)).to_have_count(0)

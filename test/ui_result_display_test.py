@@ -320,12 +320,13 @@ def test_grouping_follows_selected_sort_for_interleaved_candidates(app):
 
     assert not app.exception
     assert not app.error
-    assert group_summary_events() == [
-        "**サーチ先：** R－ACEインパルス",
+    expected_destination_summaries = [
         "**経由：** R－ACEタービュランス",
-        "**サーチ先：** 俱利伽羅天童",
+        "**サーチ先：** R－ACEインパルス",
         "**経由：** R－ACEエアホイスター / R－ACEプリベンター",
+        "**サーチ先：** 俱利伽羅天童",
     ]
+    assert group_summary_events() == expected_destination_summaries
 
     app.radio[0].set_value("transit").run()
 
@@ -353,6 +354,12 @@ def test_grouping_follows_selected_sort_for_interleaved_candidates(app):
             FLAME_MATCH, FLAME_MATCH,
         )
     )
+
+    app.radio[0].set_value("destination").run()
+
+    assert not app.exception
+    assert not app.error
+    assert group_summary_events() == expected_destination_summaries
 
 
 def test_search_results_recover_after_empty_search(app, monsters_df):
