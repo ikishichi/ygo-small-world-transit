@@ -224,7 +224,7 @@ def test_switch_preserves_search_selections_results_sort_and_title(app_factory, 
     page_config.assert_called_with(
         page_title=f"{deck_name} | Yu-Gi-Oh! Small World Transit Search"
     )
-    assert app.radio[0].options == ["Sort by bridge", "Sort by destination"]
+    assert app.radio[0].options == ["Group by bridge", "Group by destination"]
     get.assert_called_once()
 
 

@@ -16,7 +16,7 @@ See the [usage video on YouTube](https://www.youtube.com/watch?v=VVvS8u706BM&t=6
 
 1. Paste the public deck URL shown at the top of its deck page and select **Load deck**, or select **Try a sample** on the initial screen.
 2. Select a monster to reveal from your hand. Optionally select a destination. Leave it empty to find every reachable destination in the loaded deck.
-3. Select **Find routes**. Results are grouped by destination. Use **Sort by bridge** to group them by bridge instead.
+3. Select **Find routes**. Results are grouped by destination. Use **Group by bridge** to group them by bridge instead.
 4. Open **Show matching properties** to see each hand → bridge → destination route and the matching property at each step.
 
 After loading, use **Change deck** to open the URL form and load another deck or refresh the current one. Bookmark the page after loading to load the same deck next time. Search selections and results are not saved.
