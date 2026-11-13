@@ -22,8 +22,6 @@ click==8.5.0
     # via
     #   streamlit
     #   uvicorn
-colorama==0.4.6 ; sys_platform == 'win32'
-    # via pytest
 h11==0.16.0
     # via uvicorn
 idna==3.20
@@ -101,7 +99,7 @@ rpds-py==2026.9.1
     #   referencing
 six==1.17.0
     # via python-dateutil
-soupsieve==3.0.4
+soupsieve==4.0
     # via beautifulsoup4
 starlette==1.10.0
     # via streamlit
@@ -109,21 +107,15 @@ streamlit==1.66.1
     # via -r requirements.in
 typing-extensions==4.16.0
     # via
-    #   altair
-    #   anyio
     #   beautifulsoup4
-    #   referencing
-    #   starlette
     #   streamlit
 tzdata==2026.5
-    # via
-    #   pandas
-    #   python-dateutil
+    # via python-dateutil
 urllib3==2.8.0
     # via requests
 uvicorn==0.54.0
     # via streamlit
-watchdog==6.0.0 ; sys_platform != 'darwin'
+watchdog==6.0.0
     # via streamlit
 websockets==17.3
     # via streamlit
