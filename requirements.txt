@@ -101,7 +101,7 @@ rpds-py==2026.9.1
     #   referencing
 six==1.17.0
     # via python-dateutil
-soupsieve==3.0.4
+soupsieve==4.0
     # via beautifulsoup4
 starlette==1.10.0
     # via streamlit
